@@ -1,0 +1,85 @@
+/* Auth section styling */
+.auth-section {
+  background-color: #FFFFFF;
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(6, 182, 212, 0.05) 0%, transparent 20%),
+    radial-gradient(circle at 90% 80%, rgba(8, 145, 178, 0.05) 0%, transparent 20%);
+}
+
+/* Card hover effect */
+.auth-card {
+  position: relative;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 0 2px rgba(8, 145, 178, 0.3);
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+}
+
+.auth-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 10px 25px -5px rgba(8, 145, 178, 0.2),
+    0 5px 10px -5px rgba(6, 182, 212, 0.1),
+    0 0 0 3px rgba(8, 145, 178, 0.5);
+}
+
+/* Fix for any potential Card component background */
+.auth-card > * {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+}
+
+/* Style for all text in the auth card */
+.auth-card label,
+.auth-card p,
+.auth-card span,
+.auth-card input {
+  color: #000000 !important;
+}
+
+/* Input glow effect */
+.input-glow:focus {
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2);
+  border-color: #06B6D4 !important;
+  outline: none;
+  color: #000000 !important;
+}
+
+/* Card title animation */
+.auth-title {
+  background-size: 200% auto;
+  animation: textShine 3s ease-in-out infinite alternate;
+}
+
+/* Card decoration animation */
+.card-decoration {
+  animation: pulse 2s infinite;
+}
+
+/* Gradient button animation */
+.gradient-button {
+  background-size: 200% auto;
+  transition: all 0.3s ease;
+}
+
+.gradient-button:hover {
+  background-position: right center;
+}
+
+@keyframes textShine {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
