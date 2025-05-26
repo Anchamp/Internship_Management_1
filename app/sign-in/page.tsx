@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -13,22 +13,41 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import { Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
 import Cookies from "js-cookie";
 import { toast } from "sonner";
-import { ArrowLeft } from "lucide-react";
 import "../auth.css";
 
+const useSuppressionKey = () => {
+  useEffect(() => {
+    return () => {
+      // Cleanup function (empty in this case)
+    };
+  }, []);
+};
+
 export default function SignIn() {
+  useSuppressionKey();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
+
+  // Run once when component mounts on client
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
+
+    // Show loading toast
+    const loadingToast = toast.loading("Signing in...");
 
     try {
       const res = await fetch("/api/login", {
@@ -44,22 +63,75 @@ export default function SignIn() {
       localStorage.setItem("token", data.token);
       Cookies.set("token", data.token, { expires: 1 }); // Expires in 1 day
 
-      // Store user info in localStorage
+      // Store user info in localStorage including the role
       const userData = {
         email: data.email,
         userId: data.userId,
+        role: data.role, // Store user role
+        username: data.username,
       };
       localStorage.setItem("user", JSON.stringify(userData));
 
-      router.push("/home"); // Redirect to home after login
+      // Dismiss loading toast and show success
+      toast.dismiss(loadingToast);
+      toast.success(`Welcome back, ${data.username}!`);
+
+      // Redirect based on role
+      switch (data.role) {
+        case "intern":
+          router.push("/dashboard/intern");
+          break;
+        case "mentor":
+          router.push("/dashboard/mentor");
+          break;
+        case "panelist":
+          router.push("/dashboard/panelist");
+          break;
+        case "admin":
+          router.push("/dashboard/admin");
+          break;
+        default:
+          router.push("/home"); // Fallback route
+      }
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "An unknown error occurred";
       setError(errorMessage);
+
+      // Dismiss loading toast and show error
+      toast.dismiss(loadingToast);
+      toast.error("Sign in failed", { description: errorMessage });
     } finally {
       setIsLoading(false);
     }
   };
+
+  // If not mounted yet (during server rendering or hydration),
+  // return a simplified version of the component
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen flex flex-col relative bg-white auth-section">
+        <div className="flex flex-col items-center justify-center flex-grow p-4 relative z-10">
+          <Card className="auth-card w-full max-w-md shadow-lg bg-white text-black relative">
+            <CardHeader className="space-y-1 text-center pb-6 bg-white relative z-30">
+              <CardTitle className="auth-title text-4xl font-bold bg-gradient-to-r from-[#06B6D4] to-[#0891B2] text-transparent bg-clip-text">
+                Welcome back
+              </CardTitle>
+              <CardDescription className="text-sm">
+                Sign in to your account to continue
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Simplified loading state */}
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col relative bg-white auth-section">
@@ -147,24 +219,44 @@ export default function SignIn() {
                 >
                   Password
                 </label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isLoading}
-                  className="input-glow bg-white !border-2 !border-black focus:!border-black focus:ring-black/20 !text-black placeholder:text-gray-500 relative z-40"
-                  style={{
-                    color: "black",
-                    backgroundColor: "white",
-                    borderColor: "black",
-                    borderWidth: "2px",
-                    position: "relative",
-                    zIndex: 40,
-                  }}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
+                    className="input-glow bg-white !border-2 !border-black focus:!border-black focus:ring-black/20 !text-black placeholder:text-gray-500 relative z-40 !pr-12"
+                    style={{
+                      color: "black",
+                      backgroundColor: "white",
+                      borderColor: "black",
+                      borderWidth: "2px",
+                      position: "relative",
+                      zIndex: 40,
+                      paddingRight: "3rem",
+                    }}
+                  />
+                  <div
+                    className="absolute inset-y-0 right-0 flex items-center pr-3"
+                    style={{ zIndex: 60 }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="text-gray-500 hover:text-[#0891B2] transition-colors focus:outline-none"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center justify-between">
@@ -192,10 +284,24 @@ export default function SignIn() {
 
               <Button
                 type="submit"
-                className="gradient-button w-full bg-gradient-to-r from-[#06B6D4] to-[#0891B2] hover:opacity-90 text-white font-bold py-2 shadow-md hover:shadow-lg transition-all duration-300"
+                className="gradient-button w-full bg-gradient-to-r from-[#06B6D4] to-[#0891B2] hover:opacity-90 text-white font-bold py-2 shadow-md hover:shadow-lg transition-all duration-300 relative"
                 disabled={isLoading}
               >
-                {isLoading ? "Signing in..." : "Sign in"}
+                {isLoading ? (
+                  <span className="flex items-center justify-center">
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                    Signing in...
+                  </span>
+                ) : (
+                  "Sign in"
+                )}
+
+                {/* Animated background for loading state */}
+                {isLoading && (
+                  <div className="absolute inset-0 w-full h-full overflow-hidden rounded">
+                    <div className="absolute left-0 top-0 h-full bg-white/20 animate-progress"></div>
+                  </div>
+                )}
               </Button>
             </form>
           </CardContent>
