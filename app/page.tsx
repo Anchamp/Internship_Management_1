@@ -20,14 +20,58 @@ import {
 export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showSignInPopup, setShowSignInPopup] = useState(false);
+
   // Tilt effect state
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [isHovering, setIsHovering] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
+  // Enhanced popup logic to work for both new users and page refreshes
   useEffect(() => {
     setMounted(true);
+
+    // Track last time popup was shown using a timestamp
+    const lastPopupTimestamp = localStorage.getItem("lastPopupTimestamp");
+    const currentTime = new Date().getTime();
+    const popupCooldown = 60 * 60 * 1000; // 1 hour in milliseconds
+
+    // Show popup if:
+    // 1. User has never seen it before (no timestamp)
+    // 2. Cooldown period has elapsed since last shown
+    const shouldShowPopup =
+      !lastPopupTimestamp ||
+      currentTime - parseInt(lastPopupTimestamp) > popupCooldown;
+
+    if (shouldShowPopup) {
+      // Set timeout to show the popup after 5 seconds
+      const timer = setTimeout(() => {
+        setShowSignInPopup(true);
+
+        // Update the timestamp when popup is shown
+        localStorage.setItem("lastPopupTimestamp", currentTime.toString());
+      }, 5000);
+
+      // Clear timeout on unmount
+      return () => clearTimeout(timer);
+    }
   }, []);
+
+  // Close popup function - added option to prevent future popups
+  const closePopup = (rememberChoice = false) => {
+    setShowSignInPopup(false);
+
+    // If user wants to prevent future popups, set a longer cooldown
+    if (rememberChoice) {
+      const currentTime = new Date().getTime();
+      // Set a very long cooldown (e.g., 30 days)
+      const longCooldown = 30 * 24 * 60 * 60 * 1000;
+      localStorage.setItem(
+        "lastPopupTimestamp",
+        (currentTime + longCooldown).toString()
+      );
+    }
+  };
 
   // Handle mouse movement for tilt effect
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -61,60 +105,100 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-gray-900 overflow-x-hidden font-sans">
-      <style jsx global>{`
-        /* Hide scrollbar for Chrome, Safari and Opera */
-        ::-webkit-scrollbar {
-          display: none;
-        }
+      {/* Sign-In Popup - enhanced with "Don't show again" option */}
+      {showSignInPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full m-4 transform transition-all animate-fadeIn overflow-hidden">
+            <div className="p-6 border-b border-cyan-100">
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center space-x-2">
+                  <div className="h-7 w-7 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md shadow-cyan-500/20">
+                    <ClipboardList className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="font-bold text-base bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-cyan-700">
+                    InternshipHub
+                  </span>
+                </div>
+                <button
+                  onClick={() => closePopup(false)}
+                  className="p-1 rounded-full hover:bg-gray-100 text-gray-500"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <h2 className="text-xl font-bold mb-1">
+                Welcome to InternshipHub!
+              </h2>
+              <p className="text-gray-600 text-sm mb-4">
+                Sign in to start managing your internship program effectively.
+              </p>
+            </div>
 
-        /* Hide scrollbar for IE, Edge and Firefox */
-        html {
-          -ms-overflow-style: none; /* IE and Edge */
-          scrollbar-width: none; /* Firefox */
-        }
+            <div className="p-6 space-y-6">
+              <div className="space-y-4">
+                <Link
+                  href="/sign-in"
+                  className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white py-3 px-4 rounded-lg font-medium flex items-center justify-center transition-all text-base shadow-md shadow-cyan-500/20"
+                >
+                  Sign In
+                </Link>
 
-        body {
-          background-color: #ffffff;
-          color: #1f2937;
-        }
+                <div className="text-center">
+                  <span className="text-sm text-gray-500">
+                    Don't have an account?
+                  </span>
+                </div>
 
-        /* Add subtle animations */
-        @keyframes float {
-          0% {
-            transform: translateY(0px);
-          }
-          50% {
-            transform: translateY(-10px);
-          }
-          100% {
-            transform: translateY(0px);
-          }
-        }
+                <Link
+                  href="/sign-up"
+                  className="w-full bg-white text-gray-900 py-3 px-4 rounded-lg font-medium flex items-center justify-center transition-all text-base border border-gray-300 hover:bg-gray-50"
+                >
+                  Create Account
+                </Link>
+              </div>
 
-        @keyframes pulse {
-          0% {
-            box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.4);
-          }
-          70% {
-            box-shadow: 0 0 0 10px rgba(14, 165, 233, 0);
-          }
-          100% {
-            box-shadow: 0 0 0 0 rgba(14, 165, 233, 0);
-          }
-        }
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <input
+                    id="remember-choice"
+                    type="checkbox"
+                    className="h-4 w-4 text-cyan-600 focus:ring-cyan-500 border-gray-300 rounded"
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        closePopup(true);
+                      }
+                    }}
+                  />
+                  <label
+                    htmlFor="remember-choice"
+                    className="ml-2 block text-sm text-gray-500"
+                  >
+                    Don't show again
+                  </label>
+                </div>
 
-        @keyframes gradientMove {
-          0% {
-            background-position: 0% 50%;
-          }
-          50% {
-            background-position: 100% 50%;
-          }
-          100% {
-            background-position: 0% 50%;
-          }
-        }
-      `}</style>
+                <button
+                  onClick={() => closePopup(false)}
+                  className="text-sm text-cyan-600 hover:text-cyan-700 font-medium"
+                >
+                  Not now
+                </button>
+              </div>
+
+              <div className="text-center text-xs text-gray-500">
+                By signing in, you agree to our{" "}
+                <Link href="#" className="text-cyan-600 hover:underline">
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link href="#" className="text-cyan-600 hover:underline">
+                  Privacy Policy
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Navigation Bar */}
       <header className="border-b border-cyan-200 bg-white/80 sticky top-0 z-50 backdrop-blur-lg shadow-sm">

@@ -3,12 +3,10 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  BarChart,
   Building,
   Calendar,
   Home,
   LogOut,
-  PieChart,
   Settings,
   Shield,
   User,
@@ -17,6 +15,9 @@ import {
   Menu,
   ClipboardList,
 } from "lucide-react";
+import AdminDashboardScreen from "./dashboardscreen";
+import AdminProfile from "./profile";
+import OnboardingScreen from "./onboarding";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function AdminDashboard() {
   const [organizationName, setOrganizationName] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>("dashboard");
 
   // Auto-collapse sidebar on small screens
   useEffect(() => {
@@ -37,11 +39,7 @@ export default function AdminDashboard() {
 
     // Set initial state based on screen size
     handleResize();
-
-    // Add event listener
     window.addEventListener("resize", handleResize);
-
-    // Cleanup
     return () => {
       window.removeEventListener("resize", handleResize);
     };
@@ -56,7 +54,6 @@ export default function AdminDashboard() {
         const userData = localStorage.getItem("user");
 
         if (!userData) {
-          // No user data found, redirect to login
           router.push("/sign-in");
           return;
         }
@@ -65,38 +62,30 @@ export default function AdminDashboard() {
 
         // Check if user is an admin
         if (user.role !== "admin") {
-          // User is not an admin, redirect to appropriate dashboard
           router.push(`/dashboard/${user.role}`);
           return;
         }
 
-        setUsername(user.username || "Admin");
-
-        // Fetch organization details
+        // Try to fetch from API first
         try {
-          // Get token from localStorage
-          const token = localStorage.getItem("token");
-
-          if (!token) {
-            throw new Error("No authentication token found");
-          }
-
-          const res = await fetch("/api/organization", {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-
-          if (res.ok) {
-            const orgData = await res.json();
-            setOrganizationName(orgData.name || "Your Organization");
+          const response = await fetch(`/api/users/${user.username}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.user) {
+              setUsername(data.user.username || "Admin");
+              setOrganizationName(
+                data.user.organizationName || "Your Organization"
+              );
+            }
           } else {
-            // If API call fails, use organization name from user data if available
+            // Fallback to localStorage data
+            setUsername(user.username || "Admin");
             setOrganizationName(user.organizationName || "Your Organization");
           }
-        } catch (err) {
-          console.error("Error fetching organization:", err);
-          // Fallback to organization name from user data if available
+        } catch (apiError) {
+          console.warn("Couldn't fetch latest user data:", apiError);
+          // Fallback to localStorage data
+          setUsername(user.username || "Admin");
           setOrganizationName(user.organizationName || "Your Organization");
         }
       } catch (error) {
@@ -111,18 +100,18 @@ export default function AdminDashboard() {
   }, [router]);
 
   const handleLogout = () => {
-    // Clear authentication data
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-
-    // Redirect to sign-in page
     router.push("/sign-in");
   };
 
-  // Toggle sidebar collapse state
   const toggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
+  };
+
+  const handleNavigation = (tab: string) => {
+    setActiveTab(tab);
   };
 
   if (isLoading) {
@@ -163,63 +152,136 @@ export default function AdminDashboard() {
           <nav className="space-y-1">
             <a
               href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("dashboard");
+              }}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md bg-cyan-50 text-cyan-600 font-medium text-sm`}
+              } p-2 rounded-md ${
+                activeTab === "dashboard"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
             >
               <Home className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Dashboard</span>}
             </a>
             <a
               href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("users");
+              }}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md hover:bg-gray-50 text-gray-700 font-medium text-sm`}
+              } p-2 rounded-md ${
+                activeTab === "users"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
             >
               <Users className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Users</span>}
             </a>
             <a
               href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("onboarding");
+              }}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md hover:bg-gray-50 text-gray-700 font-medium text-sm`}
+              } p-2 rounded-md ${
+                activeTab === "onboarding"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
             >
               <UserPlus className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Onboarding</span>}
             </a>
             <a
               href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("organization");
+              }}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md hover:bg-gray-50 text-gray-700 font-medium text-sm`}
+              } p-2 rounded-md ${
+                activeTab === "organization"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
             >
               <Building className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Organization</span>}
             </a>
             <a
               href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("programs");
+              }}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md hover:bg-gray-50 text-gray-700 font-medium text-sm`}
+              } p-2 rounded-md ${
+                activeTab === "programs"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
             >
               <Calendar className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Programs</span>}
             </a>
             <a
               href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("permissions");
+              }}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md hover:bg-gray-50 text-gray-700 font-medium text-sm`}
+              } p-2 rounded-md ${
+                activeTab === "permissions"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
             >
               <Shield className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Permissions</span>}
             </a>
             <a
               href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("profile");
+              }}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md hover:bg-gray-50 text-gray-700 font-medium text-sm`}
+              } p-2 rounded-md ${
+                activeTab === "profile"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
+            >
+              <User className="h-4 w-4" />
+              {!isSidebarCollapsed && <span>My Profile</span>}
+            </a>
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("settings");
+              }}
+              className={`flex items-center ${
+                isSidebarCollapsed ? "justify-center" : "space-x-3"
+              } p-2 rounded-md ${
+                activeTab === "settings"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
             >
               <Settings className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Settings</span>}
@@ -264,7 +326,7 @@ export default function AdminDashboard() {
         ></div>
       )}
 
-      {/* Main content - with reduced sizes */}
+      {/* Main content */}
       <div className="flex-1 overflow-auto w-full">
         <header className="bg-white shadow-sm sticky top-0 z-10">
           <div className="p-3 sm:p-4 flex flex-wrap justify-between items-center gap-2">
@@ -277,7 +339,11 @@ export default function AdminDashboard() {
               </button>
               <div>
                 <h1 className="text-lg sm:text-xl font-bold text-black">
-                  Admin Dashboard
+                  {activeTab === "dashboard"
+                    ? "Admin Dashboard"
+                    : activeTab === "profile"
+                    ? "My Profile"
+                    : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-500">
                   {organizationName}
@@ -295,120 +361,44 @@ export default function AdminDashboard() {
         </header>
 
         <main className="p-3 sm:p-4">
-          {/* Dashboard Content - with reduced sizes */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
-            <div className="bg-white rounded-md shadow p-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-gray-500 text-xs">Total Users</p>
-                  <h3 className="text-lg font-bold">34</h3>
-                </div>
-                <span className="bg-cyan-100 p-1.5 rounded-md">
-                  <Users className="h-4 w-4 text-cyan-600" />
-                </span>
-              </div>
+          {activeTab === "dashboard" && <AdminDashboardScreen />}
+          {activeTab === "profile" && <AdminProfile inDashboard={true} />}
+          {activeTab === "onboarding" && <OnboardingScreen />}
+          {activeTab === "users" && (
+            <div className="p-4 bg-white rounded-md shadow">
+              <p className="text-lg font-medium">
+                Users management coming soon
+              </p>
             </div>
-
-            <div className="bg-white rounded-md shadow p-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-gray-500 text-xs">Active Interns</p>
-                  <h3 className="text-lg font-bold">18</h3>
-                </div>
-                <span className="bg-green-100 p-1.5 rounded-md">
-                  <User className="h-4 w-4 text-green-600" />
-                </span>
-              </div>
+          )}
+          {activeTab === "organization" && (
+            <div className="p-4 bg-white rounded-md shadow">
+              <p className="text-lg font-medium">
+                Organization management coming soon
+              </p>
             </div>
-
-            <div className="bg-white rounded-md shadow p-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-gray-500 text-xs">Programs</p>
-                  <h3 className="text-lg font-bold">5</h3>
-                </div>
-                <span className="bg-amber-100 p-1.5 rounded-md">
-                  <Calendar className="h-4 w-4 text-amber-600" />
-                </span>
-              </div>
+          )}
+          {activeTab === "programs" && (
+            <div className="p-4 bg-white rounded-md shadow">
+              <p className="text-lg font-medium">
+                Programs management coming soon
+              </p>
             </div>
-
-            <div className="bg-white rounded-md shadow p-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-gray-500 text-xs">Pending Approvals</p>
-                  <h3 className="text-lg font-bold">7</h3>
-                </div>
-                <span className="bg-indigo-100 p-1.5 rounded-md">
-                  <Shield className="h-4 w-4 text-indigo-600" />
-                </span>
-              </div>
+          )}
+          {activeTab === "permissions" && (
+            <div className="p-4 bg-white rounded-md shadow">
+              <p className="text-lg font-medium">
+                Permissions management coming soon
+              </p>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
-            <div className="bg-white rounded-md shadow p-4 col-span-2">
-              <div className="flex justify-between items-center mb-3">
-                <h2 className="text-base font-semibold">User Distribution</h2>
-                <div className="flex space-x-1.5">
-                  <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800">
-                    <span className="w-1.5 h-1.5 mr-1 bg-cyan-500 rounded-full"></span>
-                    Interns
-                  </span>
-                  <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800">
-                    <span className="w-1.5 h-1.5 mr-1 bg-indigo-500 rounded-full"></span>
-                    Mentors
-                  </span>
-                  <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800">
-                    <span className="w-1.5 h-1.5 mr-1 bg-amber-500 rounded-full"></span>
-                    Panelists
-                  </span>
-                </div>
-              </div>
-
-              <div className="h-48 flex items-center justify-center">
-                <BarChart className="h-32 w-32 text-gray-300" />
-                <span className="text-gray-400 text-xs">
-                  Chart visualization goes here
-                </span>
-              </div>
+          )}
+          {activeTab === "settings" && (
+            <div className="p-4 bg-white rounded-md shadow">
+              <p className="text-lg font-medium">
+                Settings section coming soon
+              </p>
             </div>
-
-            <div className="bg-white rounded-md shadow p-4">
-              <div className="flex justify-between items-center mb-3">
-                <h2 className="text-base font-semibold">Recent Activities</h2>
-                <a href="#" className="text-xs text-cyan-600">
-                  View all
-                </a>
-              </div>
-
-              <div className="space-y-3">
-                <div className="border-l-4 border-cyan-500 pl-3 py-0.5">
-                  <p className="font-medium text-sm">New user registered</p>
-                  <p className="text-xs text-gray-500">John Doe (Intern)</p>
-                  <p className="text-xs text-gray-500">Today, 09:15 AM</p>
-                </div>
-
-                <div className="border-l-4 border-indigo-500 pl-3 py-0.5">
-                  <p className="font-medium text-sm">
-                    Program schedule updated
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Summer 2023 Internship
-                  </p>
-                  <p className="text-xs text-gray-500">Yesterday, 03:30 PM</p>
-                </div>
-
-                <div className="border-l-4 border-amber-500 pl-3 py-0.5">
-                  <p className="font-medium text-sm">New mentor assigned</p>
-                  <p className="text-xs text-gray-500">
-                    Sarah Wilson to Mobile Dev Team
-                  </p>
-                  <p className="text-xs text-gray-500">Aug 16, 2023</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          )}
         </main>
       </div>
     </div>
