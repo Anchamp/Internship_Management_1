@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
-  BarChart,
   Calendar,
   Clock,
   FileText,
@@ -15,12 +15,16 @@ import {
   Menu,
   ClipboardList,
 } from "lucide-react";
+import DashboardScreen from "./dashboardscreen";
+import MentorProfile from "./profile";
 
 export default function MentorDashboard() {
   const router = useRouter();
   const [username, setUsername] = useState<string>("");
+  const [organization, setOrganization] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>("dashboard");
 
   // Auto-collapse sidebar on small screens
   useEffect(() => {
@@ -49,25 +53,40 @@ export default function MentorDashboard() {
     const checkAuth = async () => {
       setIsLoading(true);
       try {
-        // Get user data from localStorage
-        const userData = localStorage.getItem("user");
-
-        if (!userData) {
-          // No user data found, redirect to login
+        // Get username from localStorage (temporary until full auth implementation)
+        const storedUser = localStorage.getItem("user");
+        if (!storedUser) {
           router.push("/sign-in");
           return;
         }
 
-        const user = JSON.parse(userData);
+        const { username, role } = JSON.parse(storedUser);
 
         // Check if user is a mentor
-        if (user.role !== "mentor") {
-          // User is not a mentor, redirect to appropriate dashboard
-          router.push(`/dashboard/${user.role}`);
+        if (role !== "mentor") {
+          router.push(`/dashboard/${role}`);
           return;
         }
 
-        setUsername(user.username || "Mentor");
+        // Fetch user data from MongoDB to get the most up-to-date info
+        try {
+          const response = await fetch(`/api/users/${username}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.user) {
+              setUsername(data.user.username || "Mentor");
+              setOrganization(
+                data.user.organizationName || data.user.organization || "none"
+              );
+            }
+          }
+        } catch (apiError) {
+          console.warn("Couldn't fetch latest user data:", apiError);
+          // Fall back to localStorage data if API call fails
+          setUsername(username || "Mentor");
+          const user = JSON.parse(storedUser);
+          setOrganization(user.organization || user.organizationName || "none");
+        }
       } catch (error) {
         console.error("Authentication error:", error);
         router.push("/sign-in");
@@ -92,6 +111,12 @@ export default function MentorDashboard() {
   // Toggle sidebar collapse state
   const toggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
+  };
+
+  // Navigation handler
+  const handleNavigation = (tab: string) => {
+    // Simply set the active tab - don't redirect for profile
+    setActiveTab(tab);
   };
 
   if (isLoading) {
@@ -132,54 +157,102 @@ export default function MentorDashboard() {
           <nav className="space-y-1">
             <a
               href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("dashboard");
+              }}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md bg-cyan-50 text-cyan-600 font-medium text-sm`}
+              } p-2 rounded-md ${
+                activeTab === "dashboard"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
             >
               <Home className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Dashboard</span>}
             </a>
             <a
               href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("interns");
+              }}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md hover:bg-gray-50 text-gray-700 font-medium text-sm`}
+              } p-2 rounded-md ${
+                activeTab === "interns"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
             >
               <Users className="h-4 w-4" />
               {!isSidebarCollapsed && <span>My Interns</span>}
             </a>
             <a
               href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("assignments");
+              }}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md hover:bg-gray-50 text-gray-700 font-medium text-sm`}
+              } p-2 rounded-md ${
+                activeTab === "assignments"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
             >
               <FileText className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Assignments</span>}
             </a>
             <a
               href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("schedule");
+              }}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md hover:bg-gray-50 text-gray-700 font-medium text-sm`}
+              } p-2 rounded-md ${
+                activeTab === "schedule"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
             >
               <Calendar className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Schedule</span>}
             </a>
             <a
               href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("profile");
+              }}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md hover:bg-gray-50 text-gray-700 font-medium text-sm`}
+              } p-2 rounded-md ${
+                activeTab === "profile"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
             >
               <User className="h-4 w-4" />
               {!isSidebarCollapsed && <span>My Profile</span>}
             </a>
             <a
               href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("settings");
+              }}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md hover:bg-gray-50 text-gray-700 font-medium text-sm`}
+              } p-2 rounded-md ${
+                activeTab === "settings"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
             >
               <Settings className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Settings</span>}
@@ -237,10 +310,26 @@ export default function MentorDashboard() {
               </button>
               <div>
                 <h1 className="text-lg sm:text-xl font-bold text-black">
-                  Mentor Dashboard
+                  {activeTab === "dashboard"
+                    ? "Mentor Dashboard"
+                    : activeTab === "profile"
+                    ? "My Profile"
+                    : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-500">
-                  Guidance Portal
+                  {activeTab === "dashboard"
+                    ? "Guidance Portal"
+                    : activeTab === "profile"
+                    ? "Account Information"
+                    : activeTab === "interns"
+                    ? "Manage Your Interns"
+                    : activeTab === "assignments"
+                    ? "Manage Assignments"
+                    : activeTab === "schedule"
+                    ? "Your Schedule"
+                    : activeTab === "settings"
+                    ? "Account Settings"
+                    : ""}
                 </p>
               </div>
             </div>
@@ -255,117 +344,36 @@ export default function MentorDashboard() {
         </header>
 
         <main className="p-3 sm:p-4">
-          {/* Dashboard Content - with reduced sizes */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4">
-            <div className="bg-white rounded-md shadow p-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-gray-500 text-xs">Active Interns</p>
-                  <h3 className="text-lg font-bold">8</h3>
-                </div>
-                <span className="bg-cyan-100 p-1.5 rounded-md">
-                  <Users className="h-4 w-4 text-cyan-600" />
-                </span>
-              </div>
+          {activeTab === "dashboard" && (
+            <DashboardScreen organization={organization} />
+          )}
+          {activeTab === "profile" && <MentorProfile inDashboard={true} />}
+          {activeTab === "interns" && (
+            <div className="p-4 bg-white rounded-md shadow">
+              <p className="text-lg font-medium">Interns section coming soon</p>
             </div>
-
-            <div className="bg-white rounded-md shadow p-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-gray-500 text-xs">Pending Reviews</p>
-                  <h3 className="text-lg font-bold">3</h3>
-                </div>
-                <span className="bg-amber-100 p-1.5 rounded-md">
-                  <Clock className="h-4 w-4 text-amber-600" />
-                </span>
-              </div>
+          )}
+          {activeTab === "assignments" && (
+            <div className="p-4 bg-white rounded-md shadow">
+              <p className="text-lg font-medium">
+                Assignments section coming soon
+              </p>
             </div>
-
-            <div className="bg-white rounded-md shadow p-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-gray-500 text-xs">Upcoming Meetings</p>
-                  <h3 className="text-lg font-bold">4</h3>
-                </div>
-                <span className="bg-indigo-100 p-1.5 rounded-md">
-                  <Calendar className="h-4 w-4 text-indigo-600" />
-                </span>
-              </div>
+          )}
+          {activeTab === "schedule" && (
+            <div className="p-4 bg-white rounded-md shadow">
+              <p className="text-lg font-medium">
+                Schedule section coming soon
+              </p>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-            <div className="bg-white rounded-md shadow p-4">
-              <h2 className="text-base font-semibold mb-3">Intern Progress</h2>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium text-sm">Alex Johnson</p>
-                    <p className="text-xs text-gray-500">Web Development</p>
-                  </div>
-                  <div className="w-20 bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-cyan-600 h-2 rounded-full"
-                      style={{ width: "75%" }}
-                    ></div>
-                  </div>
-                  <span className="text-xs font-medium">75%</span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium text-sm">Sarah Miller</p>
-                    <p className="text-xs text-gray-500">UX Design</p>
-                  </div>
-                  <div className="w-20 bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-cyan-600 h-2 rounded-full"
-                      style={{ width: "90%" }}
-                    ></div>
-                  </div>
-                  <span className="text-xs font-medium">90%</span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium text-sm">Carlos Rodriguez</p>
-                    <p className="text-xs text-gray-500">Mobile Development</p>
-                  </div>
-                  <div className="w-20 bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-cyan-600 h-2 rounded-full"
-                      style={{ width: "60%" }}
-                    ></div>
-                  </div>
-                  <span className="text-xs font-medium">60%</span>
-                </div>
-              </div>
+          )}
+          {activeTab === "settings" && (
+            <div className="p-4 bg-white rounded-md shadow">
+              <p className="text-lg font-medium">
+                Settings section coming soon
+              </p>
             </div>
-
-            <div className="bg-white rounded-md shadow p-4">
-              <h2 className="text-base font-semibold mb-3">
-                Recent Activities
-              </h2>
-              <div className="space-y-3">
-                <div className="border-l-4 border-cyan-500 pl-3 py-0.5">
-                  <p className="font-medium text-sm">
-                    Reviewed project submissions
-                  </p>
-                  <p className="text-xs text-gray-500">Today, 10:30 AM</p>
-                </div>
-                <div className="border-l-4 border-gray-300 pl-3 py-0.5">
-                  <p className="font-medium text-sm">Scheduled team meeting</p>
-                  <p className="text-xs text-gray-500">Yesterday, 03:15 PM</p>
-                </div>
-                <div className="border-l-4 border-gray-300 pl-3 py-0.5">
-                  <p className="font-medium text-sm">
-                    Updated intern evaluation
-                  </p>
-                  <p className="text-xs text-gray-500">Aug 16, 2023</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          )}
         </main>
       </div>
     </div>
