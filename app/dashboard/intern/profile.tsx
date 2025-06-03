@@ -17,7 +17,6 @@ import {
   Calendar,
   GraduationCap,
   Upload,
-  X,
   Download,
 } from "lucide-react";
 import Image from "next/image";
