@@ -165,15 +165,9 @@ export default function SignIn() {
             <div className="flex items-center justify-center mb-2">
               <div className="w-12 h-1 bg-gradient-to-r from-[#06B6D4] to-[#0891B2] rounded-full card-decoration"></div>
             </div>
-            <CardTitle className="auth-title text-4xl font-bold bg-gradient-to-r from-[#06B6D4] to-[#0891B2] text-transparent bg-clip-text">
-              Welcome back
+            <CardTitle className="auth-title text-3xl font-bold bg-gradient-to-r from-[#06B6D4] to-[#0891B2] text-transparent bg-clip-text">
+              WELCOME!
             </CardTitle>
-            <CardDescription
-              className="text-sm !text-black font-medium"
-              style={{ color: "black" }}
-            >
-              Sign in to your account to continue
-            </CardDescription>
           </CardHeader>
 
           <CardContent className="bg-white relative z-30">

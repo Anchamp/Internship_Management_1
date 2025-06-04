@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
+import { ObjectId } from 'mongodb';
 
 export async function POST(request: Request) {
   try {
@@ -15,6 +16,22 @@ export async function POST(request: Request) {
     if (!username || !email || !password || !role) {
       return NextResponse.json(
         { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+    
+    // Additional validation for admin role - require organizationName
+    if (role === 'admin' && !organizationName) {
+      return NextResponse.json(
+        { error: 'Organization name is required for admin accounts' },
+        { status: 400 }
+      );
+    }
+    
+    // Additional validation for mentor/panelist roles - require organizationId
+    if (['mentor', 'panelist'].includes(role) && !organizationId) {
+      return NextResponse.json(
+        { error: 'Organization selection is required for mentor/panelist accounts' },
         { status: 400 }
       );
     }
@@ -67,14 +84,69 @@ export async function POST(request: Request) {
       );
     }
     
+    // For admin role, also check if organization name is already taken
+    if (role === 'admin' && organizationName) {
+      const existingOrg = await User.findOne({
+        role: 'admin',
+        organizationName: organizationName
+      });
+      
+      if (existingOrg) {
+        return NextResponse.json(
+          { error: 'Organization name already exists' },
+          { status: 409 }
+        );
+      }
+    }
+    
+    // For mentor/panelist roles, verify that selected organizationId exists
+    if (['mentor', 'panelist'].includes(role) && organizationId) {
+      // Log the organizationId for debugging
+      console.log(`Checking if organization exists: ${organizationId}`);
+      
+      // Find admin user with the matching organizationId (not using _id)
+      const orgExists = await User.findOne({
+        role: 'admin',
+        organizationId: organizationId // Look for the formatted organizationId directly
+      });
+      
+      if (!orgExists) {
+        console.error(`Organization with ID ${organizationId} not found`);
+        return NextResponse.json(
+          { error: 'Selected organization does not exist. Please try again.' },
+          { status: 400 }
+        );
+      }
+      
+      console.log(`Organization found: ${orgExists.organizationName} with ID ${organizationId}`);
+    }
+    
+    // Generate or set organization details based on role
+    let orgId = null;
+    let orgName = 'none';
+    
+    if (role === 'admin') {
+      // Create a unique ID based on organization name and timestamp
+      const timestamp = new Date().getTime();
+      const nameSlug = organizationName
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '-');
+      orgId = `org_${nameSlug}_${timestamp}`; // Formatted organization ID for admins
+      orgName = organizationName; // Admins keep their organization name
+    } else if (['mentor', 'panelist'].includes(role)) {
+      // For mentors and panelists, use the provided organizationId but set name to "none"
+      orgId = organizationId; // This should be the formatted ID from the frontend dropdown
+      orgName = 'none';
+    }
+    
     // Prepare user data based on role
     const userData = {
       username,
       email,
       password,
       role,
-      organizationName: role === 'admin' ? organizationName : 'none',
-      organizationId: ['mentor', 'panelist'].includes(role) ? organizationId : null
+      organizationName: orgName,
+      organizationId: orgId
     };
     
     // Create new user

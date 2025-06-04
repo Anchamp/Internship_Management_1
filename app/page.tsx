@@ -15,61 +15,97 @@ import {
   Calendar,
   MessageSquare,
   LineChart,
+  Eye,
+  EyeOff,
+  Loader2,
 } from "lucide-react";
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showSignInPopup, setShowSignInPopup] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   // Tilt effect state
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [isHovering, setIsHovering] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Enhanced popup logic to work for both new users and page refreshes
+  // Show sign-in popup after 5 seconds on every visit
   useEffect(() => {
     setMounted(true);
 
-    // Track last time popup was shown using a timestamp
-    const lastPopupTimestamp = localStorage.getItem("lastPopupTimestamp");
-    const currentTime = new Date().getTime();
-    const popupCooldown = 60 * 60 * 1000; // 1 hour in milliseconds
+    // Set timeout to show the popup after 5 seconds
+    const timer = setTimeout(() => {
+      setShowSignInPopup(true);
+    }, 5000);
 
-    // Show popup if:
-    // 1. User has never seen it before (no timestamp)
-    // 2. Cooldown period has elapsed since last shown
-    const shouldShowPopup =
-      !lastPopupTimestamp ||
-      currentTime - parseInt(lastPopupTimestamp) > popupCooldown;
-
-    if (shouldShowPopup) {
-      // Set timeout to show the popup after 5 seconds
-      const timer = setTimeout(() => {
-        setShowSignInPopup(true);
-
-        // Update the timestamp when popup is shown
-        localStorage.setItem("lastPopupTimestamp", currentTime.toString());
-      }, 5000);
-
-      // Clear timeout on unmount
-      return () => clearTimeout(timer);
-    }
+    // Clear timeout on unmount
+    return () => clearTimeout(timer);
   }, []);
 
-  // Close popup function - added option to prevent future popups
-  const closePopup = (rememberChoice = false) => {
+  // Close popup function
+  const closePopup = () => {
     setShowSignInPopup(false);
+  };
 
-    // If user wants to prevent future popups, set a longer cooldown
-    if (rememberChoice) {
-      const currentTime = new Date().getTime();
-      // Set a very long cooldown (e.g., 30 days)
-      const longCooldown = 30 * 24 * 60 * 60 * 1000;
-      localStorage.setItem(
-        "lastPopupTimestamp",
-        (currentTime + longCooldown).toString()
-      );
+  // Handle sign in submission
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSigningIn(true);
+    setAuthError("");
+
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to sign in");
+      }
+
+      // Store token in both localStorage and cookies
+      localStorage.setItem("token", data.token);
+      document.cookie = `token=${data.token}; path=/; max-age=86400`; // 1 day
+
+      // Store user info in localStorage
+      const userData = {
+        email: data.email,
+        userId: data.userId,
+        role: data.role,
+        username: data.username,
+      };
+      localStorage.setItem("user", JSON.stringify(userData));
+
+      // Redirect based on role
+      switch (data.role) {
+        case "intern":
+          window.location.href = "/dashboard/intern";
+          break;
+        case "mentor":
+          window.location.href = "/dashboard/mentor";
+          break;
+        case "panelist":
+          window.location.href = "/dashboard/panelist";
+          break;
+        case "admin":
+          window.location.href = "/dashboard/admin";
+          break;
+        default:
+          window.location.href = "/home"; // Fallback route
+      }
+    } catch (err: any) {
+      setAuthError(err.message || "An error occurred during sign in");
+    } finally {
+      setIsSigningIn(false);
     }
   };
 
@@ -105,7 +141,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-gray-900 overflow-x-hidden font-sans">
-      {/* Sign-In Popup - enhanced with "Don't show again" option */}
+      {/* Sign-In Popup - Enhanced with full sign-in form */}
       {showSignInPopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full m-4 transform transition-all animate-fadeIn overflow-hidden">
@@ -120,72 +156,129 @@ export default function Home() {
                   </span>
                 </div>
                 <button
-                  onClick={() => closePopup(false)}
+                  onClick={closePopup}
                   className="p-1 rounded-full hover:bg-gray-100 text-gray-500"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
-              <h2 className="text-xl font-bold mb-1">
-                Welcome to InternshipHub!
-              </h2>
-              <p className="text-gray-600 text-sm mb-4">
-                Sign in to start managing your internship program effectively.
-              </p>
             </div>
 
-            <div className="p-6 space-y-6">
-              <div className="space-y-4">
-                <Link
-                  href="/sign-in"
-                  className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white py-3 px-4 rounded-lg font-medium flex items-center justify-center transition-all text-base shadow-md shadow-cyan-500/20"
-                >
-                  Sign In
-                </Link>
+            <div className="p-6">
+              {authError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-lg mb-4">
+                  {authError}
+                </div>
+              )}
 
-                <div className="text-center">
-                  <span className="text-sm text-gray-500">
-                    Don't have an account?
-                  </span>
+              <form onSubmit={handleSignIn} className="space-y-4">
+                <div className="space-y-2">
+                  <label
+                    htmlFor="email"
+                    className="text-sm font-medium text-gray-700 block"
+                  >
+                    Email address
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="email"
+                      type="email"
+                      placeholder="name@example.com"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={isSigningIn}
+                      className="w-full p-2 pl-3 border-2 border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                    />
+                  </div>
                 </div>
 
-                <Link
-                  href="/sign-up"
-                  className="w-full bg-white text-gray-900 py-3 px-4 rounded-lg font-medium flex items-center justify-center transition-all text-base border border-gray-300 hover:bg-gray-50"
-                >
-                  Create Account
-                </Link>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <input
-                    id="remember-choice"
-                    type="checkbox"
-                    className="h-4 w-4 text-cyan-600 focus:ring-cyan-500 border-gray-300 rounded"
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        closePopup(true);
-                      }
-                    }}
-                  />
+                <div className="space-y-2">
                   <label
-                    htmlFor="remember-choice"
-                    className="ml-2 block text-sm text-gray-500"
+                    htmlFor="password"
+                    className="text-sm font-medium text-gray-700 block"
                   >
-                    Don't show again
+                    Password
                   </label>
+                  <div className="relative">
+                    <input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={isSigningIn}
+                      className="w-full p-2 pl-3 pr-10 border-2 border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="remember"
+                      className="rounded border-gray-300 text-cyan-600 focus:ring-cyan-500"
+                    />
+                    <label htmlFor="remember" className="text-sm text-gray-700">
+                      Remember me
+                    </label>
+                  </div>
+                  <Link
+                    href="/forgot-password"
+                    className="text-sm text-cyan-600 hover:text-cyan-700 hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
                 </div>
 
                 <button
-                  onClick={() => closePopup(false)}
-                  className="text-sm text-cyan-600 hover:text-cyan-700 font-medium"
+                  type="submit"
+                  disabled={isSigningIn}
+                  className={`w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-medium py-2 px-4 rounded-md shadow-md hover:shadow-lg transition-all ${
+                    isSigningIn ? "opacity-80 cursor-not-allowed" : ""
+                  }`}
                 >
-                  Not now
+                  {isSigningIn ? (
+                    <span className="flex items-center justify-center">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Signing in...
+                    </span>
+                  ) : (
+                    "Sign in"
+                  )}
                 </button>
-              </div>
+              </form>
 
-              <div className="text-center text-xs text-gray-500">
+              <div className="mt-6 text-center">
+                <p className="text-sm text-gray-600">
+                  Don't have an account?{" "}
+                  <Link
+                    href="/sign-up"
+                    className="text-cyan-600 hover:text-cyan-700 font-medium hover:underline"
+                    onClick={closePopup}
+                  >
+                    Sign up
+                  </Link>
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 bg-gray-50 border-t text-center">
+              <p className="text-xs text-gray-500">
                 By signing in, you agree to our{" "}
                 <Link href="#" className="text-cyan-600 hover:underline">
                   Terms of Service
@@ -194,7 +287,7 @@ export default function Home() {
                 <Link href="#" className="text-cyan-600 hover:underline">
                   Privacy Policy
                 </Link>
-              </div>
+              </p>
             </div>
           </div>
         </div>

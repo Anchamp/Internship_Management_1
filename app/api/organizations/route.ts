@@ -6,23 +6,30 @@ export async function GET() {
   try {
     await dbConnect();
     
-    // Find all admin users with organization names
-    const admins = await User.find({ 
+    // Find admin users who have created organizations
+    const adminUsers = await User.find({ 
       role: 'admin',
-      organizationName: { $ne: 'none' } // Exclude admins without organizations
-    }).select('organizationName');
+      organizationId: { $exists: true, $ne: null }
+    }).select('organizationName organizationId').lean();
     
-    // Extract unique organization names
-    const organizations = admins.map(admin => ({
-      id: admin._id.toString(),
-      name: admin.organizationName
+    // Transform the data for the frontend, using the correct organizationId
+    const organizations = adminUsers.map(user => ({
+      id: user.organizationId, // Use the formatted organizationId instead of MongoDB _id
+      name: user.organizationName || 'Unnamed Organization'
     }));
     
-    return NextResponse.json({ organizations });
+    return NextResponse.json({
+      success: true,
+      organizations
+    });
+    
   } catch (error: any) {
     console.error('Error fetching organizations:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch organizations' },
+      { 
+        error: 'Failed to fetch organizations',
+        details: error.message
+      },
       { status: 500 }
     );
   }

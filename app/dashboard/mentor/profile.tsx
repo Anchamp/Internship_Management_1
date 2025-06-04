@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import NextImage from "next/image"; // Import with a different name
 import {
   ArrowLeft,
   Save,
@@ -19,7 +20,6 @@ import {
   X,
   Upload,
 } from "lucide-react";
-import Image from "next/image";
 
 interface MentorProfileProps {
   inDashboard?: boolean;
@@ -30,7 +30,8 @@ const compressImage = async (
   maxSize: number = 400
 ): Promise<string> => {
   return new Promise((resolve) => {
-    const img = new Image();
+    // Use the global browser Image constructor, not Next.js Image component
+    const img = new window.Image();
     img.src = base64Image;
     img.onload = () => {
       const canvas = document.createElement("canvas");
@@ -260,7 +261,7 @@ export default function MentorProfile({
             <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-cyan-500 bg-gray-200 flex items-center justify-center">
               {previewImage ? (
                 <div className="relative w-full h-full rounded-full overflow-hidden">
-                  <Image
+                  <NextImage
                     src={previewImage}
                     alt="Profile Preview"
                     fill

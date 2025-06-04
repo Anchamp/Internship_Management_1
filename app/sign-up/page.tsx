@@ -60,9 +60,13 @@ export default function SignUp() {
   const [usernameError, setUsernameError] = useState("");
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [orgNameError, setOrgNameError] = useState("");
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [checkingEmail, setCheckingEmail] = useState(false);
+  const [checkingOrgName, setCheckingOrgName] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [formValid, setFormValid] = useState(false);
+  const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
   const router = useRouter();
 
   // Fetch organizations created by admins
@@ -77,6 +81,9 @@ export default function SignUp() {
           if (!response.ok) {
             throw new Error(data.error || "Failed to fetch organizations");
           }
+
+          // Log the fetched organizations to verify the data structure
+          console.log("Fetched organizations:", data.organizations);
 
           setOrganizations(data.organizations || []);
         } catch (err) {
@@ -112,10 +119,24 @@ export default function SignUp() {
     setPasswordError("");
   }, [password]);
 
+  useEffect(() => {
+    setOrgNameError("");
+  }, [organizationName]);
+
+  // Function to select a suggested username
+  const selectUsername = (suggestion: string) => {
+    setUsername(suggestion);
+    setUsernameError(""); // Clear any username error
+    setUsernameSuggestions([]); // Clear the suggestions
+  };
+
   // Debounced username availability check
   useEffect(() => {
     const checkUsernameAvailability = async () => {
-      if (!username || username.length < 3) return;
+      if (!username || username.length < 3) {
+        setUsernameSuggestions([]);
+        return;
+      }
 
       setCheckingUsername(true);
       try {
@@ -129,9 +150,18 @@ export default function SignUp() {
 
         if (!data.available) {
           setUsernameError(data.message || "Username is already taken");
+          // Store username suggestions if they exist
+          if (data.suggestions && Array.isArray(data.suggestions)) {
+            setUsernameSuggestions(data.suggestions);
+          } else {
+            setUsernameSuggestions([]);
+          }
+        } else {
+          setUsernameSuggestions([]);
         }
       } catch (error) {
         console.error("Error checking username:", error);
+        setUsernameSuggestions([]);
       } finally {
         setCheckingUsername(false);
       }
@@ -182,6 +212,39 @@ export default function SignUp() {
     return () => clearTimeout(timer);
   }, [email]);
 
+  // Add organization name availability check
+  useEffect(() => {
+    const checkOrgNameAvailability = async () => {
+      if (!organizationName || organizationName.length < 2 || role !== "admin")
+        return;
+
+      setCheckingOrgName(true);
+      try {
+        const response = await fetch("/api/check-availability", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            field: "organization",
+            value: organizationName,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!data.available) {
+          setOrgNameError(data.message || "Organization name already exists");
+        }
+      } catch (error) {
+        console.error("Error checking organization name:", error);
+      } finally {
+        setCheckingOrgName(false);
+      }
+    };
+
+    const timer = setTimeout(checkOrgNameAvailability, 500);
+    return () => clearTimeout(timer);
+  }, [organizationName, role]);
+
   // Password complexity validation
   const validatePassword = () => {
     if (!password) return false;
@@ -209,12 +272,42 @@ export default function SignUp() {
     return errorMessage === "";
   };
 
+  // Check form validity whenever form fields change
+  useEffect(() => {
+    const isValid = () => {
+      // Basic required fields for all roles
+      if (!username || !email || !password) return false;
+      if (usernameError || emailError || passwordError || orgNameError)
+        return false;
+
+      // Role-specific required fields
+      if (role === "admin" && !organizationName) return false;
+      if ((role === "mentor" || role === "panelist") && !selectedOrganization)
+        return false;
+
+      return true;
+    };
+
+    setFormValid(isValid());
+  }, [
+    username,
+    email,
+    password,
+    role,
+    organizationName,
+    selectedOrganization,
+    usernameError,
+    emailError,
+    passwordError,
+    orgNameError,
+  ]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Form validation
-    if (usernameError || emailError || !validatePassword()) {
-      toast.error("Please fix the errors in the form");
+    // Form validation - add orgNameError check
+    if (!formValid) {
+      toast.error("Please fill in all required fields");
       return;
     }
 
@@ -234,9 +327,12 @@ export default function SignUp() {
       password,
       ...(role === "admin" ? { organizationName } : {}),
       ...(["mentor", "panelist"].includes(role)
-        ? { organizationId: selectedOrganization }
+        ? { organizationId: selectedOrganization } // This should be the formatted ID now
         : {}),
     };
+
+    // Debug log to see what's being sent
+    console.log("Submitting user data:", userData);
 
     try {
       const res = await fetch("/api/signup", {
@@ -352,26 +448,26 @@ export default function SignUp() {
       </div>
 
       <div className="flex flex-col items-center justify-center flex-grow p-4 relative z-10">
-        <Card className="auth-card w-full max-w-md shadow-lg bg-white text-black relative transition-all duration-300 hover:shadow-[0_0_25px_rgba(0,0,0,0.2)] z-20">
+        <Card className="auth-card w-full max-w-sm shadow-lg bg-white text-black relative transition-all duration-300 hover:shadow-[0_0_25px_rgba(0,0,0,0.2)] z-20">
           {/* Glass highlight effect */}
           <div className="absolute -inset-0.5 bg-gradient-to-r from-white via-white to-white rounded-xl opacity-50 group-hover:opacity-100 blur-sm transition-all duration-500 pointer-events-none"></div>
 
-          <CardHeader className="space-y-1 text-center pb-6 bg-white relative z-30">
-            <div className="flex items-center justify-center mb-2">
-              <div className="w-12 h-1 bg-gradient-to-r from-[#06B6D4] to-[#0891B2] rounded-full card-decoration"></div>
+          <CardHeader className="space-y-1 text-center pb-3 bg-white relative z-30">
+            <div className="flex items-center justify-center mb-1">
+              <div className="w-10 h-1 bg-gradient-to-r from-[#06B6D4] to-[#0891B2] rounded-full card-decoration"></div>
             </div>
-            <CardTitle className="auth-title text-4xl font-bold bg-gradient-to-r from-[#06B6D4] to-[#0891B2] text-transparent bg-clip-text">
+            <CardTitle className="auth-title text-2xl font-bold bg-gradient-to-r from-[#06B6D4] to-[#0891B2] text-transparent bg-clip-text">
               Create Account
             </CardTitle>
             <CardDescription
-              className="text-sm !text-black font-medium"
+              className="text-xs !text-black font-medium"
               style={{ color: "black" }}
             >
               Enter your information to create an account
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="bg-white relative z-30">
+          <CardContent className="bg-white relative z-30 py-3 px-4">
             {error && (
               <div className="bg-[#FFF5F5] border border-red-500/30 text-red-700 text-sm p-4 rounded-lg mb-4 flex items-start">
                 <XCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
@@ -392,13 +488,13 @@ export default function SignUp() {
             )}
 
             {!isSuccess && (
-              <form onSubmit={handleSubmit} className="space-y-5 relative z-40">
+              <form onSubmit={handleSubmit} className="space-y-3 relative z-40">
                 {/* Role Selection */}
-                <div className="grid grid-cols-4 gap-2 mb-4">
+                <div className="grid grid-cols-4 gap-1 mb-3">
                   <Button
                     type="button"
                     onClick={() => setRole("intern")}
-                    className={`py-2 px-4 transition-all duration-300 ${
+                    className={`py-1 px-2 text-xs transition-all duration-300 ${
                       role === "intern"
                         ? "!bg-[#06B6D4] !text-black font-bold"
                         : "bg-white !border-2 !border-[#06B6D4] !text-[#06B6D4] hover:shadow-[0_0_10px_rgba(6,182,212,0.5)] hover:!border-[#0891B2]"
@@ -413,7 +509,7 @@ export default function SignUp() {
                   <Button
                     type="button"
                     onClick={() => setRole("mentor")}
-                    className={`py-2 px-4 transition-all duration-300 ${
+                    className={`py-1 px-2 text-xs transition-all duration-300 ${
                       role === "mentor"
                         ? "!bg-[#06B6D4] !text-black font-bold"
                         : "bg-white !border-2 !border-[#06B6D4] !text-[#06B6D4] hover:shadow-[0_0_10px_rgba(6,182,212,0.5)] hover:!border-[#0891B2]"
@@ -428,7 +524,7 @@ export default function SignUp() {
                   <Button
                     type="button"
                     onClick={() => setRole("panelist")}
-                    className={`py-2 px-4 transition-all duration-300 ${
+                    className={`py-1 px-2 text-xs transition-all duration-300 ${
                       role === "panelist"
                         ? "!bg-[#06B6D4] !text-black font-bold"
                         : "bg-white !border-2 !border-[#06B6D4] !text-[#06B6D4] hover:shadow-[0_0_10px_rgba(6,182,212,0.5)] hover:!border-[#0891B2]"
@@ -444,7 +540,7 @@ export default function SignUp() {
                   <Button
                     type="button"
                     onClick={() => setRole("admin")}
-                    className={`py-2 px-4 transition-all duration-300 ${
+                    className={`py-1 px-2 text-xs transition-all duration-300 ${
                       role === "admin"
                         ? "!bg-[#06B6D4] !text-black font-bold"
                         : "bg-white !border-2 !border-[#06B6D4] !text-[#06B6D4] hover:shadow-[0_0_10px_rgba(6,182,212,0.5)] hover:!border-[#0891B2]"
@@ -459,16 +555,18 @@ export default function SignUp() {
                 </div>
 
                 {/* Common Fields */}
-                <div className="space-y-2 relative">
+                <div className="space-y-1 relative">
                   <label
                     htmlFor="username"
-                    className="text-sm font-bold !text-black flex justify-between items-center"
+                    className="text-xs font-bold !text-black flex justify-between items-center"
                     style={{ color: "black" }}
                   >
-                    <span>Username</span>
+                    <span>
+                      Username<span className="text-red-500">*</span>
+                    </span>
                     {checkingUsername && (
                       <span className="text-xs text-gray-500 flex items-center">
-                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                        <Loader2 className="h-2 w-2 animate-spin mr-1" />
                         Checking...
                       </span>
                     )}
@@ -481,7 +579,7 @@ export default function SignUp() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     disabled={isLoading}
-                    className={`input-glow bg-white !border-2 focus:!ring-black/20 !text-black placeholder:text-gray-500 relative z-40 ${
+                    className={`input-glow bg-white !border-2 focus:!ring-black/20 !text-black placeholder:text-gray-500 relative z-40 h-8 text-xs ${
                       usernameError ? "!border-red-500" : "!border-black"
                     }`}
                     style={{
@@ -494,20 +592,42 @@ export default function SignUp() {
                     }}
                   />
                   {usernameError && (
-                    <p className="text-xs text-red-500 mt-1">{usernameError}</p>
+                    <p className="text-xs text-red-500 mt-0.5">
+                      {usernameError}
+                    </p>
+                  )}
+
+                  {/* Username Suggestions */}
+                  {usernameSuggestions.length > 0 && (
+                    <div className="mt-1">
+                      <div className="flex items-center justify-start space-x-4">
+                        {usernameSuggestions.map((suggestion, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => selectUsername(suggestion)}
+                            className="text-xs py-0.5 px-2 bg-cyan-50 text-cyan-700 border border-cyan-200 rounded-full hover:bg-cyan-100 hover:border-cyan-300 transition-colors"
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
 
-                <div className="space-y-2 relative">
+                <div className="space-y-1 relative">
                   <label
                     htmlFor="email"
-                    className="text-sm font-bold !text-black flex justify-between items-center"
+                    className="text-xs font-bold !text-black flex justify-between items-center"
                     style={{ color: "black" }}
                   >
-                    <span>Email address</span>
+                    <span>
+                      Email address<span className="text-red-500">*</span>
+                    </span>
                     {checkingEmail && (
                       <span className="text-xs text-gray-500 flex items-center">
-                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                        <Loader2 className="h-2 w-2 animate-spin mr-1" />
                         Checking...
                       </span>
                     )}
@@ -520,7 +640,7 @@ export default function SignUp() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={isLoading}
-                    className={`input-glow bg-white !border-2 focus:!ring-black/20 !text-black placeholder:text-gray-500 relative z-40 ${
+                    className={`input-glow bg-white !border-2 focus:!ring-black/20 !text-black placeholder:text-gray-500 relative z-40 h-8 text-xs ${
                       emailError ? "!border-red-500" : "!border-black"
                     }`}
                     style={{
@@ -533,17 +653,17 @@ export default function SignUp() {
                     }}
                   />
                   {emailError && (
-                    <p className="text-xs text-red-500 mt-1">{emailError}</p>
+                    <p className="text-xs text-red-500 mt-0.5">{emailError}</p>
                   )}
                 </div>
 
-                <div className="space-y-2 relative">
+                <div className="space-y-1 relative">
                   <label
                     htmlFor="password"
-                    className="text-sm font-bold !text-black"
+                    className="text-xs font-bold !text-black"
                     style={{ color: "black" }}
                   >
-                    Password
+                    Password<span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <Input
@@ -555,7 +675,7 @@ export default function SignUp() {
                       onChange={(e) => setPassword(e.target.value)}
                       onBlur={() => validatePassword()}
                       disabled={isLoading}
-                      className={`input-glow bg-white !border-2 focus:!ring-black/20 !text-black placeholder:text-gray-500 relative z-40 !pr-12 ${
+                      className={`input-glow bg-white !border-2 focus:!ring-black/20 !text-black placeholder:text-gray-500 relative z-40 !pr-8 h-8 text-xs ${
                         passwordError ? "!border-red-500" : "!border-black"
                       }`}
                       style={{
@@ -565,11 +685,10 @@ export default function SignUp() {
                         borderWidth: "2px",
                         position: "relative",
                         zIndex: 40,
-                        paddingRight: "3rem", // Ensure consistent right padding
                       }}
                     />
                     <div
-                      className="absolute inset-y-0 right-0 flex items-center pr-3"
+                      className="absolute inset-y-0 right-0 flex items-center pr-2"
                       style={{ zIndex: 60 }}
                     >
                       <button
@@ -579,32 +698,41 @@ export default function SignUp() {
                         tabIndex={-1}
                       >
                         {showPassword ? (
-                          <EyeOff className="h-5 w-5" />
+                          <EyeOff className="h-3.5 w-3.5" />
                         ) : (
-                          <Eye className="h-5 w-5" />
+                          <Eye className="h-3.5 w-3.5" />
                         )}
                       </button>
                     </div>
                   </div>
                   {passwordError ? (
-                    <p className="text-xs text-red-500 mt-1">{passwordError}</p>
+                    <p className="text-xs text-red-500 mt-0.5">
+                      {passwordError}
+                    </p>
                   ) : (
-                    <p className="text-xs text-gray-500 mt-1">
-                      Password must have at least 8 characters, one uppercase
-                      letter, one number, and one special character.
+                    <p className="text-[10px] text-gray-500 mt-0.5">
+                      8+ chars with: 1-A, 1-a, 1-number, 1-@/#/$
                     </p>
                   )}
                 </div>
 
                 {/* Role-specific Fields */}
                 {role === "admin" && (
-                  <div className="space-y-2 relative">
+                  <div className="space-y-1 relative">
                     <label
                       htmlFor="organizationName"
-                      className="text-sm font-bold !text-black"
+                      className="text-xs font-bold !text-black flex justify-between items-center"
                       style={{ color: "black" }}
                     >
-                      Organization Name
+                      <span>
+                        Organization Name<span className="text-red-500">*</span>
+                      </span>
+                      {checkingOrgName && (
+                        <span className="text-xs text-gray-500 flex items-center">
+                          <Loader2 className="h-2 w-2 animate-spin mr-1" />
+                          Checking...
+                        </span>
+                      )}
                     </label>
                     <Input
                       id="organizationName"
@@ -614,27 +742,34 @@ export default function SignUp() {
                       value={organizationName}
                       onChange={(e) => setOrganizationName(e.target.value)}
                       disabled={isLoading}
-                      className="input-glow bg-white !border-2 !border-black focus:!border-black focus:ring-black/20 !text-black placeholder:text-gray-500 relative z-40"
+                      className={`input-glow bg-white !border-2 focus:!ring-black/20 !text-black placeholder:text-gray-500 relative z-40 h-8 text-xs ${
+                        orgNameError ? "!border-red-500" : "!border-black"
+                      }`}
                       style={{
                         color: "black",
                         backgroundColor: "white",
-                        borderColor: "black",
+                        borderColor: orgNameError ? "#ef4444" : "black",
                         borderWidth: "2px",
                         position: "relative",
                         zIndex: 40,
                       }}
                     />
+                    {orgNameError && (
+                      <p className="text-xs text-red-500 mt-0.5">
+                        {orgNameError}
+                      </p>
+                    )}
                   </div>
                 )}
 
                 {(role === "mentor" || role === "panelist") && (
-                  <div className="space-y-2 relative">
+                  <div className="space-y-1 relative">
                     <label
                       htmlFor="organization"
-                      className="text-sm font-bold !text-black"
+                      className="text-xs font-bold !text-black"
                       style={{ color: "black" }}
                     >
-                      Select Organization
+                      Select Organization<span className="text-red-500">*</span>
                     </label>
                     <Select
                       value={selectedOrganization}
@@ -643,7 +778,7 @@ export default function SignUp() {
                       disabled={isLoading || isLoadingOrgs}
                     >
                       <SelectTrigger
-                        className="input-glow bg-white !border-2 !border-black focus:!border-black focus:ring-black/20 !text-black placeholder:text-gray-500 relative z-40"
+                        className="input-glow bg-white !border-2 !border-black focus:!border-black focus:ring-black/20 !text-black placeholder:text-gray-500 relative z-40 h-8 text-xs"
                         style={{
                           color: "black",
                           backgroundColor: "white",
@@ -655,7 +790,7 @@ export default function SignUp() {
                       >
                         {isLoadingOrgs ? (
                           <div className="flex items-center">
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            <Loader2 className="h-3 w-3 animate-spin mr-2" />
                             <span>Loading...</span>
                           </div>
                         ) : (
@@ -663,7 +798,7 @@ export default function SignUp() {
                         )}
                       </SelectTrigger>
                       <SelectContent
-                        className="!bg-white !text-black border-2 border-black shadow-lg max-h-60 overflow-y-auto z-50"
+                        className="!bg-white !text-black border-2 border-black shadow-lg max-h-40 overflow-y-auto z-50"
                         style={{
                           backgroundColor: "white",
                           color: "black",
@@ -676,24 +811,23 @@ export default function SignUp() {
                           organizations.map((org) => (
                             <SelectItem
                               key={org.id}
-                              value={org.id}
-                              className="!text-black hover:!bg-gray-100 cursor-pointer"
+                              value={org.id} // This should be the formatted organizationId
+                              className="!text-black hover:!bg-gray-100 cursor-pointer text-xs"
                               style={{ color: "black" }}
                             >
                               {org.name}
                             </SelectItem>
                           ))
                         ) : (
-                          <div className="p-2 text-center text-gray-500">
+                          <div className="p-2 text-center text-gray-500 text-xs">
                             No organizations available
                           </div>
                         )}
                       </SelectContent>
                     </Select>
                     {organizations.length === 0 && !isLoadingOrgs && (
-                      <p className="text-xs text-amber-600 mt-1">
-                        No organizations found. Please contact an admin to
-                        create one.
+                      <p className="text-[10px] text-amber-600 mt-0.5">
+                        No organizations found. Contact an admin.
                       </p>
                     )}
                   </div>
@@ -701,17 +835,16 @@ export default function SignUp() {
 
                 <Button
                   type="submit"
-                  className="gradient-button w-full bg-gradient-to-r from-[#06B6D4] to-[#0891B2] hover:opacity-90 text-white font-bold py-2 shadow-md hover:shadow-lg transition-all duration-300 relative"
-                  disabled={
-                    isLoading ||
-                    !!usernameError ||
-                    !!emailError ||
-                    !!passwordError
-                  }
+                  className={`gradient-button w-full bg-gradient-to-r from-[#06B6D4] to-[#0891B2] hover:opacity-90 text-white font-bold py-1 text-sm mt-2 shadow-md hover:shadow-lg transition-all duration-300 relative ${
+                    !formValid && !isLoading
+                      ? "opacity-70 cursor-not-allowed"
+                      : ""
+                  }`}
+                  disabled={isLoading || !formValid}
                 >
                   {isLoading ? (
                     <span className="flex items-center justify-center">
-                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                      <Loader2 className="h-4 w-4 animate-spin mr-1" />
                       Creating account...
                     </span>
                   ) : (
@@ -751,12 +884,12 @@ export default function SignUp() {
           </CardContent>
 
           <CardFooter
-            className="flex justify-center border-t !border-black p-6 bg-white relative z-30"
+            className="flex justify-center border-t !border-black p-3 bg-white relative z-30"
             style={{ borderColor: "black" }}
           >
             <Link
               href="/sign-in"
-              className="text-sm text-[#0891B2] hover:text-[#06B6D4] hover:underline font-bold transition-colors"
+              className="text-xs text-[#0891B2] hover:text-[#06B6D4] hover:underline font-bold transition-colors"
             >
               Already have an account? Sign in
             </Link>
