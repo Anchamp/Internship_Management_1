@@ -17,6 +17,7 @@ import {
   Users,
   AlertCircle,
   Loader2,
+  Filter,
 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
@@ -42,22 +43,23 @@ interface UserData {
   role: string;
   verificationStatus: string;
   profileSubmissionCount: number;
+  createdAt?: string;
 }
 
-export default function OnboardingScreen() {
+export default function UsersScreen() {
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
-  const [processingUser, setProcessingUser] = useState<string | null>(null);
+  const [selectedRole, setSelectedRole] = useState<string>("all");
 
   // State for fetching real data
-  const [mentors, setMentors] = useState<UserData[]>([]);
-  const [panelists, setPanelists] = useState<UserData[]>([]);
+  const [users, setUsers] = useState<UserData[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<UserData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [organizationName, setOrganizationName] = useState("");
 
   useEffect(() => {
-    const fetchPendingVerifications = async () => {
+    const fetchVerifiedUsers = async () => {
       try {
         setIsLoading(true);
         setError("");
@@ -71,28 +73,25 @@ export default function OnboardingScreen() {
 
         const { username } = JSON.parse(storedUser);
 
-        // Fetch pending verifications for this admin
+        // Fetch verified users for this admin's organization
         const response = await fetch(
-          `/api/admin/pending-verifications?username=${username}`
+          `/api/admin/verified-users?username=${username}`
         );
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(
-            errorData.error || "Failed to fetch pending verifications"
-          );
+          throw new Error(errorData.error || "Failed to fetch users");
         }
 
         const data = await response.json();
 
         // Update state with the fetched data
-        setMentors(data.mentors || []);
-        setPanelists(data.panelists || []);
+        setUsers(data.users || []);
         setOrganizationName(data.organizationName || "Your Organization");
       } catch (error: any) {
-        console.error("Error fetching pending verifications:", error);
+        console.error("Error fetching users:", error);
         setError(error.message || "An error occurred");
-        toast.error("Failed to load verification requests", {
+        toast.error("Failed to load users", {
           description: "Please try refreshing the page",
         });
       } finally {
@@ -100,85 +99,17 @@ export default function OnboardingScreen() {
       }
     };
 
-    fetchPendingVerifications();
+    fetchVerifiedUsers();
   }, []);
 
-  const handleVerify = async (userId: string, action: "approve" | "reject") => {
-    try {
-      setProcessingUser(userId);
-
-      // Get admin username from localStorage
-      const storedUser = localStorage.getItem("user");
-      if (!storedUser) {
-        throw new Error("User session not found");
-      }
-
-      const { username } = JSON.parse(storedUser);
-
-      console.log(`Admin ${username} is ${action}ing user with ID ${userId}`);
-
-      // Call API to verify the user
-      const response = await fetch("/api/admin/verify-user", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId,
-          action,
-          adminUsername: username,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || `Failed to ${action} user`);
-      }
-
-      console.log(`User verification ${action} successful:`, data);
-
-      // Show success message
-      toast.success(
-        `User ${action === "approve" ? "approved" : "rejected"} successfully`,
-        {
-          description:
-            action === "approve"
-              ? "The user has been added to your organization"
-              : "The user has been notified that their profile was rejected",
-        }
-      );
-
-      // Find the user in either mentors or panelists array
-      const userToRemove = [...mentors, ...panelists].find(
-        (user) => user._id === userId
-      );
-
-      // Remove user from the appropriate list based on their role
-      if (userToRemove) {
-        if (userToRemove.role === "mentor") {
-          setMentors((prev) => prev.filter((mentor) => mentor._id !== userId));
-        } else if (userToRemove.role === "panelist") {
-          setPanelists((prev) =>
-            prev.filter((panelist) => panelist._id !== userId)
-          );
-        }
-      }
-
-      // If modal is open for this user, close it
-      if (modalOpen && selectedUser?._id === userId) {
-        setModalOpen(false);
-        setSelectedUser(null);
-      }
-    } catch (error: any) {
-      console.error(`Error ${action}ing user:`, error);
-      toast.error(`Failed to ${action} user`, {
-        description: error.message || "An error occurred",
-      });
-    } finally {
-      setProcessingUser(null);
+  // Filter users whenever selected role changes
+  useEffect(() => {
+    if (selectedRole === "all") {
+      setFilteredUsers(users);
+    } else {
+      setFilteredUsers(users.filter((user) => user.role === selectedRole));
     }
-  };
+  }, [selectedRole, users]);
 
   const openModal = (user: UserData) => {
     setSelectedUser(user);
@@ -194,6 +125,47 @@ export default function OnboardingScreen() {
   const getInitial = (name: string) => {
     return name ? name.charAt(0).toUpperCase() : "U";
   };
+
+  // Get role background color
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case "mentor":
+        return "bg-cyan-100 text-cyan-700";
+      case "panelist":
+        return "bg-indigo-100 text-indigo-700";
+      case "intern":
+        return "bg-emerald-100 text-emerald-700";
+      case "admin":
+        return "bg-amber-100 text-amber-700";
+      default:
+        return "bg-gray-100 text-gray-700";
+    }
+  };
+
+  // Format date string
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }).format(date);
+  };
+
+  // Generate role counts
+  const getRoleCounts = () => {
+    const counts = {
+      all: users.length,
+      mentor: users.filter((user) => user.role === "mentor").length,
+      panelist: users.filter((user) => user.role === "panelist").length,
+      intern: users.filter((user) => user.role === "intern").length,
+      admin: users.filter((user) => user.role === "admin").length,
+    };
+    return counts;
+  };
+
+  const roleCounts = getRoleCounts();
 
   // User Card Component with updated styling
   const UserCard = ({ user }: { user: UserData }) => (
@@ -218,39 +190,45 @@ export default function OnboardingScreen() {
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-semibold text-gray-900 truncate">
+          <p className="font-semibold text-gray-900 truncate flex items-center">
             {user.fullName || user.username}
+            <span
+              className={`ml-2 text-xs px-2 py-0.5 rounded-full ${getRoleColor(
+                user.role
+              )}`}
+            >
+              {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+            </span>
           </p>
-          <div className="flex flex-col sm:flex-row sm:items-center text-sm text-gray-600 mt-1 space-y-1 sm:space-y-0 sm:space-x-4">
+          <div className="flex flex-col sm:flex-row sm:items-center text-xs text-gray-600 mt-1 space-y-1 sm:space-y-0 sm:space-x-4">
             <div className="flex items-center">
               <Mail className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
               <span className="truncate">{user.email}</span>
             </div>
-            {user.phone && (
-              <div className="flex items-center">
-                <Phone className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
-                <span>{user.phone}</span>
-              </div>
-            )}
+            <div className="flex items-center">
+              <Calendar className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
+              <span>Joined: {formatDate(user.createdAt)}</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          handleVerify(user._id, "approve");
-        }}
-        disabled={processingUser === user._id}
-        className="mt-2 sm:mt-0 px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 text-sm font-medium rounded-md flex items-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[100px] justify-center shadow-sm"
-      >
-        {processingUser === user._id ? (
-          <div className="animate-spin h-4 w-4 border-2 border-green-600 border-t-transparent rounded-full mr-2"></div>
-        ) : (
-          <Check className="h-4 w-4 mr-2" />
+      <div className="mt-2 sm:mt-0 flex items-center">
+        {user.position && (
+          <span className="px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded-md mr-2">
+            {user.position}
+          </span>
         )}
-        Approve
-      </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            window.location.href = `mailto:${user.email}`;
+          }}
+          className="px-3 py-1 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 text-xs font-medium rounded-md flex items-center transition-colors shadow-sm"
+        >
+          Contact
+        </button>
+      </div>
     </div>
   );
 
@@ -273,7 +251,7 @@ export default function OnboardingScreen() {
             </button>
           </div>
 
-          <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+          <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
             {/* Profile Header */}
             <div className="flex flex-col sm:flex-row items-center mb-8 sm:space-x-6">
               <div className="h-24 w-24 rounded-full bg-gradient-to-r from-cyan-600 to-blue-600 flex items-center justify-center text-white text-3xl font-bold mb-4 sm:mb-0 shadow-xl">
@@ -291,9 +269,19 @@ export default function OnboardingScreen() {
               </div>
 
               <div className="text-center sm:text-left">
-                <h4 className="text-2xl font-bold text-gray-900 mb-1">
-                  {selectedUser.fullName || "No name provided"}
-                </h4>
+                <div className="flex items-center">
+                  <h4 className="text-2xl font-bold text-gray-900 mb-1">
+                    {selectedUser.fullName || "No name provided"}
+                  </h4>
+                  <span
+                    className={`ml-3 text-xs px-2.5 py-1 rounded-full ${getRoleColor(
+                      selectedUser.role
+                    )}`}
+                  >
+                    {selectedUser.role.charAt(0).toUpperCase() +
+                      selectedUser.role.slice(1)}
+                  </span>
+                </div>
                 <p className="text-indigo-600">@{selectedUser.username}</p>
                 <p className="text-gray-700 mt-2">
                   {selectedUser.position || "Position not specified"}
@@ -348,6 +336,18 @@ export default function OnboardingScreen() {
                     </div>
                   </div>
                 )}
+
+                <div className="flex items-start">
+                  <Calendar className="h-5 w-5 text-indigo-500 mt-0.5 mr-3" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">
+                      Member Since
+                    </p>
+                    <p className="text-gray-900">
+                      {formatDate(selectedUser.createdAt)}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -471,31 +471,6 @@ export default function OnboardingScreen() {
               </div>
             )}
           </div>
-
-          <div className="p-5 border-t sticky bottom-0 bg-white shadow-inner">
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => handleVerify(selectedUser._id, "reject")}
-                disabled={processingUser === selectedUser._id}
-                className="px-6 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-md transition-colors font-medium flex items-center"
-              >
-                <X className="h-4 w-4 mr-2" />
-                Reject
-              </button>
-              <button
-                onClick={() => handleVerify(selectedUser._id, "approve")}
-                disabled={processingUser === selectedUser._id}
-                className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center font-medium shadow-sm transition-colors"
-              >
-                {processingUser === selectedUser._id ? (
-                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                ) : (
-                  <Check className="h-4 w-4 mr-2" />
-                )}
-                Approve User
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     );
@@ -506,7 +481,7 @@ export default function OnboardingScreen() {
       <div className="flex items-center justify-center p-12">
         <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />
         <span className="ml-2 text-lg font-medium text-gray-700">
-          Loading verification requests...
+          Loading users...
         </span>
       </div>
     );
@@ -517,7 +492,7 @@ export default function OnboardingScreen() {
       <div className="bg-red-50 p-6 rounded-lg border border-red-200 text-center">
         <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-red-700 mb-2">
-          Error Loading Verification Requests
+          Error Loading Users
         </h3>
         <p className="text-red-600">{error}</p>
         <button
@@ -533,47 +508,69 @@ export default function OnboardingScreen() {
   return (
     <>
       <div className="grid grid-cols-1 gap-6">
-        {/* Mentor Verification Section */}
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100">
-          <div className="p-5 border-b bg-gradient-to-r from-cyan-50 to-cyan-100">
-            <h2 className="text-xl font-bold text-gray-800">
-              Mentor Verification
-            </h2>
-          </div>
-          <div className="h-96 overflow-y-auto">
-            {mentors.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-gray-500 p-4">
-                <div className="bg-cyan-50 p-3 rounded-full mb-2">
-                  <User className="h-6 w-6 text-cyan-500" />
+        {/* Enhanced Organization info box with integrated role filter - removed extra text */}
+        <div className="bg-gradient-to-r from-cyan-50 to-blue-100 p-6 rounded-lg border border-cyan-200 shadow-md">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 flex items-center">
+                <Building className="h-6 w-6 text-cyan-700 mr-3" />
+                {organizationName} Users
+              </h3>
+            </div>
+
+            {/* Enhanced dropdown with arrow indicator and proper sizing */}
+            <div className="relative inline-block w-full md:w-auto">
+              <div className="flex items-center gap-2 bg-white/80 px-4 py-2.5 rounded-lg shadow-sm border border-cyan-100 hover:border-cyan-300 transition-all duration-200">
+                <Filter className="h-4 w-4 text-cyan-600" />
+                <select
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(e.target.value)}
+                  className="bg-transparent border-none text-gray-800 text-sm font-medium focus:outline-none appearance-none pr-8 cursor-pointer w-full"
+                  aria-label="Filter by role"
+                >
+                  <option value="all">All Users ({roleCounts.all})</option>
+                  <option value="mentor">Mentors ({roleCounts.mentor})</option>
+                  <option value="panelist">
+                    Panelists ({roleCounts.panelist})
+                  </option>
+                  <option value="intern">Interns ({roleCounts.intern})</option>
+                </select>
+                {/* Custom arrow indicator */}
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-600">
+                  <svg
+                    width="10"
+                    height="6"
+                    viewBox="0 0 10 6"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M1 1L5 5L9 1"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                 </div>
-                <p>No pending mentor verifications</p>
               </div>
-            ) : (
-              mentors.map((mentor) => (
-                <UserCard key={mentor._id} user={mentor} />
-              ))
-            )}
+            </div>
           </div>
         </div>
 
-        {/* Panelist Verification Section */}
+        {/* Users List Section */}
         <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100">
-          <div className="p-5 border-b bg-gradient-to-r from-indigo-50 to-indigo-100">
-            <h2 className="text-xl font-bold text-gray-800">
-              Panelist Verification
-            </h2>
-          </div>
-          <div className="h-96 overflow-y-auto">
-            {panelists.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-gray-500 p-4">
-                <div className="bg-indigo-50 p-3 rounded-full mb-2">
-                  <Users className="h-6 w-6 text-indigo-500" />
+          <div className="max-h-[600px] overflow-y-auto">
+            {filteredUsers.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-64 text-gray-500 p-4">
+                <div className="bg-gray-50 p-3 rounded-full mb-2">
+                  <User className="h-6 w-6 text-gray-400" />
                 </div>
-                <p>No pending panelist verifications</p>
+                <p>No users found matching the selected filter</p>
               </div>
             ) : (
-              panelists.map((panelist) => (
-                <UserCard key={panelist._id} user={panelist} />
+              filteredUsers.map((user) => (
+                <UserCard key={user._id} user={user} />
               ))
             )}
           </div>
@@ -582,6 +579,48 @@ export default function OnboardingScreen() {
 
       {/* User detail modal */}
       {modalOpen && <UserModal />}
+
+      {/* Add custom styles for enhanced dropdown */}
+      <style jsx global>{`
+        /* Custom dropdown styling */
+        select {
+          -webkit-appearance: none;
+          -moz-appearance: none;
+          appearance: none;
+        }
+
+        /* Ensure dropdown options are properly sized */
+        select option {
+          padding: 8px 12px;
+          font-size: 14px;
+        }
+
+        /* Fix dropdown width in browsers */
+        @supports (-moz-appearance: none) {
+          /* Firefox-specific rules */
+          select {
+            text-overflow: ellipsis;
+            width: 100%;
+          }
+        }
+
+        @media screen and (-webkit-min-device-pixel-ratio: 0) {
+          /* Chrome/Safari/Edge specific rules */
+          select {
+            width: 100%;
+          }
+
+          /* Adjust the dropdown list to match trigger width */
+          select:focus {
+            width: 100%;
+          }
+        }
+
+        /* Highlight effect on focus */
+        .relative:has(select):focus-within {
+          box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2);
+        }
+      `}</style>
     </>
   );
 }

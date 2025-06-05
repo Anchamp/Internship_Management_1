@@ -34,6 +34,17 @@ const UserSchema = new mongoose.Schema({
   profileImage: String,
   dob: String,
   teams: [String],
+  // Add field to track profile submission count
+  profileSubmissionCount: {
+    type: Number,
+    default: 0
+  },
+  // Add field to track verification status
+  verificationStatus: {
+    type: String,
+    enum: ['pending', 'verified', 'rejected'],
+    default: 'pending'
+  },
   createdAt: {
     type: Date,
     default: Date.now,

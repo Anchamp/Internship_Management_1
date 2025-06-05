@@ -70,6 +70,11 @@ export default function MentorProfile({
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [profileSubmissionCount, setProfileSubmissionCount] =
+    useState<number>(0);
+  const [verificationStatus, setVerificationStatus] =
+    useState<string>("pending");
+
   const [userData, setUserData] = useState({
     username: "",
     fullName: "",
@@ -142,6 +147,10 @@ export default function MentorProfile({
           if (data.user.profileImage) {
             setPreviewImage(data.user.profileImage);
           }
+
+          // Set profile submission count and verification status
+          setProfileSubmissionCount(data.user.profileSubmissionCount || 0);
+          setVerificationStatus(data.user.verificationStatus || "pending");
         }
       } catch (error) {
         console.error("Error loading user data:", error);
@@ -226,8 +235,20 @@ export default function MentorProfile({
         body: JSON.stringify(userData),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        alert("Profile updated successfully in the database.");
+        // Update the submission count locally
+        setProfileSubmissionCount((prev) => prev + 1);
+
+        // Show different alerts based on submission count
+        if (data.isFirstSubmission) {
+          alert(
+            "Your profile has been sent to the admin successfully for verification"
+          );
+        } else {
+          alert("Profile updated successfully in the database.");
+        }
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to update profile");
@@ -594,7 +615,8 @@ export default function MentorProfile({
         </div>
       </form>
 
-      {userData.organization === "none" && (
+      {/* Conditional verification message - only show if profile never submitted */}
+      {profileSubmissionCount === 0 && userData.organization === "none" && (
         <div className="mt-4 bg-amber-50 p-4 rounded-md border border-amber-200">
           <p className="text-amber-800 text-sm">
             <span className="font-medium">Note:</span> After submitting your

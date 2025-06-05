@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, Clock, Calendar, Users } from "lucide-react";
 
@@ -11,10 +12,40 @@ export default function DashboardScreen({
   organization,
 }: DashboardScreenProps) {
   const router = useRouter();
+  const [profileSubmissionCount, setProfileSubmissionCount] =
+    useState<number>(0);
+  const [verificationStatus, setVerificationStatus] =
+    useState<string>("pending");
+
+  // Fetch profile submission count from the database
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      try {
+        // Get username from localStorage
+        const storedUser = localStorage.getItem("user");
+        if (!storedUser) return;
+
+        const { username } = JSON.parse(storedUser);
+
+        // Fetch user data to get profile submission count
+        const response = await fetch(`/api/users/${username}`);
+        const data = await response.json();
+
+        if (response.ok && data.user) {
+          setProfileSubmissionCount(data.user.profileSubmissionCount || 0);
+          setVerificationStatus(data.user.verificationStatus || "pending");
+        }
+      } catch (error) {
+        console.error("Error fetching profile data:", error);
+      }
+    };
+
+    fetchProfileData();
+  }, []);
 
   return (
     <>
-      {/* Organization verification message */}
+      {/* Organization verification message - different based on submission count */}
       {organization === "none" && (
         <div className="mb-4 bg-amber-50 border-l-4 border-amber-400 p-4 rounded-md shadow-sm">
           <div className="flex">
@@ -23,21 +54,34 @@ export default function DashboardScreen({
             </div>
             <div className="ml-3">
               <h3 className="text-sm font-medium text-amber-800">
-                Profile Verification Required
+                {profileSubmissionCount === 0
+                  ? "Profile Verification Required"
+                  : "Profile Verification In Progress"}
               </h3>
               <div className="mt-2 text-sm text-amber-700">
                 <p>
-                  Please submit your profile details by visiting the{" "}
-                  <button
-                    onClick={() => router.push("/dashboard/mentor/profile")}
-                    className="font-medium underline"
-                  >
-                    My Profile
-                  </button>{" "}
-                  section. After verification from the admin, you will be able
-                  to onboard to an organization and access all mentorship
-                  features. Your profile information will help us match you with
-                  appropriate internship opportunities.
+                  {profileSubmissionCount === 0 ? (
+                    <>
+                      Please submit your profile details by visiting the{" "}
+                      <button
+                        onClick={() => router.push("/dashboard/mentor/profile")}
+                        className="font-medium underline"
+                      >
+                        My Profile
+                      </button>{" "}
+                      section. After verification from the admin, you will be
+                      able to onboard to an organization and access all
+                      mentorship features. Your profile information will help us
+                      match you with appropriate internship opportunities.
+                    </>
+                  ) : (
+                    <>
+                      Your profile has been submitted for verification. Please
+                      wait while an administrator reviews your information. Once
+                      approved, you will be onboarded to an organization and
+                      gain access to all mentorship features.
+                    </>
+                  )}
                 </p>
               </div>
             </div>
