@@ -31,7 +31,7 @@ const compressImage = async (
   maxSize: number = 400
 ): Promise<string> => {
   return new Promise((resolve) => {
-    const img = new Image();
+    const img = new window.Image();
     img.src = base64Image;
     img.onload = () => {
       const canvas = document.createElement("canvas");

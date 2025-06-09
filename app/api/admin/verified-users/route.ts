@@ -14,7 +14,11 @@ export async function GET(request: Request) {
     await dbConnect();
     
     // Get the admin user to find their organizationId
-    const adminUser = await User.findOne({ username: adminUsername, role: 'admin' }).lean();
+    const adminUser = await User.findOne({ username: adminUsername, role: 'admin' }).lean() as ({
+      organizationId?: string;
+      organizationName?: string;
+      [key: string]: any;
+    } | null);
     
     if (!adminUser) {
       return NextResponse.json({ error: 'Admin not found' }, { status: 404 });
