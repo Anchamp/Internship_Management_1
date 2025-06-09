@@ -15,6 +15,7 @@ import {
   Calendar,
   Upload,
   FileText,
+  Trash2,
 } from "lucide-react";
 
 interface AdminProfileProps {
@@ -172,6 +173,12 @@ export default function AdminProfile({
     }
   };
 
+  // Add handler for image removal
+  const handleRemoveImage = () => {
+    setPreviewImage(null);
+    setUserData((prev) => ({ ...prev, profileImage: "" }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -227,7 +234,7 @@ export default function AdminProfile({
       >
         {/* Profile Image Section */}
         <div className="mb-8 flex flex-col items-center">
-          <div className="relative w-32 h-32 mb-4">
+          <div className="relative w-32 h-32 mb-4 group">
             <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-cyan-500 bg-gray-200 flex items-center justify-center">
               {previewImage ? (
                 <div className="relative w-full h-full rounded-full overflow-hidden">
@@ -238,6 +245,17 @@ export default function AdminProfile({
                     style={{ objectFit: "cover" }}
                     className="rounded-full"
                   />
+                  {/* Add the remove button that appears on hover */}
+                  <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="text-white p-1 rounded-full hover:bg-red-500"
+                      title="Remove profile picture"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <User className="h-16 w-16 text-gray-400" />
@@ -389,11 +407,13 @@ export default function AdminProfile({
                   type="text"
                   name="organizationName"
                   value={userData.organizationName}
-                  onChange={handleChange}
-                  className="pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
-                  placeholder="Enter organization name"
+                  readOnly
+                  className="pl-10 w-full p-2 border rounded-md bg-gray-100 cursor-not-allowed text-gray-500"
                 />
               </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Organization name cannot be edited
+              </p>
             </div>
 
             <div>
