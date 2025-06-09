@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import NextImage from "next/image"; // Import with a different name
+import NextImage from "next/image";
 import {
   ArrowLeft,
   Save,
@@ -102,7 +102,7 @@ export default function AdminProfile({
           return;
         }
 
-        // Fetch user data directly from the database
+        // Fetch user data directly from the database - matching the mentor profile implementation
         const response = await fetch(`/api/users/${username}`);
         if (!response.ok) {
           throw new Error("Failed to fetch user data");
@@ -129,6 +129,8 @@ export default function AdminProfile({
           if (data.user.profileImage) {
             setPreviewImage(data.user.profileImage);
           }
+        } else {
+          throw new Error("User data not found");
         }
       } catch (error) {
         console.error("Error loading user data:", error);

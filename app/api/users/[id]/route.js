@@ -6,7 +6,10 @@ export async function GET(request) {
   try {
     // Get the ID from the URL path segments
     const pathParts = request.nextUrl.pathname.split('/');
-    const id = pathParts[pathParts.length - 1]; // Get the username/id from URL path
+    const encodedId = pathParts[pathParts.length - 1]; // Get the encoded username/id from URL path
+    
+    // Decode the ID to handle spaces and special characters
+    const id = decodeURIComponent(encodedId);
     
     // Connect to the database
     await dbConnect();
