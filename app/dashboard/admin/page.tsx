@@ -366,9 +366,15 @@ export default function AdminDashboard() {
           {activeTab === "dashboard" && <AdminDashboardScreen />}
           {activeTab === "profile" && <AdminProfile inDashboard={true} />}
           {activeTab === "onboarding" && <OnboardingScreen />}
-          {activeTab === "users" && <UsersScreen />}{" "}
+          {activeTab === "users" && <UsersScreen />}
           {/* Render the UsersScreen component */}
-          {activeTab === "organization" && <Organization />}
+          {activeTab === "organization" && (
+            <div className="p-4 bg-white rounded-md shadow">
+              <p className="text-lg font-medium">
+                Organization management coming soon
+              </p>
+            </div>
+          )}
           {activeTab === "programs" && (
             <div className="p-4 bg-white rounded-md shadow">
               <p className="text-lg font-medium">

@@ -21,25 +21,27 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Admin not found' }, { status: 404 });
     }
     
-    const organizationId = adminUser.organizationId;
-    if (!organizationId) {
-      return NextResponse.json({ error: 'Admin has no organization ID' }, { status: 400 });
+    const organizationName = adminUser.organizationName;
+    if (!organizationName) {
+      return NextResponse.json({ error: 'Admin has no organization Name' }, { status: 400 });
     }
     // Fetching mentors and panelists from the database
     const employees = await User.find({
-      organizationId: organizationId,
-      role: { $in: ['mentor', 'panelist'] }
+      organizationName: organizationName,
+      role: { $in: ['admin', 'mentor', 'panelist'] }
     }).select("-password").lean();
 
     // Grouping employees by role
     const mentors = employees.filter(emp => emp.role === 'mentor');
     const panelists = employees.filter(emp => emp.role === 'panelist');
+    const admins = employees.filter(emp => emp.role === 'admin');
 
     return NextResponse.json({
       success: true,
+      admins,
       mentors,
       panelists,
-      organizationId
+      organizationName
     });
     
   } catch (error: any) {
