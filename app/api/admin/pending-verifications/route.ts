@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     console.log(`Fetching pending verifications for admin: ${adminUsername}`);
     
     // Get the admin user to find their organizationId
-    const adminUser = await User.findOne({ username: adminUsername, role: 'admin' }).lean();
+    const adminUser: (typeof User) extends { prototype: infer U } ? U & { organizationId?: string; organizationName?: string } : any = await User.findOne({ username: adminUsername, role: 'admin' }).lean();
     
     if (!adminUser) {
       return NextResponse.json({ error: 'Admin not found' }, { status: 404 });
