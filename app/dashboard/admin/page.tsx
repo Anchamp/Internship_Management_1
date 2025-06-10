@@ -19,6 +19,7 @@ import AdminDashboardScreen from "./dashboardscreen";
 import AdminProfile from "./profile";
 import OnboardingScreen from "./onboarding";
 import UsersScreen from "./users"; // Import the UsersScreen component
+import Organization from "./organization";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -367,13 +368,7 @@ export default function AdminDashboard() {
           {activeTab === "onboarding" && <OnboardingScreen />}
           {activeTab === "users" && <UsersScreen />}{" "}
           {/* Render the UsersScreen component */}
-          {activeTab === "organization" && (
-            <div className="p-4 bg-white rounded-md shadow">
-              <p className="text-lg font-medium">
-                Organization management coming soon
-              </p>
-            </div>
-          )}
+          {activeTab === "organization" && <Organization />}
           {activeTab === "programs" && (
             <div className="p-4 bg-white rounded-md shadow">
               <p className="text-lg font-medium">
