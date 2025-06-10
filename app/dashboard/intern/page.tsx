@@ -3,9 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  BarChart,
-  CheckCircle,
-  Clock,
   FileText,
   Home,
   LogOut,
@@ -13,13 +10,24 @@ import {
   User,
   Menu,
   ClipboardList,
+  Calendar,
+  MessageSquare,
+  Briefcase,
+  Upload,
 } from "lucide-react";
+import InternDashboardScreen from "./dashboardscreen";
+import InternProfile from "./profile";
+import InternshipRequestScreen from "./internship-request";
+import ProjectProposalScreen from "./project-proposal";
+//import WeeklyReportsScreen from "./weekly-reports";
 
 export default function InternDashboard() {
   const router = useRouter();
   const [username, setUsername] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const [profileComplete, setProfileComplete] = useState<boolean>(false);
 
   // Auto-collapse sidebar on small screens
   useEffect(() => {
@@ -33,11 +41,7 @@ export default function InternDashboard() {
 
     // Set initial state based on screen size
     handleResize();
-
-    // Add event listener
     window.addEventListener("resize", handleResize);
-
-    // Cleanup
     return () => {
       window.removeEventListener("resize", handleResize);
     };
@@ -48,25 +52,49 @@ export default function InternDashboard() {
     const checkAuth = async () => {
       setIsLoading(true);
       try {
-        // Get user data from localStorage
         const userData = localStorage.getItem("user");
 
         if (!userData) {
-          // No user data found, redirect to login
           router.push("/sign-in");
           return;
         }
 
         const user = JSON.parse(userData);
 
-        // Check if user is an intern
         if (user.role !== "intern") {
-          // User is not an intern, redirect to appropriate dashboard
           router.push(`/dashboard/${user.role}`);
           return;
         }
 
         setUsername(user.username || "Intern");
+
+        // Check profile completeness
+        try {
+          const response = await fetch(`/api/users/${user.username}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.user) {
+              // Check if mandatory fields are filled
+              const isComplete = !!(
+                data.user.fullName &&
+                data.user.email &&
+                data.user.phone &&
+                data.user.dob &&
+                data.user.university &&
+                data.user.degree &&
+                data.user.major &&
+                data.user.graduationYear &&
+                data.user.skills &&
+                data.user.internshipGoals &&
+                data.user.resumeFile &&
+                data.user.idDocumentFile
+              );
+              setProfileComplete(isComplete);
+            }
+          }
+        } catch (error) {
+          console.warn("Couldn't fetch user profile data:", error);
+        }
       } catch (error) {
         console.error("Authentication error:", error);
         router.push("/sign-in");
@@ -79,18 +107,18 @@ export default function InternDashboard() {
   }, [router]);
 
   const handleLogout = () => {
-    // Clear authentication data
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-
-    // Redirect to sign-in page
     router.push("/sign-in");
   };
 
-  // Toggle sidebar collapse state
   const toggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
+  };
+
+  const handleNavigation = (tab: string) => {
+    setActiveTab(tab);
   };
 
   if (isLoading) {
@@ -103,7 +131,7 @@ export default function InternDashboard() {
 
   return (
     <div className="flex h-screen bg-gray-100">
-      {/* Sidebar - with reduced sizes */}
+      {/* Sidebar */}
       <div
         className={`${
           isSidebarCollapsed ? "w-0 md:w-16" : "w-60 md:w-64"
@@ -131,45 +159,119 @@ export default function InternDashboard() {
           <nav className="space-y-1">
             <a
               href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("dashboard");
+              }}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md bg-cyan-50 text-cyan-600 font-medium text-sm`}
+              } p-2 rounded-md ${
+                activeTab === "dashboard"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
             >
               <Home className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Dashboard</span>}
             </a>
             <a
               href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("profile");
+              }}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md hover:bg-gray-50 text-gray-700 font-medium text-sm`}
-            >
-              <FileText className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>Assignments</span>}
-            </a>
-            <a
-              href="#"
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md hover:bg-gray-50 text-gray-700 font-medium text-sm`}
-            >
-              <Clock className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>Time Tracking</span>}
-            </a>
-            <a
-              href="#"
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md hover:bg-gray-50 text-gray-700 font-medium text-sm`}
+              } p-2 rounded-md ${
+                activeTab === "profile"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
             >
               <User className="h-4 w-4" />
               {!isSidebarCollapsed && <span>My Profile</span>}
             </a>
             <a
               href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("internship-request");
+              }}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md hover:bg-gray-50 text-gray-700 font-medium text-sm`}
+              } p-2 rounded-md ${
+                activeTab === "internship-request"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
+            >
+              <FileText className="h-4 w-4" />
+              {!isSidebarCollapsed && <span>Internship Request</span>}
+            </a>
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("project-proposal");
+              }}
+              className={`flex items-center ${
+                isSidebarCollapsed ? "justify-center" : "space-x-3"
+              } p-2 rounded-md ${
+                activeTab === "project-proposal"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
+            >
+              <Briefcase className="h-4 w-4" />
+              {!isSidebarCollapsed && <span>Project Proposal</span>}
+            </a>
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("weekly-reports");
+              }}
+              className={`flex items-center ${
+                isSidebarCollapsed ? "justify-center" : "space-x-3"
+              } p-2 rounded-md ${
+                activeTab === "weekly-reports"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
+            >
+              <Calendar className="h-4 w-4" />
+              {!isSidebarCollapsed && <span>Weekly Reports</span>}
+            </a>
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("feedback");
+              }}
+              className={`flex items-center ${
+                isSidebarCollapsed ? "justify-center" : "space-x-3"
+              } p-2 rounded-md ${
+                activeTab === "feedback"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
+            >
+              <MessageSquare className="h-4 w-4" />
+              {!isSidebarCollapsed && <span>Feedback</span>}
+            </a>
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("settings");
+              }}
+              className={`flex items-center ${
+                isSidebarCollapsed ? "justify-center" : "space-x-3"
+              } p-2 rounded-md ${
+                activeTab === "settings"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
             >
               <Settings className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Settings</span>}
@@ -214,7 +316,7 @@ export default function InternDashboard() {
         ></div>
       )}
 
-      {/* Main content - with reduced sizes */}
+      {/* Main content */}
       <div className="flex-1 overflow-auto w-full">
         <header className="bg-white shadow-sm sticky top-0 z-10">
           <div className="p-3 sm:p-4 flex flex-wrap justify-between items-center gap-2">
@@ -227,15 +329,38 @@ export default function InternDashboard() {
               </button>
               <div>
                 <h1 className="text-lg sm:text-xl font-bold text-black">
-                  Intern Dashboard
+                  {activeTab === "dashboard"
+                    ? "Intern Dashboard"
+                    : activeTab === "profile"
+                    ? "My Profile"
+                    : activeTab === "internship-request"
+                    ? "Internship Request"
+                    : activeTab === "project-proposal"
+                    ? "Project Proposal"
+                    : activeTab === "weekly-reports"
+                    ? "Weekly Reports"
+                    : activeTab === "feedback"
+                    ? "Feedback"
+                    : "Settings"}
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-500">
-                  Learning Portal
+                  {activeTab === "dashboard"
+                    ? "Learning Portal"
+                    : activeTab === "profile"
+                    ? "Personal Information"
+                    : activeTab === "internship-request"
+                    ? "Submit Your Application"
+                    : activeTab === "project-proposal"
+                    ? "Project Details"
+                    : activeTab === "weekly-reports"
+                    ? "Progress Updates"
+                    : activeTab === "feedback"
+                    ? "Reviews & Feedback"
+                    : "Account Settings"}
                 </p>
               </div>
             </div>
 
-            {/* Responsive welcome message */}
             <div className="bg-gradient-to-r from-cyan-600 to-blue-600 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-md shadow-md ml-auto">
               <p className="text-sm sm:text-base font-semibold text-white tracking-wide whitespace-nowrap">
                 Welcome back, {username}
@@ -245,64 +370,27 @@ export default function InternDashboard() {
         </header>
 
         <main className="p-3 sm:p-4">
-          {/* Dashboard Content - with reduced sizes */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4">
-            <div className="bg-white rounded-md shadow p-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-gray-500 text-xs">Pending Tasks</p>
-                  <h3 className="text-lg font-bold">5</h3>
-                </div>
-                <span className="bg-amber-100 p-1.5 rounded-md">
-                  <Clock className="h-4 w-4 text-amber-600" />
-                </span>
-              </div>
+          {activeTab === "dashboard" && (
+            <InternDashboardScreen 
+              profileComplete={profileComplete}
+              username={username}
+              onNavigate={handleNavigation}
+            />
+          )}
+          {activeTab === "profile" && <InternProfile inDashboard={true} />}
+          {activeTab === "internship-request" && <InternshipRequestScreen />}
+          {activeTab === "project-proposal" && <ProjectProposalScreen />}
+          {activeTab === "weekly-reports" && <WeeklyReportsScreen />}
+          {activeTab === "feedback" && (
+            <div className="p-4 bg-white rounded-md shadow">
+              <p className="text-lg font-medium">Feedback section coming soon</p>
             </div>
-
-            <div className="bg-white rounded-md shadow p-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-gray-500 text-xs">Completed Tasks</p>
-                  <h3 className="text-lg font-bold">12</h3>
-                </div>
-                <span className="bg-green-100 p-1.5 rounded-md">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                </span>
-              </div>
+          )}
+          {activeTab === "settings" && (
+            <div className="p-4 bg-white rounded-md shadow">
+              <p className="text-lg font-medium">Settings section coming soon</p>
             </div>
-
-            <div className="bg-white rounded-md shadow p-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-gray-500 text-xs">Performance Score</p>
-                  <h3 className="text-lg font-bold">85%</h3>
-                </div>
-                <span className="bg-cyan-100 p-1.5 rounded-md">
-                  <BarChart className="h-4 w-4 text-cyan-600" />
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-md shadow p-4">
-            <h2 className="text-base font-semibold mb-3">Recent Activities</h2>
-            <div className="space-y-3">
-              <div className="border-l-4 border-cyan-500 pl-3 py-0.5">
-                <p className="font-medium text-sm">Submitted weekly report</p>
-                <p className="text-xs text-gray-500">Today, 09:15 AM</p>
-              </div>
-              <div className="border-l-4 border-gray-300 pl-3 py-0.5">
-                <p className="font-medium text-sm">Meeting with mentor</p>
-                <p className="text-xs text-gray-500">Yesterday, 02:30 PM</p>
-              </div>
-              <div className="border-l-4 border-gray-300 pl-3 py-0.5">
-                <p className="font-medium text-sm">
-                  Completed project milestone
-                </p>
-                <p className="text-xs text-gray-500">Aug 15, 2023</p>
-              </div>
-            </div>
-          </div>
+          )}
         </main>
       </div>
     </div>
