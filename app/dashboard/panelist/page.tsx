@@ -16,12 +16,16 @@ import {
   Menu,
   ClipboardList,
 } from "lucide-react";
+import PanelistProfile from "./profile";
+import DashboardScreen from "./dashboardscreen";
 
 export default function PanelistDashboard() {
   const router = useRouter();
   const [username, setUsername] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const [organization, setOrganization] = useState<string>("none");
 
   // Auto-collapse sidebar on small screens
   useEffect(() => {
@@ -69,6 +73,23 @@ export default function PanelistDashboard() {
         }
 
         setUsername(user.username || "Panelist");
+
+        // Fetch user data from MongoDB to get the most up-to-date info
+        try {
+          const response = await fetch(`/api/users/${user.username}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.user) {
+              setUsername(data.user.username || "Panelist");
+              setOrganization(
+                data.user.organizationName || data.user.organization || "none"
+              );
+            }
+          }
+        } catch (apiError) {
+          console.warn("Couldn't fetch latest user data:", apiError);
+          // Already set username from localStorage, so we can continue
+        }
       } catch (error) {
         console.error("Authentication error:", error);
         router.push("/sign-in");
@@ -93,6 +114,12 @@ export default function PanelistDashboard() {
   // Toggle sidebar collapse state
   const toggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
+  };
+
+  // Navigation handler
+  const handleNavigation = (tab: string) => {
+    // Simply set the active tab - don't redirect
+    setActiveTab(tab);
   };
 
   if (isLoading) {
@@ -133,54 +160,102 @@ export default function PanelistDashboard() {
           <nav className="space-y-1">
             <a
               href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("dashboard");
+              }}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md bg-cyan-50 text-cyan-600 font-medium text-sm`}
+              } p-2 rounded-md ${
+                activeTab === "dashboard"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
             >
               <Home className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Dashboard</span>}
             </a>
             <a
               href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("candidates");
+              }}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md hover:bg-gray-50 text-gray-700 font-medium text-sm`}
+              } p-2 rounded-md ${
+                activeTab === "candidates"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
             >
               <Users className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Candidates</span>}
             </a>
             <a
               href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("interviews");
+              }}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md hover:bg-gray-50 text-gray-700 font-medium text-sm`}
+              } p-2 rounded-md ${
+                activeTab === "interviews"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
             >
               <Calendar className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Interviews</span>}
             </a>
             <a
               href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("evaluations");
+              }}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md hover:bg-gray-50 text-gray-700 font-medium text-sm`}
+              } p-2 rounded-md ${
+                activeTab === "evaluations"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
             >
               <Star className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Evaluations</span>}
             </a>
             <a
               href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("profile");
+              }}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md hover:bg-gray-50 text-gray-700 font-medium text-sm`}
+              } p-2 rounded-md ${
+                activeTab === "profile"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
             >
               <User className="h-4 w-4" />
               {!isSidebarCollapsed && <span>My Profile</span>}
             </a>
             <a
               href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("settings");
+              }}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md hover:bg-gray-50 text-gray-700 font-medium text-sm`}
+              } p-2 rounded-md ${
+                activeTab === "settings"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
             >
               <Settings className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Settings</span>}
@@ -238,10 +313,26 @@ export default function PanelistDashboard() {
               </button>
               <div>
                 <h1 className="text-lg sm:text-xl font-bold text-black">
-                  Panelist Dashboard
+                  {activeTab === "dashboard"
+                    ? "Panelist Dashboard"
+                    : activeTab === "profile"
+                    ? "My Profile"
+                    : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-500">
-                  Evaluation Portal
+                  {activeTab === "dashboard"
+                    ? "Evaluation Portal"
+                    : activeTab === "profile"
+                    ? "Account Information"
+                    : activeTab === "candidates"
+                    ? "Manage Candidates"
+                    : activeTab === "interviews"
+                    ? "Scheduled Interviews"
+                    : activeTab === "evaluations"
+                    ? "Your Evaluations"
+                    : activeTab === "settings"
+                    ? "Account Settings"
+                    : ""}
                 </p>
               </div>
             </div>
@@ -256,177 +347,42 @@ export default function PanelistDashboard() {
         </header>
 
         <main className="p-3 sm:p-4">
-          {/* Dashboard Content - with reduced sizes */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
-            <div className="bg-white rounded-md shadow p-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-gray-500 text-xs">Today's Interviews</p>
-                  <h3 className="text-lg font-bold">3</h3>
-                </div>
-                <span className="bg-cyan-100 p-1.5 rounded-md">
-                  <Calendar className="h-4 w-4 text-cyan-600" />
-                </span>
-              </div>
+          {activeTab === "dashboard" && (
+            <DashboardScreen organization={organization} />
+          )}
+          {activeTab === "profile" && <PanelistProfile inDashboard={true} />}
+
+          {activeTab === "candidates" && (
+            <div className="p-4 bg-white rounded-md shadow">
+              <p className="text-lg font-medium">
+                Candidates section coming soon
+              </p>
             </div>
+          )}
 
-            <div className="bg-white rounded-md shadow p-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-gray-500 text-xs">Pending Evaluations</p>
-                  <h3 className="text-lg font-bold">5</h3>
-                </div>
-                <span className="bg-amber-100 p-1.5 rounded-md">
-                  <Clock className="h-4 w-4 text-amber-600" />
-                </span>
-              </div>
+          {activeTab === "interviews" && (
+            <div className="p-4 bg-white rounded-md shadow">
+              <p className="text-lg font-medium">
+                Interviews section coming soon
+              </p>
             </div>
+          )}
 
-            <div className="bg-white rounded-md shadow p-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-gray-500 text-xs">Completed Interviews</p>
-                  <h3 className="text-lg font-bold">12</h3>
-                </div>
-                <span className="bg-green-100 p-1.5 rounded-md">
-                  <Check className="h-4 w-4 text-green-600" />
-                </span>
-              </div>
+          {activeTab === "evaluations" && (
+            <div className="p-4 bg-white rounded-md shadow">
+              <p className="text-lg font-medium">
+                Evaluations section coming soon
+              </p>
             </div>
+          )}
 
-            <div className="bg-white rounded-md shadow p-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-gray-500 text-xs">Average Rating</p>
-                  <h3 className="text-lg font-bold">4.2/5</h3>
-                </div>
-                <span className="bg-indigo-100 p-1.5 rounded-md">
-                  <BarChart className="h-4 w-4 text-indigo-600" />
-                </span>
-              </div>
+          {activeTab === "settings" && (
+            <div className="p-4 bg-white rounded-md shadow">
+              <p className="text-lg font-medium">
+                Settings section coming soon
+              </p>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-            <div className="bg-white rounded-md shadow p-4">
-              <h2 className="text-base font-semibold mb-3">
-                Upcoming Interviews
-              </h2>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center pb-2 border-b">
-                  <div>
-                    <p className="font-medium text-sm">Michael Chang</p>
-                    <p className="text-xs text-gray-500">
-                      Full Stack Developer
-                    </p>
-                    <div className="flex items-center mt-1">
-                      <Calendar className="h-3 w-3 text-gray-400 mr-1" />
-                      <span className="text-xs text-gray-500">
-                        Today, 11:00 AM
-                      </span>
-                    </div>
-                  </div>
-                  <button className="px-2 py-1 bg-cyan-50 text-cyan-600 rounded-md text-xs font-medium">
-                    View Details
-                  </button>
-                </div>
-
-                <div className="flex justify-between items-center pb-2 border-b">
-                  <div>
-                    <p className="font-medium text-sm">Emily Wilson</p>
-                    <p className="text-xs text-gray-500">UX/UI Designer</p>
-                    <div className="flex items-center mt-1">
-                      <Calendar className="h-3 w-3 text-gray-400 mr-1" />
-                      <span className="text-xs text-gray-500">
-                        Today, 2:15 PM
-                      </span>
-                    </div>
-                  </div>
-                  <button className="px-2 py-1 bg-cyan-50 text-cyan-600 rounded-md text-xs font-medium">
-                    View Details
-                  </button>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium text-sm">James Patel</p>
-                    <p className="text-xs text-gray-500">Mobile Developer</p>
-                    <div className="flex items-center mt-1">
-                      <Calendar className="h-3 w-3 text-gray-400 mr-1" />
-                      <span className="text-xs text-gray-500">
-                        Tomorrow, 10:30 AM
-                      </span>
-                    </div>
-                  </div>
-                  <button className="px-2 py-1 bg-cyan-50 text-cyan-600 rounded-md text-xs font-medium">
-                    View Details
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-md shadow p-4">
-              <h2 className="text-base font-semibold mb-3">
-                Recent Evaluations
-              </h2>
-              <div className="space-y-3">
-                <div className="border-l-4 border-green-500 pl-3 py-0.5">
-                  <div className="flex justify-between">
-                    <p className="font-medium text-sm">Sophia Martinez</p>
-                    <div className="flex">
-                      {[1, 2, 3, 4].map((star) => (
-                        <Star
-                          key={star}
-                          className="h-3 w-3 fill-amber-400 text-amber-400"
-                        />
-                      ))}
-                      <Star className="h-3 w-3 text-amber-400" />
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    Data Scientist • Evaluated Yesterday
-                  </p>
-                </div>
-
-                <div className="border-l-4 border-amber-500 pl-3 py-0.5">
-                  <div className="flex justify-between">
-                    <p className="font-medium text-sm">Daniel Brown</p>
-                    <div className="flex">
-                      {[1, 2, 3].map((star) => (
-                        <Star
-                          key={star}
-                          className="h-3 w-3 fill-amber-400 text-amber-400"
-                        />
-                      ))}
-                      {[4, 5].map((star) => (
-                        <Star key={star} className="h-3 w-3 text-amber-400" />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    Frontend Developer • Evaluated Aug 17
-                  </p>
-                </div>
-
-                <div className="border-l-4 border-green-500 pl-3 py-0.5">
-                  <div className="flex justify-between">
-                    <p className="font-medium text-sm">Aisha Johnson</p>
-                    <div className="flex">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className="h-3 w-3 fill-amber-400 text-amber-400"
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    Product Manager • Evaluated Aug 15
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+          )}
         </main>
       </div>
     </div>

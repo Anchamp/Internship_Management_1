@@ -10,19 +10,22 @@ import {
   Building,
   Mail,
   Phone,
+  Briefcase,
   MapPin,
+  Clock,
   Globe,
-  Calendar,
-  Upload,
   FileText,
+  Calendar,
+  Users,
+  X,
+  Upload,
   Trash2,
 } from "lucide-react";
 
-interface AdminProfileProps {
+interface PanelistProfileProps {
   inDashboard?: boolean;
 }
 
-// Image compression function
 const compressImage = async (
   base64Image: string,
   maxSize: number = 400
@@ -62,21 +65,28 @@ const compressImage = async (
   });
 };
 
-export default function AdminProfile({
+export default function PanelistProfile({
   inDashboard = false,
-}: AdminProfileProps) {
+}: PanelistProfileProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [profileSubmissionCount, setProfileSubmissionCount] =
+    useState<number>(0);
+  const [verificationStatus, setVerificationStatus] =
+    useState<string>("pending");
+
   const [userData, setUserData] = useState({
     username: "",
     fullName: "",
     email: "",
     phone: "",
-    organizationName: "",
+    organization: "",
+    position: "",
     address: "",
-    website: "",
+    experience: "",
     bio: "",
+    website: "",
     profileImage: "",
     dob: "",
   });
@@ -89,7 +99,7 @@ export default function AdminProfile({
       try {
         setIsLoading(true);
 
-        // Get username from localStorage (temporary until full auth implementation)
+        // Get username from localStorage
         const storedUser = localStorage.getItem("user");
         if (!storedUser) {
           router.push("/sign-in");
@@ -98,12 +108,12 @@ export default function AdminProfile({
 
         // Get username for API call
         const { username, role } = JSON.parse(storedUser);
-        if (role !== "admin") {
+        if (role !== "panelist") {
           router.push(`/dashboard/${role}`);
           return;
         }
 
-        // Fetch user data directly from the database - matching the mentor profile implementation
+        // Fetch user data directly from the database
         const response = await fetch(`/api/users/${username}`);
         if (!response.ok) {
           throw new Error("Failed to fetch user data");
@@ -112,16 +122,19 @@ export default function AdminProfile({
         const data = await response.json();
 
         if (data.user) {
-          // Set state with user data from MongoDB
+          // Set state with user data from MongoDB - Check for both organization and organizationName
           setUserData({
             username: data.user.username || "",
             fullName: data.user.fullName || "",
             email: data.user.email || "",
             phone: data.user.phone || "",
-            organizationName: data.user.organizationName || "",
+            organization:
+              data.user.organizationName || data.user.organization || "",
+            position: data.user.position || "",
             address: data.user.address || "",
-            website: data.user.website || "",
+            experience: data.user.experience || "",
             bio: data.user.bio || "",
+            website: data.user.website || "",
             profileImage: data.user.profileImage || "",
             dob: data.user.dob || "",
           });
@@ -130,8 +143,10 @@ export default function AdminProfile({
           if (data.user.profileImage) {
             setPreviewImage(data.user.profileImage);
           }
-        } else {
-          throw new Error("User data not found");
+
+          // Set profile submission count and verification status
+          setProfileSubmissionCount(data.user.profileSubmissionCount || 0);
+          setVerificationStatus(data.user.verificationStatus || "pending");
         }
       } catch (error) {
         console.error("Error loading user data:", error);
@@ -203,8 +218,20 @@ export default function AdminProfile({
         body: JSON.stringify(userData),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        alert("Profile updated successfully in the database.");
+        // Update the submission count locally
+        setProfileSubmissionCount((prev) => prev + 1);
+
+        // Show different alerts based on submission count
+        if (data.isFirstSubmission) {
+          alert(
+            "Your profile has been sent to the admin successfully for verification"
+          );
+        } else {
+          alert("Profile updated successfully in the database.");
+        }
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to update profile");
@@ -389,15 +416,15 @@ export default function AdminProfile({
           </div>
         </div>
 
-        {/* Organization Information */}
+        {/* Professional Information */}
         <div className="mb-6">
           <h2 className="text-lg font-semibold mb-4 text-gray-800 border-b pb-2">
-            Organization Information
+            Professional Information
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Organization Name
+                Organization
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -405,15 +432,53 @@ export default function AdminProfile({
                 </div>
                 <input
                   type="text"
-                  name="organizationName"
-                  value={userData.organizationName}
+                  name="organization"
+                  value={userData.organization}
                   readOnly
                   className="pl-10 w-full p-2 border rounded-md bg-gray-100 cursor-not-allowed text-gray-500"
                 />
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Organization name cannot be edited
+                Organization is assigned by admin and cannot be edited
               </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Position/Title
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Briefcase className="h-4 w-4 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  name="position"
+                  value={userData.position}
+                  onChange={handleChange}
+                  className="pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
+                  placeholder="Enter your position"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Experience
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Briefcase className="h-4 w-4 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  name="experience"
+                  value={userData.experience}
+                  onChange={handleChange}
+                  className="pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
+                  placeholder="Enter years of experience"
+                />
+              </div>
             </div>
 
             <div>
@@ -440,21 +505,16 @@ export default function AdminProfile({
         {/* Bio */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Bio/Description
+            Bio/Professional Summary
           </label>
-          <div className="relative">
-            <div className="absolute top-2 left-3 pointer-events-none">
-              <FileText className="h-4 w-4 text-gray-400" />
-            </div>
-            <textarea
-              name="bio"
-              value={userData.bio}
-              onChange={handleChange}
-              rows={4}
-              className="pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
-              placeholder="Write a brief description about yourself and your organization..."
-            ></textarea>
-          </div>
+          <textarea
+            name="bio"
+            value={userData.bio}
+            onChange={handleChange}
+            rows={4}
+            className="w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
+            placeholder="Write a brief professional summary about yourself..."
+          ></textarea>
         </div>
 
         <div className="mt-6 flex justify-end">
@@ -477,6 +537,22 @@ export default function AdminProfile({
           </button>
         </div>
       </form>
+
+      {/* Conditional verification message - correctly placed outside form for visibility */}
+      {profileSubmissionCount === 0 &&
+        (userData.organization === "none" || !userData.organization) && (
+          <div className="mt-6 bg-amber-50 p-4 rounded-md border border-amber-400 shadow-sm">
+            <h3 className="text-amber-800 text-base font-medium mb-1">
+              Profile Verification Required
+            </h3>
+            <p className="text-amber-800 text-sm">
+              After submitting your profile, an administrator will review your
+              information for verification. Once approved, you will gain access
+              to all panelist features. Complete your profile details above and
+              click "Save Profile" to submit for verification.
+            </p>
+          </div>
+        )}
     </>
   );
 
@@ -492,7 +568,7 @@ export default function AdminProfile({
         {/* Header */}
         <div className="flex items-center mb-6">
           <button
-            onClick={() => router.push("/dashboard/admin")}
+            onClick={() => router.push("/dashboard/panelist")}
             className="mr-3 p-2 rounded-full hover:bg-gray-200"
           >
             <ArrowLeft className="h-5 w-5" />
