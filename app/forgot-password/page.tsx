@@ -30,9 +30,11 @@ export default function SignIn() {
   useSuppressionKey();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
 
@@ -50,10 +52,10 @@ export default function SignIn() {
     const loadingToast = toast.loading("Signing in...");
 
     try {
-      const res = await fetch("/api/login", {
+      const res = await fetch("/api/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, confirmPassword }),
       });
 
       const data = await res.json();
@@ -115,10 +117,10 @@ export default function SignIn() {
           <Card className="auth-card w-full max-w-md shadow-lg bg-white text-black relative">
             <CardHeader className="space-y-1 text-center pb-6 bg-white relative z-30">
               <CardTitle className="auth-title text-4xl font-bold bg-gradient-to-r from-[#06B6D4] to-[#0891B2] text-transparent bg-clip-text">
-                Welcome back
+                Forgot Password
               </CardTitle>
               <CardDescription className="text-sm">
-                Sign in to your account to continue
+                Enter Email to continue
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -166,7 +168,7 @@ export default function SignIn() {
               <div className="w-12 h-1 bg-gradient-to-r from-[#06B6D4] to-[#0891B2] rounded-full card-decoration"></div>
             </div>
             <CardTitle className="auth-title text-3xl font-bold bg-gradient-to-r from-[#06B6D4] to-[#0891B2] text-transparent bg-clip-text">
-              WELCOME!
+              Forgot Password
             </CardTitle>
           </CardHeader>
 
@@ -211,7 +213,7 @@ export default function SignIn() {
                   className="text-sm font-bold !text-black"
                   style={{ color: "black" }}
                 >
-                  Password
+                  New Password
                 </label>
                 <div className="relative">
                   <Input
@@ -253,29 +255,53 @@ export default function SignIn() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="remember"
-                    className="rounded border-black text-black focus:ring-black/20"
-                  />
-                  <label
-                    htmlFor="remember"
-                    className="text-sm !text-black font-bold"
-                    style={{ color: "black" }}
-                  >
-                    Remember me
-                  </label>
-                </div>
-                <a
-                  href="/forgot-password"
-                  className="text-sm text-[#0891B2] hover:text-[#06B6D4] hover:underline transition-colors font-bold"
+              <div className="space-y-2 relative">
+                <label
+                  htmlFor="password"
+                  className="text-sm font-bold !text-black"
+                  style={{ color: "black" }}
                 >
-                  Forgot password?
-                </a>
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={isLoading}
+                    className="input-glow bg-white !border-2 !border-black focus:!border-black focus:ring-black/20 !text-black placeholder:text-gray-500 relative z-40 !pr-12"
+                    style={{
+                      color: "black",
+                      backgroundColor: "white",
+                      borderColor: "black",
+                      borderWidth: "2px",
+                      position: "relative",
+                      zIndex: 40,
+                      paddingRight: "3rem",
+                    }}
+                  />
+                  <div
+                    className="absolute inset-y-0 right-0 flex items-center pr-3"
+                    style={{ zIndex: 60 }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="text-gray-500 hover:text-[#0891B2] transition-colors focus:outline-none"
+                      tabIndex={-1}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
-
               <Button
                 type="submit"
                 className="gradient-button w-full bg-gradient-to-r from-[#06B6D4] to-[#0891B2] hover:opacity-90 text-white font-bold py-2 shadow-md hover:shadow-lg transition-all duration-300 relative"
@@ -284,10 +310,10 @@ export default function SignIn() {
                 {isLoading ? (
                   <span className="flex items-center justify-center">
                     <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                    Signing in...
+                    Resetting...
                   </span>
                 ) : (
-                  "Sign in"
+                  "Reset"
                 )}
 
                 {/* Animated background for loading state */}
