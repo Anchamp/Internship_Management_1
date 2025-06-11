@@ -88,6 +88,7 @@ export default function OnboardingScreen() {
           ...(data.admins || []),
           ...(data.mentors || []),
           ...(data.panelists || []),
+          ...(data.interns || []),
         ];
 
         // Update state with the fetched data
