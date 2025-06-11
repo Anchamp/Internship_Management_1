@@ -19,6 +19,7 @@ import {
   Users,
   X,
   Upload,
+  Trash2, // Add Trash2 icon import
 } from "lucide-react";
 
 interface MentorProfileProps {
@@ -261,6 +262,12 @@ export default function MentorProfile({
     }
   };
 
+  // Add handleRemoveImage function
+  const handleRemoveImage = () => {
+    setPreviewImage(null);
+    setUserData((prev) => ({ ...prev, profileImage: "" }));
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -278,7 +285,7 @@ export default function MentorProfile({
       >
         {/* Profile Image Section */}
         <div className="mb-8 flex flex-col items-center">
-          <div className="relative w-32 h-32 mb-4">
+          <div className="relative w-32 h-32 mb-4 group">
             <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-cyan-500 bg-gray-200 flex items-center justify-center">
               {previewImage ? (
                 <div className="relative w-full h-full rounded-full overflow-hidden">
@@ -289,6 +296,17 @@ export default function MentorProfile({
                     style={{ objectFit: "cover" }}
                     className="rounded-full"
                   />
+                  {/* Add the remove button that appears on hover */}
+                  <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="text-white p-1 rounded-full hover:bg-red-500"
+                      title="Remove profile picture"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <User className="h-16 w-16 text-gray-400" />

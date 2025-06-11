@@ -140,7 +140,7 @@ export async function POST(request: Request) {
     }
     
     // Prepare user data based on role
-    const userData = {
+    const userData: any = {
       username,
       email,
       password,
@@ -148,6 +148,12 @@ export async function POST(request: Request) {
       organizationName: orgName,
       organizationId: orgId
     };
+    
+    // For admin users, remove profileSubmissionCount and verificationStatus fields completely
+    if (role === 'admin') {
+      userData.profileSubmissionCount = undefined; // Remove this field for admins
+      userData.verificationStatus = undefined; // Remove verification status for admins
+    }
     
     // Create new user
     const newUser = new User(userData);
