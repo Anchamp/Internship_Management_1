@@ -39,6 +39,7 @@ import Image from "next/image";
 
 interface InternProfileSettingsProps {
   inDashboard?: boolean;
+  onProfileUpdate?: () => void;
 }
 
 const compressImage = async (
@@ -78,6 +79,7 @@ const compressImage = async (
 
 export default function InternProfileSettings({
   inDashboard = false,
+  onProfileUpdate,
 }: InternProfileSettingsProps) {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState<string>("profile");
@@ -361,7 +363,8 @@ export default function InternProfileSettings({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // SINGLE PROFILE SUBMIT HANDLER
+  const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setShowValidation(true);
 
@@ -387,7 +390,8 @@ export default function InternProfileSettings({
         preferences,
       };
 
-      const response = await fetch(`/api/users/${username}/update-profile`, {
+      // Use the new intern-specific API endpoint
+      const response = await fetch(`/api/users/${username}/update-intern-profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -396,8 +400,44 @@ export default function InternProfileSettings({
       });
 
       if (response.ok) {
+        const result = await response.json();
         alert("Profile updated successfully!");
         setShowValidation(false);
+        
+        // Update the local state with the returned data
+        if (result.user) {
+          setUserData({
+            username: result.user.username || "",
+            fullName: result.user.fullName || "",
+            email: result.user.email || "",
+            phone: result.user.phone || "",
+            address: result.user.address || "",
+            bio: result.user.bio || "",
+            website: result.user.website || "",
+            profileImage: result.user.profileImage || "",
+            dob: result.user.dob || "",
+            university: result.user.university || "",
+            degree: result.user.degree || "",
+            graduationYear: result.user.graduationYear || "",
+            major: result.user.major || "",
+            gpa: result.user.gpa || "",
+            skills: result.user.skills || "",
+            internshipGoals: result.user.internshipGoals || "",
+            previousExperience: result.user.previousExperience || "",
+            portfolioLinks: result.user.portfolioLinks || [],
+            resumeFile: result.user.resumeFile || "",
+            idDocumentFile: result.user.idDocumentFile || "",
+            transcriptFile: result.user.transcriptFile || "",
+            applicationStatus: result.user.applicationStatus || "none",
+            verificationStatus: result.user.verificationStatus || "pending",
+            profileSubmissionCount: result.user.profileSubmissionCount || 0,
+          });
+        }
+        
+        // Call the callback to refresh dashboard
+        if (onProfileUpdate) {
+          onProfileUpdate();
+        }
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to update profile");
@@ -410,6 +450,7 @@ export default function InternProfileSettings({
     }
   };
 
+  // PASSWORD SUBMIT HANDLER
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -554,7 +595,7 @@ export default function InternProfileSettings({
                   <h2 className="text-xl font-semibold text-gray-800">Profile Information</h2>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleProfileSubmit} className="space-y-6">
                   {/* Profile Image */}
                   <div className="flex items-center space-x-6">
                     <div className="relative">
@@ -692,7 +733,7 @@ export default function InternProfileSettings({
                       Address
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <div className="absolute top-2 left-3 pointer-events-none">
                         <MapPin className="h-4 w-4 text-gray-400" />
                       </div>
                       <textarea
@@ -768,7 +809,7 @@ export default function InternProfileSettings({
                   <h2 className="text-xl font-semibold text-gray-800">Academic Details</h2>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleProfileSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -902,7 +943,7 @@ export default function InternProfileSettings({
                   <h2 className="text-xl font-semibold text-gray-800">Professional Information</h2>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleProfileSubmit} className="space-y-6">
                   {/* Skills */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1051,7 +1092,7 @@ export default function InternProfileSettings({
                   <h2 className="text-xl font-semibold text-gray-800">Documents</h2>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleProfileSubmit} className="space-y-6">
                   {/* Resume */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1264,7 +1305,7 @@ export default function InternProfileSettings({
 
                   <div className="flex justify-end">
                     <button
-                      onClick={handleSubmit}
+                      onClick={handleProfileSubmit}
                       disabled={isSaving}
                       className="flex items-center px-6 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-50"
                     >
