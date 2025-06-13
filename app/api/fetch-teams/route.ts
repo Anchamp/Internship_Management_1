@@ -46,7 +46,8 @@ export async function GET(request: Request) {
       const teams = await Team.find({ organizationName: organizationName }).lean();
       return NextResponse.json({
         success: true,
-        teams
+        teams,
+        organizationName
       });
     }
 
@@ -57,7 +58,8 @@ export async function GET(request: Request) {
       }
       return NextResponse.json({
         success: true,
-        teams
+        teams,
+        organizationName
       });
     }
 
