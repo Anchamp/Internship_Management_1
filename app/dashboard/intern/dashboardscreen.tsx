@@ -354,52 +354,52 @@ export default function InternDashboardScreen({
         
         {/* Left Column - Profile & Academic Info */}
         <div className="space-y-6">
-          {/* Academic Information */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <h2 className="text-base font-semibold mb-3 flex items-center">
-              <GraduationCap className="h-4 w-4 mr-2 text-cyan-600" />
-              Academic Information
-            </h2>
-            {userData && profileComplete ? (
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-gray-500">Name</p>
-                  <p className="font-medium text-sm">{userData.fullName || "Not provided"}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">University</p>
-                  <p className="font-medium text-sm">{userData.university || "Not provided"}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Degree</p>
-                  <p className="font-medium text-sm">
-                    {userData.degree} in {userData.major || "Not specified"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Expected Graduation</p>
-                  <p className="font-medium text-sm">{userData.graduationYear || "Not provided"}</p>
-                </div>
-                {userData.gpa && (
-                  <div>
-                    <p className="text-xs text-gray-500">CGPA</p>
-                    <p className="font-medium text-sm">{userData.gpa}</p>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-center py-4">
-                <User className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">Complete your profile to see information here</p>
-                <button
-                  onClick={() => onNavigate("profile-settings")}
-                  className="mt-2 text-cyan-600 hover:text-cyan-800 text-sm font-medium"
-                >
-                  Complete Profile →
-                </button>
-              </div>
-            )}
-          </div>
+            {/* Academic Information */}
+<div className="bg-white rounded-lg shadow p-4">
+  <h2 className="text-base font-semibold mb-3 flex items-center">
+    <GraduationCap className="h-4 w-4 mr-2 text-cyan-600" />
+    Academic Information
+  </h2>
+  {userData && profileComplete ? (
+    <div className="space-y-3">
+      <div>
+        <p className="text-xs text-gray-700 font-medium">Name</p>
+        <p className="font-medium text-sm text-gray-900">{userData.fullName || "Not provided"}</p>
+      </div>
+      <div>
+        <p className="text-xs text-gray-700 font-medium">University</p>
+        <p className="font-medium text-sm text-gray-900">{userData.university || "Not provided"}</p>
+      </div>
+      <div>
+        <p className="text-xs text-gray-700 font-medium">Degree</p>
+        <p className="font-medium text-sm text-gray-900">
+          {userData.degree} in {userData.major || "Not specified"}
+        </p>
+      </div>
+      <div>
+        <p className="text-xs text-gray-700 font-medium">Expected Graduation</p>
+        <p className="font-medium text-sm text-gray-900">{userData.graduationYear || "Not provided"}</p>
+      </div>
+      {userData.gpa && (
+        <div>
+          <p className="text-xs text-gray-700 font-medium">CGPA</p>
+          <p className="font-medium text-sm text-gray-900">{userData.gpa}</p>
+        </div>
+      )}
+    </div>
+  ) : (
+    <div className="text-center py-4">
+      <User className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+      <p className="text-sm text-gray-600">Complete your profile to see information here</p>
+      <button
+        onClick={() => onNavigate("profile-settings")}
+        className="mt-2 text-cyan-600 hover:text-cyan-800 text-sm font-medium"
+      >
+        Complete Profile →
+      </button>
+    </div>
+  )}
+</div>
 
           {/* Skills & Technologies */}
           <div className="bg-white rounded-lg shadow p-4">
