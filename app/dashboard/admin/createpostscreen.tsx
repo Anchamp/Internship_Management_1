@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import {
   Briefcase,
@@ -23,7 +23,6 @@ import {
 export default function CreatePostScreen() {
   const [formData, setFormData] = useState({
     title: "",
-    organizationName: "",
     startDate: "",
     endDate: "",
     mode: "onsite", // Default: onsite
@@ -47,6 +46,20 @@ export default function CreatePostScreen() {
   const [newSkill, setNewSkill] = useState("");
   const [newResponsibility, setNewResponsibility] = useState("");
   const [organizationLogo, setOrganizationLogo] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false); // Loading state
+
+  // Add useEffect to populate organization data when component loads
+  useEffect(() => {
+    // Get user data from localStorage to pre-fill organization name
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      const userData = JSON.parse(storedUser);
+      setFormData((prev) => ({
+        ...prev,
+        // organizationName: userData.organizationName || "",
+      }));
+    }
+  }, []);
 
   // Helper function to handle image upload and compression
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -140,12 +153,94 @@ export default function CreatePostScreen() {
   };
 
   // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would normally submit to an API/database
-    console.log("Form data submitted:", formData);
-    console.log("Organization logo:", organizationLogo);
-    alert("Internship posting created successfully!");
+
+    try {
+      // Show loading state
+      setIsSaving(true);
+
+      // Get username from localStorage
+      const storedUser = localStorage.getItem("user");
+      if (!storedUser) {
+        alert("User session not found. Please log in again.");
+        return;
+      }
+
+      const { username } = JSON.parse(storedUser);
+
+      // Fetch admin data directly from MongoDB to ensure we have current organization info
+      const userResponse = await fetch(`/api/users/${username}`);
+      if (!userResponse.ok) {
+        throw new Error("Failed to fetch user data");
+      }
+
+      const userData = await userResponse.json();
+
+      if (
+        !userData.user ||
+        !userData.user.organizationName ||
+        !userData.user.organizationId
+      ) {
+        throw new Error("Missing organization information in user profile");
+      }
+
+      console.log("Retrieved organization info from database:", {
+        organizationName: userData.user.organizationName,
+        organizationId: userData.user.organizationId,
+      });
+
+      // Format dates to ISO string
+      const formattedData = {
+        ...formData,
+        startDate: new Date(formData.startDate).toISOString(),
+        endDate: new Date(formData.endDate).toISOString(),
+        applicationDeadline: new Date(
+          formData.applicationDeadline
+        ).toISOString(),
+        postingDate: new Date(formData.postingDate).toISOString(),
+        organizationLogo: organizationLogo,
+        // Include admin data from database query results
+        userData: {
+          username: userData.user.username,
+          organizationName: userData.user.organizationName,
+          organizationId: userData.user.organizationId,
+          role: userData.user.role,
+        },
+      };
+
+      console.log("Submitting internship with admin data:", {
+        username: userData.user.username,
+        orgName: userData.user.organizationName,
+        orgId: userData.user.organizationId,
+      });
+
+      // Send data to API
+      const response = await fetch("/api/internships", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formattedData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.error ||
+            errorData.details ||
+            "Failed to create internship posting"
+        );
+      }
+
+      // Show success message
+      alert("Internship posted successfully");
+    } catch (error: any) {
+      console.error("Error:", error);
+      alert(`Failed to create internship posting: ${error.message}`);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -198,31 +293,6 @@ export default function CreatePostScreen() {
                 </div>
               </div>
 
-              {/* Organization Name */}
-              <div>
-                <label
-                  htmlFor="organizationName"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Organization Name<span className="text-red-500">*</span>
-                </label>
-                <div className="relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Building className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="text"
-                    name="organizationName"
-                    id="organizationName"
-                    required
-                    value={formData.organizationName}
-                    onChange={handleChange}
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm text-black"
-                    placeholder="Your organization name"
-                  />
-                </div>
-              </div>
-
               {/* Organization Logo */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -231,7 +301,7 @@ export default function CreatePostScreen() {
                 <div className="flex items-center">
                   {organizationLogo ? (
                     <div className="relative mr-4">
-                      <div className="h-16 w-16 rounded-md overflow-hidden border border-gray-300 shadow-sm">
+                      <div className="h-16 w-16 rounded-md overflow-hidden border border-gray-300">
                         <Image
                           src={organizationLogo}
                           alt="Organization Logo"
@@ -577,6 +647,9 @@ export default function CreatePostScreen() {
                       className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm text-black"
                     />
                   </div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Defaults to today but can be changed if needed
+                  </p>
                 </div>
               </div>
 
@@ -616,7 +689,8 @@ export default function CreatePostScreen() {
                     {formData.isPaid && (
                       <div className="relative rounded-md shadow-sm">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <DollarSign className="h-5 w-5 text-gray-400" />
+                          {/* Replace DollarSign icon with Rupee text */}
+                          <span className="text-gray-400 font-medium">₹</span>
                         </div>
                         <input
                           type="text"
@@ -626,7 +700,7 @@ export default function CreatePostScreen() {
                           value={formData.stipend}
                           onChange={handleChange}
                           className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm text-black"
-                          placeholder="e.g., $1000/month"
+                          placeholder="e.g., Rs.1000/month"
                         />
                       </div>
                     )}
@@ -784,9 +858,17 @@ export default function CreatePostScreen() {
           <div className="flex justify-end pt-6 mt-2">
             <button
               type="submit"
-              className="px-8 py-3 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2"
+              disabled={isSaving}
+              className="px-8 py-3 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 transition-all duration-300"
             >
-              Create Posting
+              {isSaving ? (
+                <div className="flex items-center">
+                  <div className="animate-spin h-5 w-5 mr-2 border-2 border-white border-t-transparent rounded-full"></div>
+                  Publishing...
+                </div>
+              ) : (
+                "Publish Posting"
+              )}
             </button>
           </div>
         </div>
