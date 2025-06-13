@@ -82,6 +82,8 @@ export default function Home() {
         userId: data.userId,
         role: data.role,
         username: data.username,
+        organizationName: data.organizationName,
+        organizationId: data.organizationId,
       };
       localStorage.setItem("user", JSON.stringify(userData));
 

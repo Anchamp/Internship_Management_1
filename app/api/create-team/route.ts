@@ -10,10 +10,10 @@ export async function POST(request: Request) {
 
     // Parse request body
     const body = await request.json();
-    const { username, teamName, mentors, interns, panelists, description, organizationName, organizationId } = body;
+    const { username, teamName, mentors, interns, panelists, description, organizationName} = body;
 
     // Validate input
-    if (!username || !teamName || !mentors || !interns || !panelists || !description || !organizationName || !organizationId) {
+    if (!username || !teamName || !mentors || !interns || !panelists || !description || !organizationName) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -22,6 +22,7 @@ export async function POST(request: Request) {
     if (!adminUser) {
       return NextResponse.json({ error: 'Only admins can create teams' }, { status: 403 });
     }
+    const organizationId = adminUser.organizationId;
 
     // Convert usernames to ObjectIds
     const mentorUsers = await User.find({ username: { $in: mentors }, organizationName: organizationName });
