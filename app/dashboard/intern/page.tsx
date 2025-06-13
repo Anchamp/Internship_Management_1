@@ -14,12 +14,24 @@ import {
   MessageSquare,
   Briefcase,
   Upload,
+  Users,
+  Search,
+  Presentation,
+  Star,
+  BookOpen,
+  Bell
 } from "lucide-react";
 import InternDashboardScreen from "./dashboardscreen";
-import InternProfile from "./profile";
-import InternshipRequestScreen from "./internship-request";
-import ProjectProposalScreen from "./project-proposal";
+import InternProfileSettings from "./profile-settings";
+//import MyTeamsScreen from "./my-teams";
+//import FindInternshipsScreen from "./find-internships";
+//import InternshipRequestScreen from "./internship-request";
+//import MyApplicationsScreen from "./my-applications";
+//import ProjectDetailsScreen from "./project-details";
 //import WeeklyReportsScreen from "./weekly-reports";
+//import DemoPresentationScreen from "./demo-presentation";
+//import FeedbackEvaluationsScreen from "./feedback-evaluations";
+//import TeamCommunicationScreen from "./team-communication";
 
 export default function InternDashboard() {
   const router = useRouter();
@@ -28,6 +40,7 @@ export default function InternDashboard() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [profileComplete, setProfileComplete] = useState<boolean>(false);
+  const [unreadNotifications, setUnreadNotifications] = useState<number>(0);
 
   // Auto-collapse sidebar on small screens
   useEffect(() => {
@@ -39,7 +52,6 @@ export default function InternDashboard() {
       }
     };
 
-    // Set initial state based on screen size
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => {
@@ -68,7 +80,7 @@ export default function InternDashboard() {
 
         setUsername(user.username || "Intern");
 
-        // Check profile completeness
+        // Check profile completeness and load notifications
         try {
           const response = await fetch(`/api/users/${user.username}`);
           if (response.ok) {
@@ -90,6 +102,10 @@ export default function InternDashboard() {
                 data.user.idDocumentFile
               );
               setProfileComplete(isComplete);
+              
+              // Count unread notifications
+              const unreadCount = data.user.notifications?.filter((notif: any) => !notif.read).length || 0;
+              setUnreadNotifications(unreadCount);
             }
           }
         } catch (error) {
@@ -129,247 +145,243 @@ export default function InternDashboard() {
     );
   }
 
+  const sidebarItems = [
+    { 
+      id: "dashboard", 
+      label: "Dashboard", 
+      icon: Home, 
+      description: "Overview & Quick Stats" 
+    },
+    { 
+      id: "my-teams", 
+      label: "My Teams", 
+      icon: Users, 
+      description: "Team Projects & Collaboration" 
+    },
+    { 
+      id: "find-internships", 
+      label: "Find Internships", 
+      icon: Search, 
+      description: "Browse Opportunities" 
+    },
+    { 
+      id: "internship-request", 
+      label: "Apply for Internship", 
+      icon: Upload, 
+      description: "Submit Application" 
+    },
+    { 
+      id: "my-applications", 
+      label: "My Applications", 
+      icon: ClipboardList, 
+      description: "Track Application Status" 
+    },
+    { 
+      id: "project-details", 
+      label: "Project Details", 
+      icon: BookOpen, 
+      description: "Current Project Info" 
+    },
+    { 
+      id: "weekly-reports", 
+      label: "Weekly Reports", 
+      icon: FileText, 
+      description: "Submit Progress Reports" 
+    },
+    { 
+      id: "demo-presentation", 
+      label: "Demo Presentation", 
+      icon: Presentation, 
+      description: "Demo Schedule & Materials" 
+    },
+    { 
+      id: "feedback", 
+      label: "Feedback & Reviews", 
+      icon: Star, 
+      description: "View Evaluations" 
+    },
+    { 
+      id: "team-chat", 
+      label: "Team Communication", 
+      icon: MessageSquare, 
+      description: "Chat with Team" 
+    },
+    { 
+      id: "profile-settings", 
+      label: "Profile & Settings", 
+      icon: User, 
+      description: "Manage Account" 
+    },
+  ];
+
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
       <div
         className={`${
-          isSidebarCollapsed ? "w-0 md:w-16" : "w-60 md:w-64"
-        } bg-white shadow-md transition-all duration-300 fixed md:relative z-30 h-full overflow-hidden`}
+          isSidebarCollapsed ? "w-16" : "w-64"
+        } bg-white shadow-lg transition-all duration-300 flex flex-col`}
       >
-        <div className="p-3 border-b flex items-center justify-between">
+        {/* Logo and toggle */}
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
           {!isSidebarCollapsed && (
-            <div className="flex items-center space-x-2">
-              <div className="h-7 w-7 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md shadow-cyan-500/20">
-                <ClipboardList className="h-4 w-4 text-white" />
-              </div>
-              <span className="font-bold text-base bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-cyan-700">
-                InternshipHub
-              </span>
-            </div>
+            <h1 className="text-xl font-bold text-gray-800">InternHub</h1>
           )}
-          {isSidebarCollapsed && (
-            <div className="h-7 w-7 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md shadow-cyan-500/20 mx-auto">
-              <ClipboardList className="h-4 w-4 text-white" />
-            </div>
-          )}
+          <button
+            onClick={toggleSidebar}
+            className="p-1 rounded-md hover:bg-gray-100 transition-colors"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
         </div>
 
-        <div className="p-3 flex flex-col justify-between h-[calc(100%-58px)]">
-          <nav className="space-y-1">
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                handleNavigation("dashboard");
-              }}
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md ${
-                activeTab === "dashboard"
-                  ? "bg-cyan-50 text-cyan-600"
-                  : "hover:bg-gray-50 text-gray-700"
-              } font-medium text-sm`}
-            >
-              <Home className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>Dashboard</span>}
-            </a>
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                handleNavigation("profile");
-              }}
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md ${
-                activeTab === "profile"
-                  ? "bg-cyan-50 text-cyan-600"
-                  : "hover:bg-gray-50 text-gray-700"
-              } font-medium text-sm`}
-            >
-              <User className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>My Profile</span>}
-            </a>
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                handleNavigation("internship-request");
-              }}
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md ${
-                activeTab === "internship-request"
-                  ? "bg-cyan-50 text-cyan-600"
-                  : "hover:bg-gray-50 text-gray-700"
-              } font-medium text-sm`}
-            >
-              <FileText className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>Internship Request</span>}
-            </a>
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                handleNavigation("project-proposal");
-              }}
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md ${
-                activeTab === "project-proposal"
-                  ? "bg-cyan-50 text-cyan-600"
-                  : "hover:bg-gray-50 text-gray-700"
-              } font-medium text-sm`}
-            >
-              <Briefcase className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>Project Proposal</span>}
-            </a>
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                handleNavigation("weekly-reports");
-              }}
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md ${
-                activeTab === "weekly-reports"
-                  ? "bg-cyan-50 text-cyan-600"
-                  : "hover:bg-gray-50 text-gray-700"
-              } font-medium text-sm`}
-            >
-              <Calendar className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>Weekly Reports</span>}
-            </a>
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                handleNavigation("feedback");
-              }}
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md ${
-                activeTab === "feedback"
-                  ? "bg-cyan-50 text-cyan-600"
-                  : "hover:bg-gray-50 text-gray-700"
-              } font-medium text-sm`}
-            >
-              <MessageSquare className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>Feedback</span>}
-            </a>
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                handleNavigation("settings");
-              }}
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md ${
-                activeTab === "settings"
-                  ? "bg-cyan-50 text-cyan-600"
-                  : "hover:bg-gray-50 text-gray-700"
-              } font-medium text-sm`}
-            >
-              <Settings className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>Settings</span>}
-            </a>
-          </nav>
-
-          <div className="mt-auto border-t pt-3 space-y-3">
-            <div
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : ""
-              } p-1.5`}
-            >
-              <div className="h-8 w-8 rounded-full bg-cyan-500 flex items-center justify-center text-white text-sm font-bold shadow-md">
-                {username.charAt(0).toUpperCase()}
-              </div>
-              {!isSidebarCollapsed && (
-                <div className="ml-3">
-                  <p className="font-medium text-black text-sm">{username}</p>
-                  <p className="text-xs text-gray-500">Intern</p>
+        {/* Navigation items */}
+        <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
+          {sidebarItems.map((item) => {
+            const IconComponent = item.icon;
+            const isActive = activeTab === item.id;
+            
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleNavigation(item.id)}
+                className={`w-full text-left p-3 rounded-md transition-all duration-200 group relative ${
+                  isActive
+                    ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                <div className="flex items-center">
+                  <IconComponent
+                    className={`h-5 w-5 ${
+                      isSidebarCollapsed ? "mx-auto" : "mr-3"
+                    } ${isActive ? "text-white" : "text-gray-500"}`}
+                  />
+                  {!isSidebarCollapsed && (
+                    <div className="flex-1">
+                      <div className="font-medium text-sm">{item.label}</div>
+                      <div className={`text-xs mt-0.5 ${
+                        isActive ? "text-cyan-100" : "text-gray-500"
+                      }`}>
+                        {item.description}
+                      </div>
+                    </div>
+                  )}
+                  {/* Show notification badge for certain items */}
+                  {item.id === "feedback" && unreadNotifications > 0 && (
+                    <span className="ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {unreadNotifications}
+                    </span>
+                  )}
                 </div>
-              )}
-            </div>
+                
+                {/* Tooltip for collapsed sidebar */}
+                {isSidebarCollapsed && (
+                  <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white px-2 py-1 rounded text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                    {item.label}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </nav>
 
-            <button
-              onClick={handleLogout}
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-2"
-              } p-2 rounded-md hover:bg-red-50 text-red-600 w-full text-left font-medium text-sm`}
-            >
-              <LogOut className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>Logout</span>}
-            </button>
-          </div>
+        {/* Logout button */}
+        <div className="p-2 border-t border-gray-200">
+          <button
+            onClick={handleLogout}
+            className="w-full text-left p-3 rounded-md text-red-600 hover:bg-red-50 transition-colors flex items-center"
+          >
+            <LogOut
+              className={`h-5 w-5 ${
+                isSidebarCollapsed ? "mx-auto" : "mr-3"
+              }`}
+            />
+            {!isSidebarCollapsed && <span className="font-medium">Logout</span>}
+          </button>
         </div>
       </div>
 
-      {/* Overlay when sidebar is open on mobile */}
-      {!isSidebarCollapsed && (
-        <div
-          className="md:hidden fixed inset-0 bg-gray-900/50 z-20"
-          onClick={toggleSidebar}
-        ></div>
-      )}
-
       {/* Main content */}
-      <div className="flex-1 overflow-auto w-full">
-        <header className="bg-white shadow-sm sticky top-0 z-10">
-          <div className="p-3 sm:p-4 flex flex-wrap justify-between items-center gap-2">
-            <div className="flex items-center">
-              <button
-                onClick={toggleSidebar}
-                className="p-1.5 mr-2 rounded-md hover:bg-gray-100 text-gray-500"
-              >
-                <Menu className="h-4 w-4" />
-              </button>
-              <div>
-                <h1 className="text-lg sm:text-xl font-bold text-black">
-                  {activeTab === "dashboard"
-                    ? "Intern Dashboard"
-                    : activeTab === "profile"
-                    ? "My Profile"
-                    : activeTab === "internship-request"
-                    ? "Internship Request"
-                    : activeTab === "project-proposal"
-                    ? "Project Proposal"
-                    : activeTab === "weekly-reports"
-                    ? "Weekly Reports"
-                    : activeTab === "feedback"
-                    ? "Feedback"
-                    : "Settings"}
-                </h1>
-                <p className="text-xs sm:text-sm text-gray-500">
-                  {activeTab === "dashboard"
-                    ? "Learning Portal"
-                    : activeTab === "profile"
-                    ? "Personal Information"
-                    : activeTab === "internship-request"
-                    ? "Submit Your Application"
-                    : activeTab === "project-proposal"
-                    ? "Project Details"
-                    : activeTab === "weekly-reports"
-                    ? "Progress Updates"
-                    : activeTab === "feedback"
-                    ? "Reviews & Feedback"
-                    : "Account Settings"}
-                </p>
-              </div>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
+                {activeTab === "dashboard"
+                  ? "Intern Dashboard"
+                  : activeTab === "my-teams"
+                  ? "My Teams"
+                  : activeTab === "find-internships"
+                  ? "Find Internships"
+                  : activeTab === "internship-request"
+                  ? "Apply for Internship"
+                  : activeTab === "my-applications"
+                  ? "My Applications"
+                  : activeTab === "project-details"
+                  ? "Project Details"
+                  : activeTab === "weekly-reports"
+                  ? "Weekly Reports"
+                  : activeTab === "demo-presentation"
+                  ? "Demo Presentation"
+                  : activeTab === "feedback"
+                  ? "Feedback & Reviews"
+                  : activeTab === "team-chat"
+                  ? "Team Communication"
+                  : activeTab === "profile-settings"
+                  ? "Profile & Settings"
+                  : "Dashboard"}
+              </h1>
+              <p className="text-xs sm:text-sm text-gray-500">
+                {activeTab === "dashboard"
+                  ? "Learning Portal & Progress Overview"
+                  : activeTab === "my-teams"
+                  ? "Team Projects & Collaboration"
+                  : activeTab === "find-internships"
+                  ? "Browse Available Opportunities"
+                  : activeTab === "internship-request"
+                  ? "Submit Your Application"
+                  : activeTab === "my-applications"
+                  ? "Track Application Status"
+                  : activeTab === "project-details"
+                  ? "Current Project Information"
+                  : activeTab === "weekly-reports"
+                  ? "Submit Progress Reports"
+                  : activeTab === "demo-presentation"
+                  ? "Demo Schedule & Materials"
+                  : activeTab === "feedback"
+                  ? "Reviews & Evaluations"
+                  : activeTab === "team-chat"
+                  ? "Chat with Team Members"
+                  : activeTab === "profile-settings"
+                  ? "Manage Account & Preferences"
+                  : "Learning Portal"}
+              </p>
             </div>
 
-            <div className="bg-gradient-to-r from-cyan-600 to-blue-600 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-md shadow-md ml-auto">
-              <p className="text-sm sm:text-base font-semibold text-white tracking-wide whitespace-nowrap">
-                Welcome back, {username}
-              </p>
+            <div className="flex items-center space-x-4">
+              {/* Notification indicator */}
+              {unreadNotifications > 0 && (
+                <div className="relative">
+                  <Bell className="h-6 w-6 text-gray-600" />
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                    {unreadNotifications}
+                  </span>
+                </div>
+              )}
+              
+              <div className="bg-gradient-to-r from-cyan-600 to-blue-600 px-4 py-2 rounded-md shadow-md">
+                <p className="text-sm sm:text-base font-semibold text-white tracking-wide whitespace-nowrap">
+                  Welcome back, {username}
+                </p>
+              </div>
             </div>
           </div>
         </header>
 
-        <main className="p-3 sm:p-4">
+        {/* Main content area */}
+        <main className="flex-1 p-6 overflow-y-auto bg-gray-50">
           {activeTab === "dashboard" && (
             <InternDashboardScreen 
               profileComplete={profileComplete}
@@ -377,20 +389,16 @@ export default function InternDashboard() {
               onNavigate={handleNavigation}
             />
           )}
-          {activeTab === "profile" && <InternProfile inDashboard={true} />}
+          {activeTab === "my-teams" && <MyTeamsScreen />}
+          {activeTab === "find-internships" && <FindInternshipsScreen />}
           {activeTab === "internship-request" && <InternshipRequestScreen />}
-          {activeTab === "project-proposal" && <ProjectProposalScreen />}
+          {activeTab === "my-applications" && <MyApplicationsScreen />}
+          {activeTab === "project-details" && <ProjectDetailsScreen />}
           {activeTab === "weekly-reports" && <WeeklyReportsScreen />}
-          {activeTab === "feedback" && (
-            <div className="p-4 bg-white rounded-md shadow">
-              <p className="text-lg font-medium">Feedback section coming soon</p>
-            </div>
-          )}
-          {activeTab === "settings" && (
-            <div className="p-4 bg-white rounded-md shadow">
-              <p className="text-lg font-medium">Settings section coming soon</p>
-            </div>
-          )}
+          {activeTab === "demo-presentation" && <DemoPresentationScreen />}
+          {activeTab === "feedback" && <FeedbackEvaluationsScreen />}
+          {activeTab === "team-chat" && <TeamCommunicationScreen />}
+          {activeTab === "profile-settings" && <InternProfileSettings inDashboard={true} />}
         </main>
       </div>
     </div>
