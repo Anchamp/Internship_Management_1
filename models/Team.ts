@@ -9,18 +9,17 @@ const teamSchema = new Schema(
       trim: true,
     },
     mentors: [{
-      type: Schema.Types.ObjectId,
-      ref: 'User',
+      type: String,
       required: true,
     }],
     interns: [{
-      type: Schema.Types.ObjectId,
-      ref: 'User',
+      type: String,
+      required: true,
       required: true,
     }],
     panelists: [{
-      type: Schema.Types.ObjectId,
-      ref: 'User',
+      type: String,
+      required: true,
       required: true,
     }],
     description: {
