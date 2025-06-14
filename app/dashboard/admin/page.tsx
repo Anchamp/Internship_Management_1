@@ -8,18 +8,20 @@ import {
   Home,
   LogOut,
   Settings,
-  Shield,
   User,
   UserPlus,
   Users,
   Menu,
   ClipboardList,
+  MessageSquare,
+  UsersIcon,
 } from "lucide-react";
 import AdminDashboardScreen from "./dashboardscreen";
 import AdminProfile from "./profile";
 import OnboardingScreen from "./onboarding";
-import UsersScreen from "./users"; // Import the UsersScreen component
+import UsersScreen from "./users";
 import Organization from "./organization";
+import InternshipPosting from "./internshipposting"; // Import the InternshipPosting component
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -258,35 +260,52 @@ export default function AdminDashboard() {
               href="#"
               onClick={(e) => {
                 e.preventDefault();
-                handleNavigation("programs");
+                handleNavigation("teambuilding");
               }}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-3"
               } p-2 rounded-md ${
-                activeTab === "programs"
+                activeTab === "teambuilding"
                   ? "bg-cyan-50 text-cyan-600"
                   : "hover:bg-gray-50 text-gray-700"
               } font-medium text-sm`}
             >
-              <Calendar className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>Programs</span>}
+              <UsersIcon className="h-4 w-4" />
+              {!isSidebarCollapsed && <span>Team Building</span>}
             </a>
             <a
               href="#"
               onClick={(e) => {
                 e.preventDefault();
-                handleNavigation("permissions");
+                handleNavigation("feedback");
               }}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-3"
               } p-2 rounded-md ${
-                activeTab === "permissions"
+                activeTab === "feedback"
                   ? "bg-cyan-50 text-cyan-600"
                   : "hover:bg-gray-50 text-gray-700"
               } font-medium text-sm`}
             >
-              <Shield className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>Permissions</span>}
+              <MessageSquare className="h-4 w-4" />
+              {!isSidebarCollapsed && <span>Feedback</span>}
+            </a>
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("internships");
+              }}
+              className={`flex items-center ${
+                isSidebarCollapsed ? "justify-center" : "space-x-3"
+              } p-2 rounded-md ${
+                activeTab === "internships"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
+            >
+              <Calendar className="h-4 w-4" />
+              {!isSidebarCollapsed && <span>Internship Posting</span>}
             </a>
             <a
               href="#"
@@ -401,19 +420,27 @@ export default function AdminDashboard() {
           {activeTab === "profile" && <AdminProfile inDashboard={true} />}
           {activeTab === "onboarding" && <OnboardingScreen />}
           {activeTab === "users" && <UsersScreen />}
-          {/* Render the UsersScreen component */}
           {activeTab === "organization" && <Organization />}
-          {activeTab === "programs" && (
+          {activeTab === "internships" && <InternshipPosting />}{" "}
+          {/* Properly render the InternshipPosting component */}
+          {activeTab === "teambuilding" && (
             <div className="p-4 bg-white rounded-md shadow">
               <p className="text-lg font-medium">
-                Programs management coming soon
+                Team Building section coming soon
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                Create and manage teams for your internship programs and
+                projects.
               </p>
             </div>
           )}
-          {activeTab === "permissions" && (
+          {activeTab === "feedback" && (
             <div className="p-4 bg-white rounded-md shadow">
               <p className="text-lg font-medium">
-                Permissions management coming soon
+                Feedback management coming soon
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                View and manage feedback across mentors, panelists, and interns.
               </p>
             </div>
           )}
