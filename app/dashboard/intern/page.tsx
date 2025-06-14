@@ -41,6 +41,7 @@ export default function InternDashboard() {
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [profileComplete, setProfileComplete] = useState<boolean>(false);
   const [unreadNotifications, setUnreadNotifications] = useState<number>(0);
+  const [logOutModalOpen, setLogOutModalOpen] = useState(false);
 
   // Auto-collapse sidebar on small screens
   useEffect(() => {
@@ -189,6 +190,38 @@ export default function InternDashboard() {
     );
   }
 
+  const openLogOutModal = () => setLogOutModalOpen(true);
+  const closeLogOutModal = () => setLogOutModalOpen(false);
+
+  const LogOutModal = () => {
+    return (
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div className="bg-white rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
+          <div className="p-5 border-b flex justify-center items-center sticky top-0 bg-white z-10">
+            <h3 className="text-xl font-bold text-gray-900">
+              Are you sure you want to log out?
+            </h3>
+          </div>
+          <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+            <div className="w-full flex items-center justify-around">
+              <button 
+                className="cursor-pointer text-black bg-white border p-3 rounded-sm"
+                onClick={closeLogOutModal}
+              >
+                Cancel
+              </button> 
+              <button 
+                className="cursor-pointer text-white bg-red-500 p-3 rounded-sm"
+                onClick={handleLogout}
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
   const sidebarItems = [
     { 
       id: "dashboard", 
@@ -324,7 +357,7 @@ export default function InternDashboard() {
         {/* Footer */}
         <div className="p-4 border-t border-gray-200">
           <button
-            onClick={handleLogout}
+            onClick={openLogOutModal}
             className={`w-full text-left p-3 rounded-md text-red-600 hover:bg-red-50 transition-colors flex items-center ${
               isSidebarCollapsed ? "justify-center" : ""
             }`}
@@ -436,6 +469,7 @@ export default function InternDashboard() {
           )}
         </main>
       </div>
+      {logOutModalOpen && <LogOutModal />}
     </div>
   );
 }
