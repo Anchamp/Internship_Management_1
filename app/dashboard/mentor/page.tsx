@@ -25,6 +25,7 @@ export default function MentorDashboard() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const [logOutModalOpen, setLogOutModalOpen] = useState(false);
 
   // Auto-collapse sidebar on small screens
   useEffect(() => {
@@ -125,6 +126,39 @@ export default function MentorDashboard() {
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
       </div>
     );
+  }
+
+  const openLogOutModal = () => setLogOutModalOpen(true);
+  const closeLogOutModal = () => setLogOutModalOpen(false);
+
+  const LogOutModal = () => {
+    return (
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div className="bg-white rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
+          <div className="p-5 border-b flex justify-center items-center sticky top-0 bg-white z-10">
+            <h3 className="text-xl font-bold text-gray-900">
+              Are you sure you want to log out?
+            </h3>
+          </div>
+          <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+            <div className="w-full flex items-center justify-around">
+              <button 
+                className="cursor-pointer text-black bg-white border p-3 rounded-sm"
+                onClick={closeLogOutModal}
+              >
+                Cancel
+              </button> 
+              <button 
+                className="cursor-pointer text-white bg-red-500 p-3 rounded-sm"
+                onClick={handleLogout}
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -277,7 +311,7 @@ export default function MentorDashboard() {
             </div>
 
             <button
-              onClick={handleLogout}
+              onClick={openLogOutModal}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-2"
               } p-2 rounded-md hover:bg-red-50 text-red-600 w-full text-left font-medium text-sm`}
@@ -376,6 +410,7 @@ export default function MentorDashboard() {
           )}
         </main>
       </div>
+      {logOutModalOpen && <LogOutModal />}
     </div>
   );
 }
