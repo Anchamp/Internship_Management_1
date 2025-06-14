@@ -3,6 +3,7 @@
 import { useState } from "react";
 import CreatePostScreen from "./createpostscreen";
 import AppliedInternScreen from "./appliedinternscreen";
+import PostHistoryScreen from "./posthistoryscreen";
 
 export default function InternshipPosting() {
   const [activeTab, setActiveTab] = useState<string>("createPost");
@@ -31,11 +32,22 @@ export default function InternshipPosting() {
         >
           Applied Interns
         </button>
+        <button
+          onClick={() => setActiveTab("postHistory")}
+          className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all ${
+            activeTab === "postHistory"
+              ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-sm"
+              : "text-gray-700 hover:bg-gray-100"
+          }`}
+        >
+          Post History
+        </button>
       </div>
 
       {/* Content Area */}
       {activeTab === "createPost" && <CreatePostScreen />}
       {activeTab === "appliedIntern" && <AppliedInternScreen />}
+      {activeTab === "postHistory" && <PostHistoryScreen />}
     </div>
   );
 }

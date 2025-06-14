@@ -294,63 +294,224 @@ export default function InternDashboard() {
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
-      <div className={`bg-white shadow-lg transition-all duration-300 ${
-        isSidebarCollapsed ? "w-16" : "w-64"
-      } flex flex-col`}>
-        {/* Header */}
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            {!isSidebarCollapsed && (
-              <div>
-                <h1 className="text-lg font-bold text-gray-800">Intern Portal</h1>
-                <p className="text-xs text-gray-500">Welcome, {username}</p>
+      <div
+        className={`${
+          isSidebarCollapsed ? "w-0 md:w-16" : "w-60 md:w-64"
+        } bg-white shadow-md transition-all duration-300 fixed md:relative z-30 h-full overflow-hidden`}
+      >
+        {/* Logo Header */}
+        <div className="p-3 border-b flex items-center justify-between">
+          {!isSidebarCollapsed && (
+            <div className="flex items-center space-x-2">
+              <div className="h-7 w-7 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md shadow-cyan-500/20">
+                <ClipboardList className="h-4 w-4 text-white" />
               </div>
-            )}
-            <button
-              onClick={toggleSidebar}
-              className="p-2 rounded-md hover:bg-gray-100 transition-colors"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-          </div>
+              <span className="font-bold text-base bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-cyan-700">
+                InternshipHub
+              </span>
+            </div>
+          )}
+          {isSidebarCollapsed && (
+            <div className="h-7 w-7 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md shadow-cyan-500/20 mx-auto">
+              <ClipboardList className="h-4 w-4 text-white" />
+            </div>
+          )}
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-4">
-          <div className="space-y-2">
-            {sidebarItems.map((item) => {
-              const IconComponent = item.icon;
-              const isActive = activeTab === item.id;
-              
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleNavigation(item.id)}
-                  className={`w-full text-left p-3 rounded-md transition-colors flex items-center ${
-                    isActive
-                      ? "bg-cyan-100 text-cyan-700 border-r-4 border-cyan-500"
-                      : "text-gray-700 hover:bg-gray-50"
-                  } ${isSidebarCollapsed ? "justify-center" : ""}`}
-                  title={isSidebarCollapsed ? item.label : ""}
-                >
-                  <IconComponent className={`h-5 w-5 ${isSidebarCollapsed ? "" : "mr-3"}`} />
-                  {!isSidebarCollapsed && (
-                    <div className="flex-1">
-                      <div className="font-medium">{item.label}</div>
-                      <div className="text-xs text-gray-500">{item.description}</div>
-                    </div>
-                  )}
-                  {!isSidebarCollapsed && item.id === "profile-settings" && !profileComplete && (
-                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  )}
-                  {!isSidebarCollapsed && item.id === "team-communication" && unreadNotifications > 0 && (
-                    <div className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
-                      {unreadNotifications}
-                    </div>
-                  )}
-                </button>
-              );
-            })}
+        {/* Sidebar Content */}
+        <div className="p-3 flex flex-col justify-between h-[calc(100%-58px)]">
+          {/* Navigation */}
+          <nav className="space-y-1">
+            {/* Dashboard */}
+            <button
+              onClick={() => handleNavigation("dashboard")}
+              className={`flex items-center ${
+                isSidebarCollapsed ? "justify-center" : "space-x-3"
+              } p-2 rounded-md ${
+                activeTab === "dashboard"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm w-full text-left transition-colors`}
+            >
+              <Home className="h-4 w-4" />
+              {!isSidebarCollapsed && <span>Dashboard</span>}
+            </button>
+
+            {/* My Teams */}
+            <button
+              onClick={() => handleNavigation("my-teams")}
+              className={`flex items-center ${
+                isSidebarCollapsed ? "justify-center" : "space-x-3"
+              } p-2 rounded-md ${
+                activeTab === "my-teams"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm w-full text-left transition-colors`}
+            >
+              <Users className="h-4 w-4" />
+              {!isSidebarCollapsed && <span>My Teams</span>}
+            </button>
+
+            {/* Internships */}
+            <button
+              onClick={() => handleNavigation("internships")}
+              className={`flex items-center ${
+                isSidebarCollapsed ? "justify-center" : "space-x-3"
+              } p-2 rounded-md ${
+                activeTab === "internships"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm w-full text-left transition-colors`}
+            >
+              <Search className="h-4 w-4" />
+              {!isSidebarCollapsed && <span>Internships</span>}
+            </button>
+
+            {/* My Applications */}
+            <button
+              onClick={() => handleNavigation("my-applications")}
+              className={`flex items-center ${
+                isSidebarCollapsed ? "justify-center" : "space-x-3"
+              } p-2 rounded-md ${
+                activeTab === "my-applications"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm w-full text-left transition-colors`}
+            >
+              <FileText className="h-4 w-4" />
+              {!isSidebarCollapsed && <span>My Applications</span>}
+            </button>
+
+            {/* Project Details */}
+            <button
+              onClick={() => handleNavigation("project-details")}
+              className={`flex items-center ${
+                isSidebarCollapsed ? "justify-center" : "space-x-3"
+              } p-2 rounded-md ${
+                activeTab === "project-details"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm w-full text-left transition-colors`}
+            >
+              <BookOpen className="h-4 w-4" />
+              {!isSidebarCollapsed && <span>Project Details</span>}
+            </button>
+
+            {/* Weekly Reports */}
+            <button
+              onClick={() => handleNavigation("weekly-reports")}
+              className={`flex items-center ${
+                isSidebarCollapsed ? "justify-center" : "space-x-3"
+              } p-2 rounded-md ${
+                activeTab === "weekly-reports"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm w-full text-left transition-colors`}
+            >
+              <ClipboardList className="h-4 w-4" />
+              {!isSidebarCollapsed && <span>Weekly Reports</span>}
+            </button>
+
+            {/* Demo Presentation */}
+            <button
+              onClick={() => handleNavigation("demo-presentation")}
+              className={`flex items-center ${
+                isSidebarCollapsed ? "justify-center" : "space-x-3"
+              } p-2 rounded-md ${
+                activeTab === "demo-presentation"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm w-full text-left transition-colors`}
+            >
+              <Presentation className="h-4 w-4" />
+              {!isSidebarCollapsed && <span>Demo Presentation</span>}
+            </button>
+
+            {/* Feedback & Reviews */}
+            <button
+              onClick={() => handleNavigation("feedback")}
+              className={`flex items-center ${
+                isSidebarCollapsed ? "justify-center" : "space-x-3"
+              } p-2 rounded-md ${
+                activeTab === "feedback"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm w-full text-left transition-colors relative`}
+            >
+              <Star className="h-4 w-4" />
+              {!isSidebarCollapsed && <span>Feedback & Reviews</span>}
+              {/* Notification badge */}
+              {unreadNotifications > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {unreadNotifications}
+                </span>
+              )}
+            </button>
+
+            {/* Team Communication */}
+            <button
+              onClick={() => handleNavigation("team-communication")}
+              className={`flex items-center ${
+                isSidebarCollapsed ? "justify-center" : "space-x-3"
+              } p-2 rounded-md ${
+                activeTab === "team-communication"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm w-full text-left transition-colors`}
+            >
+              <MessageSquare className="h-4 w-4" />
+              {!isSidebarCollapsed && <span>Team Communication</span>}
+            </button>
+
+            {/* Profile & Settings */}
+            <button
+              onClick={() => handleNavigation("profile-settings")}
+              className={`flex items-center ${
+                isSidebarCollapsed ? "justify-center" : "space-x-3"
+              } p-2 rounded-md ${
+                activeTab === "profile-settings"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm w-full text-left transition-colors relative`}
+            >
+              <Settings className="h-4 w-4" />
+              {!isSidebarCollapsed && <span>Settings</span>}
+              {/* Profile incomplete indicator */}
+              {!profileComplete && (
+                <span className="absolute -top-1 -right-1 bg-red-500 rounded-full h-2 w-2"></span>
+              )}
+            </button>
+          </nav>
+
+          {/* Bottom Section - User Profile & Logout */}
+          <div className="mt-auto border-t pt-3 space-y-3">
+            {/* User Profile */}
+            <div
+              className={`flex items-center ${
+                isSidebarCollapsed ? "justify-center" : ""
+              } p-1.5`}
+            >
+              <div className="h-8 w-8 rounded-full bg-cyan-500 flex items-center justify-center text-white text-sm font-bold shadow-md">
+                {username.charAt(0).toUpperCase()}
+              </div>
+              {!isSidebarCollapsed && (
+                <div className="ml-3">
+                  <p className="font-medium text-gray-900 text-sm">{username}</p>
+                  <p className="text-xs text-gray-500">Intern</p>
+                </div>
+              )}
+            </div>
+
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              className={`flex items-center ${
+                isSidebarCollapsed ? "justify-center" : "space-x-2"
+              } p-2 rounded-md hover:bg-red-50 text-red-600 w-full text-left font-medium text-sm transition-colors`}
+            >
+              <LogOut className="h-4 w-4" />
+              {!isSidebarCollapsed && <span>Logout</span>}
+            </button>
           </div>
         </nav>
 
@@ -369,46 +530,87 @@ export default function InternDashboard() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+      {/* Overlay when sidebar is open on mobile */}
+      {!isSidebarCollapsed && (
+        <div
+          className="md:hidden fixed inset-0 bg-gray-900/50 z-20"
+          onClick={toggleSidebar}
+        ></div>
+      )}
+
+      {/* Main content */}
+      <div className="flex-1 overflow-auto w-full">
+        <header className="bg-white shadow-sm sticky top-0 z-10">
+          <div className="p-3 sm:p-4 flex flex-wrap justify-between items-center gap-2">
+            <div className="flex items-center">
+              <button
+                onClick={toggleSidebar}
+                className="p-1.5 mr-2 rounded-md hover:bg-gray-100 text-gray-500"
+              >
+                <Menu className="h-4 w-4" />
+              </button>
               <div>
-                <h1 className="text-xl font-bold text-gray-800">
+                <h1 className="text-lg sm:text-xl font-bold text-gray-900">
                   {activeTab === "dashboard"
-                    ? "Dashboard"
+                    ? "Intern Portal"
+                    : activeTab === "my-teams"
+                    ? "My Teams"
+                    : activeTab === "internships"
+                    ? "Internships"
+                    : activeTab === "my-applications"
+                    ? "My Applications"
+                    : activeTab === "project-details"
+                    ? "Project Details"
+                    : activeTab === "weekly-reports"
+                    ? "Weekly Reports"
+                    : activeTab === "demo-presentation"
+                    ? "Demo Presentation"
+                    : activeTab === "feedback"
+                    ? "Feedback & Reviews"
+                    : activeTab === "team-communication"
+                    ? "Team Communication"
                     : activeTab === "profile-settings"
                     ? "Profile & Settings"
-                    : sidebarItems.find(item => item.id === activeTab)?.label || "Dashboard"}
+                    : "Intern Portal"}
                 </h1>
-                <p className="text-sm text-gray-500">
+                <p className="text-xs sm:text-sm text-gray-500">
                   {activeTab === "dashboard"
-                    ? "Overview of your internship journey"
-                    : sidebarItems.find(item => item.id === activeTab)?.description || ""}
+                    ? `Welcome, ${username}`
+                    : activeTab === "my-teams"
+                    ? "Team Projects & Collaboration"
+                    : activeTab === "internships"
+                    ? "Find & Apply for Internships"
+                    : activeTab === "my-applications"
+                    ? "Track Application Status"
+                    : activeTab === "project-details"
+                    ? "View Assigned Projects"
+                    : activeTab === "weekly-reports"
+                    ? "Submit Progress Reports"
+                    : activeTab === "demo-presentation"
+                    ? "Schedule & Present Demo"
+                    : activeTab === "feedback"
+                    ? "View Evaluations"
+                    : activeTab === "team-communication"
+                    ? "Chat with Team"
+                    : activeTab === "profile-settings"
+                    ? "Manage Account"
+                    : `Welcome, ${username}`}
                 </p>
               </div>
             </div>
 
             {/* Profile completion indicator */}
-            {!profileComplete && (
+            {!profileComplete && activeTab === "dashboard" && (
               <div className="flex items-center space-x-2 bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-sm">
                 <Bell className="h-4 w-4" />
                 <span>Complete your profile</span>
               </div>
             )}
-
-            {/* Welcome message */}
-            <div className="bg-gradient-to-r from-cyan-600 to-blue-600 px-4 py-2 rounded-md shadow-md">
-              <p className="text-sm font-semibold text-white">
-                Welcome back, {username}
-              </p>
-            </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6">
+        {/* Main Dashboard Content */}
+        <main className="p-4 sm:p-6">
           {activeTab === "dashboard" && (
             <InternDashboardScreen
               profileComplete={profileComplete}
@@ -417,54 +619,108 @@ export default function InternDashboard() {
             />
           )}
           {activeTab === "profile-settings" && (
-            <InternProfileSettings 
+            <InternProfileSettings
               inDashboard={true}
               onProfileUpdate={handleProfileUpdate}
             />
           )}
           {activeTab === "my-teams" && (
-            <div className="p-4 bg-white rounded-md shadow">
-              <p className="text-lg font-medium">My Teams section coming soon</p>
+            <div className="flex items-center justify-center min-h-[400px] bg-white rounded-lg shadow-sm border">
+              <div className="text-center">
+                <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">My Teams</h3>
+                <p className="text-gray-500 mb-4">Team collaboration features coming soon</p>
+                <div className="bg-gray-100 px-4 py-2 rounded-md text-sm text-gray-600">
+                  Coming Soon
+                </div>
+              </div>
             </div>
           )}
-          {activeTab === "find-internships" && (
-            <div className="p-4 bg-white rounded-md shadow">
-              <p className="text-lg font-medium">Find Internships section coming soon</p>
-            </div>
-          )}
-          {activeTab === "internship-request" && (
-            <div className="p-4 bg-white rounded-md shadow">
-              <p className="text-lg font-medium">Internship Request section coming soon</p>
+          {activeTab === "internships" && (
+            <div className="flex items-center justify-center min-h-[400px] bg-white rounded-lg shadow-sm border">
+              <div className="text-center">
+                <div className="flex items-center justify-center space-x-4 mb-4">
+                  <Search className="h-16 w-16 text-gray-300" />
+                  <Upload className="h-16 w-16 text-gray-300" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">Internships</h3>
+                <p className="text-gray-500 mb-4">Find and apply for internship opportunities</p>
+                <div className="bg-gray-100 px-4 py-2 rounded-md text-sm text-gray-600">
+                  Coming Soon
+                </div>
+              </div>
             </div>
           )}
           {activeTab === "my-applications" && (
-            <div className="p-4 bg-white rounded-md shadow">
-              <p className="text-lg font-medium">My Applications section coming soon</p>
+            <div className="flex items-center justify-center min-h-[400px] bg-white rounded-lg shadow-sm border">
+              <div className="text-center">
+                <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">My Applications</h3>
+                <p className="text-gray-500 mb-4">Track your application status and progress</p>
+                <div className="bg-gray-100 px-4 py-2 rounded-md text-sm text-gray-600">
+                  Coming Soon
+                </div>
+              </div>
             </div>
           )}
           {activeTab === "project-details" && (
-            <div className="p-4 bg-white rounded-md shadow">
-              <p className="text-lg font-medium">Project Details section coming soon</p>
+            <div className="flex items-center justify-center min-h-[400px] bg-white rounded-lg shadow-sm border">
+              <div className="text-center">
+                <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">Project Details</h3>
+                <p className="text-gray-500 mb-4">View and manage your assigned projects</p>
+                <div className="bg-gray-100 px-4 py-2 rounded-md text-sm text-gray-600">
+                  Coming Soon
+                </div>
+              </div>
             </div>
           )}
           {activeTab === "weekly-reports" && (
-            <div className="p-4 bg-white rounded-md shadow">
-              <p className="text-lg font-medium">Weekly Reports section coming soon</p>
+            <div className="flex items-center justify-center min-h-[400px] bg-white rounded-lg shadow-sm border">
+              <div className="text-center">
+                <ClipboardList className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">Weekly Reports</h3>
+                <p className="text-gray-500 mb-4">Submit your weekly progress reports</p>
+                <div className="bg-gray-100 px-4 py-2 rounded-md text-sm text-gray-600">
+                  Coming Soon
+                </div>
+              </div>
             </div>
           )}
           {activeTab === "demo-presentation" && (
-            <div className="p-4 bg-white rounded-md shadow">
-              <p className="text-lg font-medium">Demo Presentation section coming soon</p>
+            <div className="flex items-center justify-center min-h-[400px] bg-white rounded-lg shadow-sm border">
+              <div className="text-center">
+                <Presentation className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">Demo Presentation</h3>
+                <p className="text-gray-500 mb-4">Schedule and present your project demos</p>
+                <div className="bg-gray-100 px-4 py-2 rounded-md text-sm text-gray-600">
+                  Coming Soon
+                </div>
+              </div>
             </div>
           )}
-          {activeTab === "feedback-evaluations" && (
-            <div className="p-4 bg-white rounded-md shadow">
-              <p className="text-lg font-medium">Feedback & Evaluations section coming soon</p>
+          {activeTab === "feedback" && (
+            <div className="flex items-center justify-center min-h-[400px] bg-white rounded-lg shadow-sm border">
+              <div className="text-center">
+                <Star className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">Feedback & Reviews</h3>
+                <p className="text-gray-500 mb-4">View feedback and evaluations from mentors</p>
+                <div className="bg-gray-100 px-4 py-2 rounded-md text-sm text-gray-600">
+                  Coming Soon
+                </div>
+              </div>
             </div>
           )}
           {activeTab === "team-communication" && (
-            <div className="p-4 bg-white rounded-md shadow">
-              <p className="text-lg font-medium">Team Communication section coming soon</p>
+            <div className="flex items-center justify-center min-h-[400px] bg-white rounded-lg shadow-sm border">
+              <div className="text-center">
+                <MessageSquare className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">Team Communication</h3>
+                <p className="text-gray-500 mb-4">Chat and collaborate with your team members</p>
+                <div className="bg-gray-100 px-4 py-2 rounded-md text-sm text-gray-600">
+                  Coming Soon
+                </div>
+              </div>
             </div>
           )}
         </main>

@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -33,7 +31,9 @@ import {
   Award,
   Target,
   History,
-  Plus
+  Plus,
+  Camera,
+  Menu
 } from "lucide-react";
 import Image from "next/image";
 
@@ -89,6 +89,7 @@ export default function InternProfileSettings({
   const [showValidation, setShowValidation] = useState<boolean>(false);
   const [previewImage, setPreviewImage] = useState<string>("");
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
 
   // Profile Data
   const [userData, setUserData] = useState({
@@ -269,6 +270,11 @@ export default function InternProfileSettings({
     }
   };
 
+  const handleRemoveImage = () => {
+    setPreviewImage("");
+    setUserData((prev) => ({ ...prev, profileImage: "" }));
+  };
+
   const handleDocumentUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     documentType: 'resumeFile' | 'idDocumentFile' | 'transcriptFile'
@@ -363,7 +369,7 @@ export default function InternProfileSettings({
     return Object.keys(newErrors).length === 0;
   };
 
-  // SINGLE PROFILE SUBMIT HANDLER
+  // PROFILE SUBMIT HANDLER  
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setShowValidation(true);
@@ -390,7 +396,6 @@ export default function InternProfileSettings({
         preferences,
       };
 
-      // Use the new intern-specific API endpoint
       const response = await fetch(`/api/users/${username}/update-intern-profile`, {
         method: "PUT",
         headers: {
@@ -404,7 +409,6 @@ export default function InternProfileSettings({
         alert("Profile updated successfully!");
         setShowValidation(false);
         
-        // Update the local state with the returned data
         if (result.user) {
           setUserData({
             username: result.user.username || "",
@@ -434,7 +438,6 @@ export default function InternProfileSettings({
           });
         }
         
-        // Call the callback to refresh dashboard
         if (onProfileUpdate) {
           onProfileUpdate();
         }
@@ -450,7 +453,6 @@ export default function InternProfileSettings({
     }
   };
 
-  // PASSWORD SUBMIT HANDLER
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -538,100 +540,166 @@ export default function InternProfileSettings({
   return (
     <div className="min-h-screen bg-gray-50">
       {!inDashboard && (
-        <div className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => router.back()}
-              className="p-2 rounded-md hover:bg-gray-100 transition-colors"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <div>
-              <h1 className="text-xl font-bold text-gray-800">Profile & Settings</h1>
-              <p className="text-sm text-gray-500">Manage your account and preferences</p>
+        <div className="bg-white shadow-sm border-b border-gray-200 px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => router.back()}
+                className="p-2 rounded-md hover:bg-gray-100 transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <div>
+                <h1 className="text-lg sm:text-xl font-bold text-gray-800">Profile & Settings</h1>
+                <p className="text-xs sm:text-sm text-gray-500">Manage your account and preferences</p>
+              </div>
             </div>
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="lg:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
           </div>
         </div>
       )}
 
-      <div className="flex">
-        {/* Settings Sidebar */}
-        <div className="w-64 bg-white shadow-sm min-h-screen">
-          <div className="p-4">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Settings</h2>
-            <nav className="space-y-1">
-              {sectionItems.map((item) => {
-                const IconComponent = item.icon;
-                const isActive = activeSection === item.id;
-                
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveSection(item.id)}
-                    className={`w-full text-left p-3 rounded-md transition-colors flex items-center ${
-                      isActive
-                        ? "bg-cyan-50 text-cyan-700 border-r-2 border-cyan-500"
-                        : "text-gray-700 hover:bg-gray-50"
-                    }`}
-                  >
-                    <IconComponent className="h-5 w-5 mr-3" />
-                    <span className="font-medium">{item.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
+      <div className="flex flex-col lg:flex-row min-h-screen">
+        {/* Mobile Overlay */}
+        {sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {/* Sidebar */}
+        <div className={`
+          fixed lg:relative lg:translate-x-0 z-50 lg:z-auto
+          w-64 lg:w-64 bg-white shadow-lg lg:shadow-sm 
+          transform transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          h-full lg:h-auto min-h-screen lg:min-h-0
+        `}>
+          <div className="p-4 border-b lg:border-b-0">
+            <div className="flex items-center justify-between lg:justify-start">
+              <h2 className="text-lg font-semibold text-gray-800">Settings</h2>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="lg:hidden p-1 rounded-md hover:bg-gray-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
           </div>
+          <nav className="p-4 space-y-1 overflow-y-auto">
+            {sectionItems.map((item) => {
+              const IconComponent = item.icon;
+              const isActive = activeSection === item.id;
+              
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveSection(item.id);
+                    setSidebarOpen(false); // Close mobile sidebar on selection
+                  }}
+                  className={`w-full text-left p-3 rounded-md transition-colors flex items-center text-sm ${
+                    isActive
+                      ? "bg-cyan-50 text-cyan-700 border-r-2 border-cyan-500"
+                      : "text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  <IconComponent className="h-4 w-4 mr-3 flex-shrink-0" />
+                  <span className="font-medium truncate">{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-4 lg:p-6 xl:p-8 overflow-hidden">
           <div className="max-w-4xl mx-auto">
             
             {/* Profile Information Section */}
             {activeSection === "profile" && (
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-white rounded-lg shadow p-4 lg:p-6">
                 <div className="flex items-center mb-6">
-                  <User className="h-6 w-6 mr-3 text-cyan-600" />
-                  <h2 className="text-xl font-semibold text-gray-800">Profile Information</h2>
+                  <User className="h-5 w-5 lg:h-6 lg:w-6 mr-3 text-cyan-600" />
+                  <h2 className="text-lg lg:text-xl font-semibold text-gray-800">Profile Information</h2>
                 </div>
 
                 <form onSubmit={handleProfileSubmit} className="space-y-6">
                   {/* Profile Image */}
-                  <div className="flex items-center space-x-6">
+                  <div className="flex flex-col items-center space-y-4 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-6">
                     <div className="relative">
                       {previewImage ? (
                         <Image
                           src={previewImage}
+                          alt="Profile preview"
+                          width={96}
+                          height={96}
+                          className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-white shadow-lg"
+                        />
+                      ) : userData.profileImage ? (
+                        <Image
+                          src={userData.profileImage}
                           alt="Profile"
-                          width={100}
-                          height={100}
-                          className="rounded-full object-cover border-4 border-gray-200"
+                          width={96}
+                          height={96}
+                          className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-white shadow-lg"
                         />
                       ) : (
-                        <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center">
-                          <User className="h-8 w-8 text-gray-400" />
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white text-xl sm:text-2xl font-bold shadow-lg">
+                          {userData.fullName?.charAt(0)?.toUpperCase() || "U"}
                         </div>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById("profileImageInput")?.click()}
+                        className="absolute bottom-0 right-0 p-1.5 sm:p-2 bg-cyan-600 rounded-full text-white hover:bg-cyan-700 transition-colors shadow-lg"
+                      >
+                        <Camera className="h-3 w-3 sm:h-4 sm:w-4" />
+                      </button>
                     </div>
-                    <div>
-                      <label className="block">
-                        <span className="sr-only">Choose profile photo</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-cyan-50 file:text-cyan-700 hover:file:bg-cyan-100"
-                        />
-                      </label>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Upload a profile picture (recommended: 400x400px)
+                    <div className="text-center sm:text-left flex-1">
+                      <h3 className="text-base lg:text-lg font-medium text-gray-900 mb-2">Profile Photo</h3>
+                      <p className="text-xs sm:text-sm text-gray-500 mb-4">
+                        Upload a professional photo for your profile
                       </p>
+                      <input
+                        id="profileImageInput"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => document.getElementById("profileImageInput")?.click()}
+                          className="px-3 py-2 text-xs sm:text-sm font-medium text-cyan-700 bg-cyan-50 border border-cyan-200 rounded-md hover:bg-cyan-100 transition-colors"
+                        >
+                          Upload Photo
+                        </button>
+                        {(userData.profileImage || previewImage) && (
+                          <button
+                            type="button"
+                            onClick={handleRemoveImage}
+                            className="px-3 py-2 text-xs sm:text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-colors"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Basic Information */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
+                  {/* Personal Information - Responsive Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
+                    <div className="sm:col-span-1">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Full Name <span className="text-red-500">*</span>
                       </label>
@@ -644,18 +712,18 @@ export default function InternProfileSettings({
                           name="fullName"
                           value={userData.fullName}
                           onChange={handleChange}
-                          className={`pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black ${
+                          className={`pl-10 w-full p-2.5 sm:p-3 text-sm border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900 ${
                             errors.fullName ? 'border-red-500' : 'border-gray-300'
                           }`}
                           placeholder="Enter your full name"
                         />
                       </div>
                       {errors.fullName && (
-                        <p className="mt-1 text-sm text-red-600">{errors.fullName}</p>
+                        <p className="mt-1 text-xs sm:text-sm text-red-600">{errors.fullName}</p>
                       )}
                     </div>
 
-                    <div>
+                    <div className="sm:col-span-1">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Email Address <span className="text-red-500">*</span>
                       </label>
@@ -668,18 +736,18 @@ export default function InternProfileSettings({
                           name="email"
                           value={userData.email}
                           onChange={handleChange}
-                          className={`pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black ${
+                          className={`pl-10 w-full p-2.5 sm:p-3 text-sm border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900 ${
                             errors.email ? 'border-red-500' : 'border-gray-300'
                           }`}
                           placeholder="Enter your email"
                         />
                       </div>
                       {errors.email && (
-                        <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                        <p className="mt-1 text-xs sm:text-sm text-red-600">{errors.email}</p>
                       )}
                     </div>
 
-                    <div>
+                    <div className="sm:col-span-1">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Phone Number <span className="text-red-500">*</span>
                       </label>
@@ -692,18 +760,18 @@ export default function InternProfileSettings({
                           name="phone"
                           value={userData.phone}
                           onChange={handleChange}
-                          className={`pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black ${
+                          className={`pl-10 w-full p-2.5 sm:p-3 text-sm border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900 ${
                             errors.phone ? 'border-red-500' : 'border-gray-300'
                           }`}
                           placeholder="Enter your phone number"
                         />
                       </div>
                       {errors.phone && (
-                        <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
+                        <p className="mt-1 text-xs sm:text-sm text-red-600">{errors.phone}</p>
                       )}
                     </div>
 
-                    <div>
+                    <div className="sm:col-span-1">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Date of Birth <span className="text-red-500">*</span>
                       </label>
@@ -716,24 +784,24 @@ export default function InternProfileSettings({
                           name="dob"
                           value={userData.dob}
                           onChange={handleChange}
-                          className={`pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black ${
+                          className={`pl-10 w-full p-2.5 sm:p-3 text-sm border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900 ${
                             errors.dob ? 'border-red-500' : 'border-gray-300'
                           }`}
                         />
                       </div>
                       {errors.dob && (
-                        <p className="mt-1 text-sm text-red-600">{errors.dob}</p>
+                        <p className="mt-1 text-xs sm:text-sm text-red-600">{errors.dob}</p>
                       )}
                     </div>
                   </div>
 
-                  {/* Address */}
+                  {/* Address - Full Width */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Address
                     </label>
                     <div className="relative">
-                      <div className="absolute top-2 left-3 pointer-events-none">
+                      <div className="absolute top-2.5 sm:top-3 left-3 pointer-events-none">
                         <MapPin className="h-4 w-4 text-gray-400" />
                       </div>
                       <textarea
@@ -741,14 +809,14 @@ export default function InternProfileSettings({
                         value={userData.address}
                         onChange={handleChange}
                         rows={2}
-                        className="pl-10 w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
+                        className="pl-10 w-full p-2.5 sm:p-3 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900"
                         placeholder="Enter your address"
                       />
                     </div>
                   </div>
 
-                  {/* Bio and Website */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Bio and Website - Responsive Grid */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Bio/About
@@ -758,7 +826,7 @@ export default function InternProfileSettings({
                         value={userData.bio}
                         onChange={handleChange}
                         rows={3}
-                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
+                        className="w-full p-2.5 sm:p-3 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900"
                         placeholder="Tell us about yourself..."
                       />
                     </div>
@@ -776,25 +844,31 @@ export default function InternProfileSettings({
                           name="website"
                           value={userData.website}
                           onChange={handleChange}
-                          className="pl-10 w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
+                          className="pl-10 w-full p-2.5 sm:p-3 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900"
                           placeholder="https://yourwebsite.com"
                         />
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex justify-end">
+                  {/* Save Button - Responsive */}
+                  <div className="flex flex-col sm:flex-row sm:justify-end pt-6 border-t border-gray-200">
                     <button
                       type="submit"
                       disabled={isSaving}
-                      className="flex items-center px-6 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-50"
+                      className="w-full sm:w-auto flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 bg-cyan-600 text-white text-sm font-medium rounded-md hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-50 transition-colors"
                     >
                       {isSaving ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                          Saving...
+                        </>
                       ) : (
-                        <Save className="h-4 w-4 mr-2" />
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Save Changes
+                        </>
                       )}
-                      {isSaving ? "Saving..." : "Save Changes"}
                     </button>
                   </div>
                 </form>
@@ -803,14 +877,14 @@ export default function InternProfileSettings({
 
             {/* Academic Details Section */}
             {activeSection === "academic" && (
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-white rounded-lg shadow p-4 lg:p-6">
                 <div className="flex items-center mb-6">
-                  <GraduationCap className="h-6 w-6 mr-3 text-cyan-600" />
-                  <h2 className="text-xl font-semibold text-gray-800">Academic Details</h2>
+                  <GraduationCap className="h-5 w-5 lg:h-6 lg:w-6 mr-3 text-cyan-600" />
+                  <h2 className="text-lg lg:text-xl font-semibold text-gray-800">Academic Details</h2>
                 </div>
 
                 <form onSubmit={handleProfileSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         University/College <span className="text-red-500">*</span>
@@ -824,14 +898,14 @@ export default function InternProfileSettings({
                           name="university"
                           value={userData.university}
                           onChange={handleChange}
-                          className={`pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black ${
+                          className={`pl-10 w-full p-2.5 sm:p-3 text-sm border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900 ${
                             errors.university ? 'border-red-500' : 'border-gray-300'
                           }`}
                           placeholder="Enter your university"
                         />
                       </div>
                       {errors.university && (
-                        <p className="mt-1 text-sm text-red-600">{errors.university}</p>
+                        <p className="mt-1 text-xs sm:text-sm text-red-600">{errors.university}</p>
                       )}
                     </div>
 
@@ -843,7 +917,7 @@ export default function InternProfileSettings({
                         name="degree"
                         value={userData.degree}
                         onChange={handleChange}
-                        className={`w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black ${
+                        className={`w-full p-2.5 sm:p-3 text-sm border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900 ${
                           errors.degree ? 'border-red-500' : 'border-gray-300'
                         }`}
                       >
@@ -855,7 +929,7 @@ export default function InternProfileSettings({
                         <option value="PhD">PhD</option>
                       </select>
                       {errors.degree && (
-                        <p className="mt-1 text-sm text-red-600">{errors.degree}</p>
+                        <p className="mt-1 text-xs sm:text-sm text-red-600">{errors.degree}</p>
                       )}
                     </div>
 
@@ -868,13 +942,13 @@ export default function InternProfileSettings({
                         name="major"
                         value={userData.major}
                         onChange={handleChange}
-                        className={`w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black ${
+                        className={`w-full p-2.5 sm:p-3 text-sm border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900 ${
                           errors.major ? 'border-red-500' : 'border-gray-300'
                         }`}
                         placeholder="e.g., Computer Science"
                       />
                       {errors.major && (
-                        <p className="mt-1 text-sm text-red-600">{errors.major}</p>
+                        <p className="mt-1 text-xs sm:text-sm text-red-600">{errors.major}</p>
                       )}
                     </div>
 
@@ -889,17 +963,17 @@ export default function InternProfileSettings({
                         onChange={handleChange}
                         min="2020"
                         max="2030"
-                        className={`w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black ${
+                        className={`w-full p-2.5 sm:p-3 text-sm border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900 ${
                           errors.graduationYear ? 'border-red-500' : 'border-gray-300'
                         }`}
                         placeholder="2025"
                       />
                       {errors.graduationYear && (
-                        <p className="mt-1 text-sm text-red-600">{errors.graduationYear}</p>
+                        <p className="mt-1 text-xs sm:text-sm text-red-600">{errors.graduationYear}</p>
                       )}
                     </div>
 
-                    <div>
+                    <div className="sm:col-span-2 lg:col-span-1">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         CGPA/GPA (Optional)
                       </label>
@@ -911,24 +985,29 @@ export default function InternProfileSettings({
                         step="0.01"
                         min="0"
                         max="10"
-                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
+                        className="w-full p-2.5 sm:p-3 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900"
                         placeholder="e.g., 8.5"
                       />
                     </div>
                   </div>
 
-                  <div className="flex justify-end">
+                  <div className="flex flex-col sm:flex-row sm:justify-end pt-6 border-t border-gray-200">
                     <button
                       type="submit"
                       disabled={isSaving}
-                      className="flex items-center px-6 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-50"
+                      className="w-full sm:w-auto flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 bg-cyan-600 text-white text-sm font-medium rounded-md hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-50 transition-colors"
                     >
                       {isSaving ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                          Saving...
+                        </>
                       ) : (
-                        <Save className="h-4 w-4 mr-2" />
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Save Changes
+                        </>
                       )}
-                      {isSaving ? "Saving..." : "Save Changes"}
                     </button>
                   </div>
                 </form>
@@ -937,10 +1016,10 @@ export default function InternProfileSettings({
 
             {/* Professional Information Section */}
             {activeSection === "professional" && (
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-white rounded-lg shadow p-4 lg:p-6">
                 <div className="flex items-center mb-6">
-                  <Briefcase className="h-6 w-6 mr-3 text-cyan-600" />
-                  <h2 className="text-xl font-semibold text-gray-800">Professional Information</h2>
+                  <Briefcase className="h-5 w-5 lg:h-6 lg:w-6 mr-3 text-cyan-600" />
+                  <h2 className="text-lg lg:text-xl font-semibold text-gray-800">Professional Information</h2>
                 </div>
 
                 <form onSubmit={handleProfileSubmit} className="space-y-6">
@@ -950,7 +1029,7 @@ export default function InternProfileSettings({
                       Skills & Technologies <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <div className="absolute top-2 left-3 pointer-events-none">
+                      <div className="absolute top-2.5 sm:top-3 left-3 pointer-events-none">
                         <Award className="h-4 w-4 text-gray-400" />
                       </div>
                       <textarea
@@ -958,14 +1037,14 @@ export default function InternProfileSettings({
                         value={userData.skills}
                         onChange={handleChange}
                         rows={3}
-                        className={`pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black ${
+                        className={`pl-10 w-full p-2.5 sm:p-3 text-sm border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900 ${
                           errors.skills ? 'border-red-500' : 'border-gray-300'
                         }`}
                         placeholder="e.g., JavaScript, React, Python, Node.js, SQL"
                       />
                     </div>
                     {errors.skills && (
-                      <p className="mt-1 text-sm text-red-600">{errors.skills}</p>
+                      <p className="mt-1 text-xs sm:text-sm text-red-600">{errors.skills}</p>
                     )}
                     <p className="text-xs text-gray-500 mt-1">
                       Separate multiple skills with commas
@@ -978,7 +1057,7 @@ export default function InternProfileSettings({
                       Internship Goals & Objectives <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <div className="absolute top-2 left-3 pointer-events-none">
+                      <div className="absolute top-2.5 sm:top-3 left-3 pointer-events-none">
                         <Target className="h-4 w-4 text-gray-400" />
                       </div>
                       <textarea
@@ -986,14 +1065,14 @@ export default function InternProfileSettings({
                         value={userData.internshipGoals}
                         onChange={handleChange}
                         rows={4}
-                        className={`pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black ${
+                        className={`pl-10 w-full p-2.5 sm:p-3 text-sm border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900 ${
                           errors.internshipGoals ? 'border-red-500' : 'border-gray-300'
                         }`}
                         placeholder="What do you hope to achieve during your internship?"
                       />
                     </div>
                     {errors.internshipGoals && (
-                      <p className="mt-1 text-sm text-red-600">{errors.internshipGoals}</p>
+                      <p className="mt-1 text-xs sm:text-sm text-red-600">{errors.internshipGoals}</p>
                     )}
                   </div>
 
@@ -1003,7 +1082,7 @@ export default function InternProfileSettings({
                       Previous Experience (Optional)
                     </label>
                     <div className="relative">
-                      <div className="absolute top-2 left-3 pointer-events-none">
+                      <div className="absolute top-2.5 sm:top-3 left-3 pointer-events-none">
                         <History className="h-4 w-4 text-gray-400" />
                       </div>
                       <textarea
@@ -1011,7 +1090,7 @@ export default function InternProfileSettings({
                         value={userData.previousExperience}
                         onChange={handleChange}
                         rows={3}
-                        className="pl-10 w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
+                        className="pl-10 w-full p-2.5 sm:p-3 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900"
                         placeholder="Describe any relevant work experience, projects, or volunteer work..."
                       />
                     </div>
@@ -1024,28 +1103,28 @@ export default function InternProfileSettings({
                     </label>
                     <div className="space-y-2">
                       {userData.portfolioLinks.map((link, index) => (
-                        <div key={index} className="flex items-center space-x-2">
+                        <div key={index} className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
                           <input
                             type="url"
                             value={link}
                             readOnly
-                            className="flex-1 p-2 border border-gray-300 rounded-md bg-gray-50 text-black"
+                            className="flex-1 p-2.5 text-sm border border-gray-300 rounded-md bg-gray-50 text-gray-900"
                           />
                           <button
                             type="button"
                             onClick={() => removePortfolioLink(index)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-md"
+                            className="w-full sm:w-auto p-2.5 text-red-600 hover:bg-red-50 rounded-md border border-red-200 transition-colors text-sm"
                           >
-                            <X className="h-4 w-4" />
+                            <X className="h-4 w-4 mx-auto sm:mx-0" />
                           </button>
                         </div>
                       ))}
-                      <div className="flex items-center space-x-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
                         <input
                           type="url"
                           value={newPortfolioLink}
                           onChange={(e) => setNewPortfolioLink(e.target.value)}
-                          className="flex-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
+                          className="flex-1 p-2.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900"
                           placeholder="https://github.com/username or https://portfolio.com"
                           onKeyPress={(e) => {
                             if (e.key === "Enter") {
@@ -1057,7 +1136,7 @@ export default function InternProfileSettings({
                         <button
                           type="button"
                           onClick={addPortfolioLink}
-                          className="flex items-center px-4 py-2 bg-cyan-500 text-white rounded-md hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                          className="w-full sm:w-auto flex items-center justify-center px-4 py-2.5 bg-cyan-500 text-white text-sm rounded-md hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-colors"
                         >
                           <Plus className="h-4 w-4 mr-1" />
                           Add
@@ -1066,18 +1145,23 @@ export default function InternProfileSettings({
                     </div>
                   </div>
 
-                  <div className="flex justify-end">
+                  <div className="flex flex-col sm:flex-row sm:justify-end pt-6 border-t border-gray-200">
                     <button
                       type="submit"
                       disabled={isSaving}
-                      className="flex items-center px-6 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-50"
+                      className="w-full sm:w-auto flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 bg-cyan-600 text-white text-sm font-medium rounded-md hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-50 transition-colors"
                     >
                       {isSaving ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                          Saving...
+                        </>
                       ) : (
-                        <Save className="h-4 w-4 mr-2" />
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Save Changes
+                        </>
                       )}
-                      {isSaving ? "Saving..." : "Save Changes"}
                     </button>
                   </div>
                 </form>
@@ -1086,10 +1170,10 @@ export default function InternProfileSettings({
 
             {/* Documents Section */}
             {activeSection === "documents" && (
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-white rounded-lg shadow p-4 lg:p-6">
                 <div className="flex items-center mb-6">
-                  <FileText className="h-6 w-6 mr-3 text-cyan-600" />
-                  <h2 className="text-xl font-semibold text-gray-800">Documents</h2>
+                  <FileText className="h-5 w-5 lg:h-6 lg:w-6 mr-3 text-cyan-600" />
+                  <h2 className="text-lg lg:text-xl font-semibold text-gray-800">Documents</h2>
                 </div>
 
                 <form onSubmit={handleProfileSubmit} className="space-y-6">
@@ -1103,22 +1187,22 @@ export default function InternProfileSettings({
                         type="file"
                         accept=".pdf,.doc,.docx"
                         onChange={(e) => handleDocumentUpload(e, 'resumeFile')}
-                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-cyan-50 file:text-cyan-700 hover:file:bg-cyan-100"
+                        className="block w-full text-xs sm:text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-cyan-50 file:text-cyan-700 hover:file:bg-cyan-100 transition-colors"
                       />
                       {userData.resumeFile && (
-                        <div className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-md">
-                          <span className="text-sm text-green-700">Resume uploaded</span>
+                        <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-md">
+                          <span className="text-xs sm:text-sm text-green-700 font-medium">Resume uploaded</span>
                           <button
                             type="button"
                             onClick={() => downloadDocument(userData.resumeFile, "resume.pdf")}
-                            className="text-green-600 hover:text-green-800"
+                            className="text-green-600 hover:text-green-800 p-1 rounded transition-colors"
                           >
                             <Download className="h-4 w-4" />
                           </button>
                         </div>
                       )}
                       {errors.resumeFile && (
-                        <p className="text-sm text-red-600">{errors.resumeFile}</p>
+                        <p className="text-xs sm:text-sm text-red-600">{errors.resumeFile}</p>
                       )}
                     </div>
                   </div>
@@ -1133,22 +1217,22 @@ export default function InternProfileSettings({
                         type="file"
                         accept=".pdf,.jpg,.jpeg,.png"
                         onChange={(e) => handleDocumentUpload(e, 'idDocumentFile')}
-                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-cyan-50 file:text-cyan-700 hover:file:bg-cyan-100"
+                        className="block w-full text-xs sm:text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-cyan-50 file:text-cyan-700 hover:file:bg-cyan-100 transition-colors"
                       />
                       {userData.idDocumentFile && (
-                        <div className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-md">
-                          <span className="text-sm text-green-700">ID document uploaded</span>
+                        <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-md">
+                          <span className="text-xs sm:text-sm text-green-700 font-medium">ID document uploaded</span>
                           <button
                             type="button"
                             onClick={() => downloadDocument(userData.idDocumentFile, "id-document.pdf")}
-                            className="text-green-600 hover:text-green-800"
+                            className="text-green-600 hover:text-green-800 p-1 rounded transition-colors"
                           >
                             <Download className="h-4 w-4" />
                           </button>
                         </div>
                       )}
                       {errors.idDocumentFile && (
-                        <p className="text-sm text-red-600">{errors.idDocumentFile}</p>
+                        <p className="text-xs sm:text-sm text-red-600">{errors.idDocumentFile}</p>
                       )}
                     </div>
                   </div>
@@ -1163,15 +1247,15 @@ export default function InternProfileSettings({
                         type="file"
                         accept=".pdf,.doc,.docx"
                         onChange={(e) => handleDocumentUpload(e, 'transcriptFile')}
-                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-cyan-50 file:text-cyan-700 hover:file:bg-cyan-100"
+                        className="block w-full text-xs sm:text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-cyan-50 file:text-cyan-700 hover:file:bg-cyan-100 transition-colors"
                       />
                       {userData.transcriptFile && (
-                        <div className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-md">
-                          <span className="text-sm text-green-700">Transcript uploaded</span>
+                        <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-md">
+                          <span className="text-xs sm:text-sm text-green-700 font-medium">Transcript uploaded</span>
                           <button
                             type="button"
                             onClick={() => downloadDocument(userData.transcriptFile, "transcript.pdf")}
-                            className="text-green-600 hover:text-green-800"
+                            className="text-green-600 hover:text-green-800 p-1 rounded transition-colors"
                           >
                             <Download className="h-4 w-4" />
                           </button>
@@ -1182,13 +1266,13 @@ export default function InternProfileSettings({
 
                   <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
                     <div className="flex items-center">
-                      <UserCheck className="h-5 w-5 text-blue-600 mr-2" />
+                      <UserCheck className="h-5 w-5 text-blue-600 mr-2 flex-shrink-0" />
                       <div>
                         <h4 className="text-sm font-medium text-blue-800">Profile Status</h4>
-                        <p className="text-sm text-blue-600">
-                          Status: <span className="capitalize">{userData.verificationStatus}</span>
+                        <p className="text-xs sm:text-sm text-blue-600 mt-1">
+                          Status: <span className="capitalize font-medium">{userData.verificationStatus}</span>
                           {userData.profileSubmissionCount > 0 && (
-                            <span className="ml-2">
+                            <span className="block sm:inline sm:ml-2">
                               (Submitted {userData.profileSubmissionCount} times)
                             </span>
                           )}
@@ -1197,18 +1281,23 @@ export default function InternProfileSettings({
                     </div>
                   </div>
 
-                  <div className="flex justify-end">
+                  <div className="flex flex-col sm:flex-row sm:justify-end pt-6 border-t border-gray-200">
                     <button
                       type="submit"
                       disabled={isSaving}
-                      className="flex items-center px-6 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-50"
+                      className="w-full sm:w-auto flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 bg-cyan-600 text-white text-sm font-medium rounded-md hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-50 transition-colors"
                     >
                       {isSaving ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                          Saving...
+                        </>
                       ) : (
-                        <Save className="h-4 w-4 mr-2" />
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Save Changes
+                        </>
                       )}
-                      {isSaving ? "Saving..." : "Save Changes"}
                     </button>
                   </div>
                 </form>
@@ -1217,17 +1306,17 @@ export default function InternProfileSettings({
 
             {/* Settings Section */}
             {activeSection === "settings" && (
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-white rounded-lg shadow p-4 lg:p-6">
                 <div className="flex items-center mb-6">
-                  <Settings className="h-6 w-6 mr-3 text-cyan-600" />
-                  <h2 className="text-xl font-semibold text-gray-800">Preferences</h2>
+                  <Settings className="h-5 w-5 lg:h-6 lg:w-6 mr-3 text-cyan-600" />
+                  <h2 className="text-lg lg:text-xl font-semibold text-gray-800">Preferences</h2>
                 </div>
 
                 <div className="space-y-6">
                   {/* Theme Settings */}
                   <div>
-                    <h3 className="text-lg font-medium text-gray-800 mb-3">Theme</h3>
-                    <div className="grid grid-cols-3 gap-4">
+                    <h3 className="text-base lg:text-lg font-medium text-gray-800 mb-3">Theme</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
                       {[
                         { value: "light", label: "Light", icon: Sun },
                         { value: "dark", label: "Dark", icon: Moon },
@@ -1238,14 +1327,14 @@ export default function InternProfileSettings({
                           <button
                             key={theme.value}
                             onClick={() => handlePreferenceChange("theme", theme.value)}
-                            className={`p-4 border rounded-md flex flex-col items-center space-y-2 transition-colors ${
+                            className={`p-3 lg:p-4 border rounded-md flex flex-col items-center space-y-2 transition-colors text-sm ${
                               preferences.theme === theme.value
                                 ? "border-cyan-500 bg-cyan-50"
                                 : "border-gray-300 hover:bg-gray-50"
                             }`}
                           >
-                            <IconComponent className="h-6 w-6" />
-                            <span className="text-sm font-medium">{theme.label}</span>
+                            <IconComponent className="h-5 w-5 lg:h-6 lg:w-6" />
+                            <span className="font-medium">{theme.label}</span>
                           </button>
                         );
                       })}
@@ -1254,7 +1343,7 @@ export default function InternProfileSettings({
 
                   {/* Notification Settings */}
                   <div>
-                    <h3 className="text-lg font-medium text-gray-800 mb-3">Notifications</h3>
+                    <h3 className="text-base lg:text-lg font-medium text-gray-800 mb-3">Notifications</h3>
                     <div className="space-y-4">
                       {[
                         {
@@ -1278,10 +1367,10 @@ export default function InternProfileSettings({
                           description: "Get notified when you receive feedback",
                         },
                       ].map((setting) => (
-                        <div key={setting.key} className="flex items-center justify-between">
-                          <div>
+                        <div key={setting.key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 p-3 sm:p-0">
+                          <div className="flex-1">
                             <h4 className="text-sm font-medium text-gray-800">{setting.label}</h4>
-                            <p className="text-sm text-gray-500">{setting.description}</p>
+                            <p className="text-xs sm:text-sm text-gray-500">{setting.description}</p>
                           </div>
                           <label className="relative inline-flex items-center cursor-pointer">
                             <input
@@ -1294,8 +1383,8 @@ export default function InternProfileSettings({
                               preferences[setting.key as keyof typeof preferences] ? "bg-cyan-600" : "bg-gray-200"
                             }`}>
                               <div className={`absolute top-[2px] left-[2px] bg-white border border-gray-300 rounded-full h-5 w-5 transition-transform ${
-                                preferences[setting.key as keyof typeof preferences] ? "translate-x-full" : "translate-x-0"
-                              }`}></div>
+                              preferences[setting.key as keyof typeof preferences] ? "translate-x-full" : "translate-x-0"
+                            }`}></div>
                             </div>
                           </label>
                         </div>
@@ -1303,18 +1392,26 @@ export default function InternProfileSettings({
                     </div>
                   </div>
 
-                  <div className="flex justify-end">
+                  <div className="flex flex-col sm:flex-row sm:justify-end pt-6 border-t border-gray-200">
                     <button
-                      onClick={handleProfileSubmit}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleProfileSubmit(e);
+                      }}
                       disabled={isSaving}
-                      className="flex items-center px-6 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-50"
+                      className="w-full sm:w-auto flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 bg-cyan-600 text-white text-sm font-medium rounded-md hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-50 transition-colors"
                     >
                       {isSaving ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                          Saving...
+                        </>
                       ) : (
-                        <Save className="h-4 w-4 mr-2" />
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Save Preferences
+                        </>
                       )}
-                      {isSaving ? "Saving..." : "Save Preferences"}
                     </button>
                   </div>
                 </div>
@@ -1323,15 +1420,15 @@ export default function InternProfileSettings({
 
             {/* Security Section */}
             {activeSection === "security" && (
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-white rounded-lg shadow p-4 lg:p-6">
                 <div className="flex items-center mb-6">
-                  <Shield className="h-6 w-6 mr-3 text-cyan-600" />
-                  <h2 className="text-xl font-semibold text-gray-800">Security</h2>
+                  <Shield className="h-5 w-5 lg:h-6 lg:w-6 mr-3 text-cyan-600" />
+                  <h2 className="text-lg lg:text-xl font-semibold text-gray-800">Security</h2>
                 </div>
 
                 <form onSubmit={handlePasswordSubmit} className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-medium text-gray-800 mb-3">Change Password</h3>
+                    <h3 className="text-base lg:text-lg font-medium text-gray-800 mb-3">Change Password</h3>
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1346,7 +1443,7 @@ export default function InternProfileSettings({
                             name="currentPassword"
                             value={passwordData.currentPassword}
                             onChange={handlePasswordChange}
-                            className="pl-10 pr-10 w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
+                            className="pl-10 pr-10 w-full p-2.5 sm:p-3 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900"
                             placeholder="Enter current password"
                           />
                           <button
@@ -1372,7 +1469,7 @@ export default function InternProfileSettings({
                           name="newPassword"
                           value={passwordData.newPassword}
                           onChange={handlePasswordChange}
-                          className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
+                          className="w-full p-2.5 sm:p-3 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900"
                           placeholder="Enter new password"
                         />
                       </div>
@@ -1386,25 +1483,30 @@ export default function InternProfileSettings({
                           name="confirmPassword"
                           value={passwordData.confirmPassword}
                           onChange={handlePasswordChange}
-                          className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
+                          className="w-full p-2.5 sm:p-3 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900"
                           placeholder="Confirm new password"
                         />
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex justify-end">
+                  <div className="flex flex-col sm:flex-row sm:justify-end pt-6 border-t border-gray-200">
                     <button
                       type="submit"
                       disabled={isSaving}
-                      className="flex items-center px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
+                      className="w-full sm:w-auto flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 transition-colors"
                     >
                       {isSaving ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                          Changing...
+                        </>
                       ) : (
-                        <Key className="h-4 w-4 mr-2" />
+                        <>
+                          <Key className="h-4 w-4 mr-2" />
+                          Change Password
+                        </>
                       )}
-                      {isSaving ? "Changing..." : "Change Password"}
                     </button>
                   </div>
                 </form>
@@ -1413,31 +1515,31 @@ export default function InternProfileSettings({
 
             {/* Account Management Section */}
             {activeSection === "account" && (
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-white rounded-lg shadow p-4 lg:p-6">
                 <div className="flex items-center mb-6">
-                  <Database className="h-6 w-6 mr-3 text-cyan-600" />
-                  <h2 className="text-xl font-semibold text-gray-800">Account Management</h2>
+                  <Database className="h-5 w-5 lg:h-6 lg:w-6 mr-3 text-cyan-600" />
+                  <h2 className="text-lg lg:text-xl font-semibold text-gray-800">Account Management</h2>
                 </div>
 
                 <div className="space-y-6">
                   {/* Account Information */}
                   <div>
-                    <h3 className="text-lg font-medium text-gray-800 mb-3">Account Information</h3>
-                    <div className="bg-gray-50 rounded-md p-4 space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Username:</span>
-                        <span className="text-sm font-medium">{userData.username}</span>
+                    <h3 className="text-base lg:text-lg font-medium text-gray-800 mb-3">Account Information</h3>
+                    <div className="bg-gray-50 rounded-md p-4 space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:justify-between space-y-1 sm:space-y-0">
+                        <span className="text-sm text-gray-600 font-medium">Username:</span>
+                        <span className="text-sm font-medium text-gray-900 break-all">{userData.username}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Email:</span>
-                        <span className="text-sm font-medium">{userData.email}</span>
+                      <div className="flex flex-col sm:flex-row sm:justify-between space-y-1 sm:space-y-0">
+                        <span className="text-sm text-gray-600 font-medium">Email:</span>
+                        <span className="text-sm font-medium text-gray-900 break-all">{userData.email}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Role:</span>
-                        <span className="text-sm font-medium capitalize">Intern</span>
+                      <div className="flex flex-col sm:flex-row sm:justify-between space-y-1 sm:space-y-0">
+                        <span className="text-sm text-gray-600 font-medium">Role:</span>
+                        <span className="text-sm font-medium capitalize text-gray-900">Intern</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Verification Status:</span>
+                      <div className="flex flex-col sm:flex-row sm:justify-between space-y-1 sm:space-y-0">
+                        <span className="text-sm text-gray-600 font-medium">Verification Status:</span>
                         <span className={`text-sm font-medium capitalize ${
                           userData.verificationStatus === "verified" ? "text-green-600" :
                           userData.verificationStatus === "pending" ? "text-yellow-600" :
@@ -1446,8 +1548,8 @@ export default function InternProfileSettings({
                           {userData.verificationStatus}
                         </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Application Status:</span>
+                      <div className="flex flex-col sm:flex-row sm:justify-between space-y-1 sm:space-y-0">
+                        <span className="text-sm text-gray-600 font-medium">Application Status:</span>
                         <span className={`text-sm font-medium capitalize ${
                           userData.applicationStatus === "active" ? "text-green-600" :
                           userData.applicationStatus === "approved" ? "text-blue-600" :
@@ -1462,11 +1564,11 @@ export default function InternProfileSettings({
 
                   {/* Data Export */}
                   <div>
-                    <h3 className="text-lg font-medium text-gray-800 mb-3">Data Export</h3>
-                    <p className="text-sm text-gray-600 mb-3">
+                    <h3 className="text-base lg:text-lg font-medium text-gray-800 mb-3">Data Export</h3>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-4">
                       Download all your personal data stored in our system.
                     </p>
-                    <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button className="w-full sm:w-auto flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
                       <Download className="h-4 w-4 mr-2" />
                       Export My Data
                     </button>
@@ -1474,13 +1576,13 @@ export default function InternProfileSettings({
 
                   {/* Danger Zone */}
                   <div className="border-t pt-6">
-                    <h3 className="text-lg font-medium text-red-800 mb-3">Danger Zone</h3>
+                    <h3 className="text-base lg:text-lg font-medium text-red-800 mb-3">Danger Zone</h3>
                     <div className="bg-red-50 border border-red-200 rounded-md p-4">
                       <h4 className="text-sm font-medium text-red-800 mb-2">Delete Account</h4>
-                      <p className="text-sm text-red-600 mb-3">
+                      <p className="text-xs sm:text-sm text-red-600 mb-4">
                         Once you delete your account, there is no going back. Please be certain.
                       </p>
-                      <button className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
+                      <button className="w-full sm:w-auto flex items-center justify-center px-4 py-2.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors">
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete Account
                       </button>
