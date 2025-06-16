@@ -52,12 +52,11 @@ export default function PostHistoryScreen() {
   const [selectedPost, setSelectedPost] = useState<InternshipPost | null>(null);
   const [showModal, setShowModal] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<string>("newest");
 
   useEffect(() => {
     fetchInternshipPosts();
-  }, [filterStatus, sortOrder]);
+  }, [sortOrder]);
 
   const fetchInternshipPosts = async (searchTerm: string = "") => {
     try {
@@ -131,10 +130,6 @@ export default function PostHistoryScreen() {
         url.searchParams.append("organizationId", organizationId);
       } else if (organizationName) {
         url.searchParams.append("organizationName", organizationName);
-      }
-
-      if (filterStatus !== "all") {
-        url.searchParams.append("status", filterStatus);
       }
 
       if (searchTerm) {
@@ -229,17 +224,6 @@ export default function PostHistoryScreen() {
             <div className="flex gap-2 mt-2 sm:mt-0 ml-9 sm:ml-0">
               <select
                 className="px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-cyan-500 focus:border-cyan-500 text-black"
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-              >
-                <option value="all">All Status</option>
-                <option value="published">Published</option>
-                <option value="closed">Closed</option>
-                <option value="draft">Draft</option>
-              </select>
-
-              <select
-                className="px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-cyan-500 focus:border-cyan-500 text-black"
                 value={sortOrder}
                 onChange={(e) => setSortOrder(e.target.value)}
               >
@@ -285,8 +269,8 @@ export default function PostHistoryScreen() {
               No internship posts found
             </h3>
             <p className="text-gray-500">
-              {searchQuery || filterStatus !== "all"
-                ? "Try adjusting your search or filter criteria"
+              {searchQuery
+                ? "Try adjusting your search criteria"
                 : "Start creating internship postings to see them here"}
             </p>
           </div>
@@ -331,18 +315,6 @@ export default function PostHistoryScreen() {
                   </div>
                   <div className="mt-2 sm:mt-0 flex flex-col sm:items-end">
                     <div className="flex space-x-2">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          post.status === "published"
-                            ? "bg-green-100 text-green-800"
-                            : post.status === "closed"
-                            ? "bg-red-100 text-red-800"
-                            : "bg-gray-100 text-gray-800"
-                        }`}
-                      >
-                        {post.status.charAt(0).toUpperCase() +
-                          post.status.slice(1)}
-                      </span>
                       <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
                         {post.applications.length} Applications
                       </span>
@@ -409,18 +381,6 @@ export default function PostHistoryScreen() {
                 </div>
 
                 <div className="mt-4 md:mt-0 flex flex-col items-start md:items-end space-y-1">
-                  <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      selectedPost.status === "published"
-                        ? "bg-green-100 text-green-800"
-                        : selectedPost.status === "closed"
-                        ? "bg-red-100 text-red-800"
-                        : "bg-gray-100 text-gray-800"
-                    }`}
-                  >
-                    {selectedPost.status.charAt(0).toUpperCase() +
-                      selectedPost.status.slice(1)}
-                  </span>
                   <span className="text-sm text-gray-600">
                     Posted on: {formatDate(selectedPost.postingDate)}
                   </span>
@@ -463,7 +423,9 @@ export default function PostHistoryScreen() {
                         </div>
                       </div>
                       <div className="flex items-center">
-                        <DollarSign className="h-5 w-5 text-cyan-600 mr-3" />
+                        <div className="h-5 w-5 text-cyan-600 mr-3 flex items-center justify-center font-medium">
+                          <span className="text-lg">₹</span>
+                        </div>
                         <div>
                           <p className="text-sm font-medium text-gray-700">
                             Compensation
@@ -579,18 +541,9 @@ export default function PostHistoryScreen() {
               </div>
             </div>
 
-            {/* Modal Footer - simplified with just the Edit button */}
-            <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // Implement edit posting functionality here
-                  alert("Edit posting functionality to be implemented");
-                }}
-                className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-md shadow-sm text-sm font-medium hover:from-cyan-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
-              >
-                Edit Posting
-              </button>
+            {/* Modal Footer - removed Edit button */}
+            <div className="p-4 border-t border-gray-200 bg-gray-50">
+              {/* Footer without any buttons */}
             </div>
           </div>
         </div>
