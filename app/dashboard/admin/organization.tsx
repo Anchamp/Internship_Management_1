@@ -21,6 +21,46 @@ interface TeamData {
   createdAt?: string;
 }
 
+const DeleteTeamModal = ({
+  closeModal,
+  teamName,
+  deleteTeam,
+}: {
+  closeModal: () => void;
+  teamName: string;
+  deleteTeam: (teamName: string) => Promise<void>;
+}) => {
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+      <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
+        <h3 className="text-lg font-bold text-gray-900 mb-4">
+          Delete Team
+        </h3>
+        <p className="text-gray-700 mb-6">
+          Are you sure you want to delete the team "<span className="font-bold text-black">{teamName}</span>"? This action cannot be undone.
+        </p>
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={closeModal}
+            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={ async () => {
+              await deleteTeam(teamName);
+              closeModal();
+            }}
+            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+})
+
 const CreateTeamModal = ({
   closeModal,
   resetFormValues,
@@ -142,6 +182,8 @@ const Organization = () => {
   const [error, setError] = useState("");
   const [role, setRole] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
+  const [deleteTeamModalOpen, setDeleteTeamModalOpen] = useState(false);
+  const [deleteTeamName, setDeleteTeamName] = useState("");
 
   // Form values
   const [newTeamName, setNewTeamName] = useState("");
@@ -180,6 +222,32 @@ const Organization = () => {
     }
   };
 
+  const deleteTeam = async (teamName: String) => {
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (!storedUser) {
+        throw new Error("User not found in local storage");
+      }
+
+      const { username } = JSON.parse(storedUser);
+      const response = await fetch("/api/delete-team", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, teamName }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to delete team");
+      }
+
+      await fetchTeams(); // Refresh teams after deletion
+    } catch (error: any) {
+      console.error("Error deleting team:", error);
+      setError(error.message || "An unexpected error occurred");
+    }
+  }
+
   useEffect(() => {
     fetchTeams();
   }, []);
@@ -194,6 +262,11 @@ const Organization = () => {
 
   const openModal = () => setModalOpen(true);
   const closeModal = () => setModalOpen(false);
+  const openDeleteTeamModal = () => setDeleteTeamModalOpen(true);
+  const closeDeleteTeamModal = () => { 
+    setDeleteTeamModalOpen(false);
+    setDeleteTeamName("");
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -276,18 +349,34 @@ const Organization = () => {
           </span>
         </div>
       </div>
-      <div className="mt-4 flex w-full lg:w-[50%] items-center justify-between text-black">
-        <div className="flex items-center justify-between">
-          <p className="mr-[4px]">Mentors:</p>
-          <p>{team.mentors.length}</p>
+      <div className="mt-4 flex w-full items-start justify-center text-black flex-col md:flex-row">
+        <div className="flex items-center justify-between w-full md:w-[50%] gap-[10px]">
+          <div className="flex items-center justify-between">
+            <p className="mr-[4px]">Mentors:</p>
+            <p>{team.mentors.length}</p>
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="mr-[4px]">Interns:</p>
+            <p>{team.interns.length}</p>
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="mr-[4px]">Panelists:</p>
+            <p>{team.panelists.length}</p>
+          </div>
         </div>
-        <div className="flex items-center justify-between">
-          <p className="mr-[4px]">Interns:</p>
-          <p>{team.interns.length}</p>
-        </div>
-        <div className="flex items-center justify-between">
-          <p className="mr-[4px]">Panelists:</p>
-          <p>{team.panelists.length}</p>
+        <div className="flex justify-center md:justify-end items-center w-full gap-[25px]">
+          <button 
+            className="my-2 text-white bg-red-500 cursor-pointer rounded-sm max-w-[300px] p-2"
+            onClick={() => {
+              setDeleteTeamName(team.teamName);
+              openDeleteTeamModal(team.teamName);
+            }}
+          >
+            Delete Team
+          </button>
+          <button className="cursor-pointer rounded-sm bg-gradient-to-r from-cyan-600 to-blue-600 text-white p-2">
+            Edit Team
+          </button>
         </div>
       </div>
     </div>
@@ -377,6 +466,13 @@ const Organization = () => {
           newDescription={newDescription}
           setNewDescription={setNewDescription}
           handleSubmit={handleSubmit}
+        />
+      )}
+      {deleteTeamModalOpen && (
+        <DeleteTeamModal
+          closeModal={closeDeleteTeamModal}
+          teamName={deleteTeamName}
+          deleteTeam={deleteTeam}
         />
       )}
     </>
