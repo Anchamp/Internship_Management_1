@@ -43,6 +43,7 @@ interface InternshipPost {
   postedBy: string;
   eligibility: string;
   applications: any[];
+  category: string; // Add this new property
 }
 
 export default function PostHistoryScreen() {
@@ -53,10 +54,23 @@ export default function PostHistoryScreen() {
   const [showModal, setShowModal] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [sortOrder, setSortOrder] = useState<string>("newest");
+  const [categories, setCategories] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   useEffect(() => {
     fetchInternshipPosts();
-  }, [sortOrder]);
+  }, [sortOrder, selectedCategory]);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch("/api/internships/categories");
+      if (!response.ok) throw new Error("Failed to fetch categories");
+      const data = await response.json();
+      setCategories(data.categories || []);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  };
 
   const fetchInternshipPosts = async (searchTerm: string = "") => {
     try {
@@ -136,6 +150,10 @@ export default function PostHistoryScreen() {
         url.searchParams.append("search", searchTerm);
       }
 
+      if (selectedCategory !== "all") {
+        url.searchParams.append("category", selectedCategory);
+      }
+
       url.searchParams.append("sort", sortOrder);
 
       console.log("Fetching internships with URL:", url.toString());
@@ -191,6 +209,11 @@ export default function PostHistoryScreen() {
     setSelectedPost(null);
   };
 
+  // Fetch categories on component mount
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center p-8">
@@ -222,6 +245,21 @@ export default function PostHistoryScreen() {
             </h2>
 
             <div className="flex gap-2 mt-2 sm:mt-0 ml-9 sm:ml-0">
+              {/* Add Category Filter */}
+              <select
+                className="px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-cyan-500 focus:border-cyan-500 text-black"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+              >
+                <option value="all">All Categories</option>
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+
+              {/* Existing sort order select */}
               <select
                 className="px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-cyan-500 focus:border-cyan-500 text-black"
                 value={sortOrder}
@@ -309,6 +347,11 @@ export default function PostHistoryScreen() {
                         <span className="flex items-center">
                           <MapPin className="h-4 w-4 mr-1" />
                           {post.location.city || "Remote"}
+                        </span>
+                        {/* Add Category Display */}
+                        <span className="flex items-center">
+                          <FileText className="h-4 w-4 mr-1" />
+                          {post.category}
                         </span>
                       </div>
                     </div>
