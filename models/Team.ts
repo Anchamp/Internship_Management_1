@@ -11,16 +11,17 @@ const teamSchema = new Schema(
     mentors: [{
       type: String,
       required: true,
+      trim: true,
     }],
     interns: [{
       type: String,
       required: true,
-      required: true,
+      trim: true,
     }],
     panelists: [{
       type: String,
       required: true,
-      required: true,
+      trim: true,
     }],
     description: {
       type: String,
