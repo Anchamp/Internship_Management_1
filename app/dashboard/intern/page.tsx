@@ -220,8 +220,9 @@ export default function InternDashboard() {
           </div>
         </div>
       </div>
-    )
-  }
+    );
+  };
+
   const sidebarItems = [
     { 
       id: "dashboard", 
@@ -504,7 +505,7 @@ export default function InternDashboard() {
 
             {/* Logout Button */}
             <button
-              onClick={handleLogout}
+              onClick={openLogOutModal}
               className={`flex items-center ${
                 isSidebarCollapsed ? "justify-center" : "space-x-2"
               } p-2 rounded-md hover:bg-red-50 text-red-600 w-full text-left font-medium text-sm transition-colors`}
@@ -513,20 +514,6 @@ export default function InternDashboard() {
               {!isSidebarCollapsed && <span>Logout</span>}
             </button>
           </div>
-        </nav>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-gray-200">
-          <button
-            onClick={openLogOutModal}
-            className={`w-full text-left p-3 rounded-md text-red-600 hover:bg-red-50 transition-colors flex items-center ${
-              isSidebarCollapsed ? "justify-center" : ""
-            }`}
-            title={isSidebarCollapsed ? "Logout" : ""}
-          >
-            <LogOut className={`h-5 w-5 ${isSidebarCollapsed ? "" : "mr-3"}`} />
-            {!isSidebarCollapsed && <span className="font-medium">Logout</span>}
-          </button>
         </div>
       </div>
 

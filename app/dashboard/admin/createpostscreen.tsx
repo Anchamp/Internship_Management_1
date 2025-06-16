@@ -23,6 +23,7 @@ import {
 export default function CreatePostScreen() {
   const [formData, setFormData] = useState({
     title: "",
+    category: "", // Add category field to the state
     startDate: "",
     endDate: "",
     mode: "onsite", // Default: onsite
@@ -289,6 +290,31 @@ export default function CreatePostScreen() {
                     onChange={handleChange}
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm text-black"
                     placeholder="e.g., Software Development Intern – Summer 2025"
+                  />
+                </div>
+              </div>
+
+              {/* Internship Category - New Field */}
+              <div className="col-span-full">
+                <label
+                  htmlFor="category"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Internship Category<span className="text-red-500">*</span>
+                </label>
+                <div className="relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <FileText className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    name="category"
+                    id="category"
+                    required
+                    value={formData.category}
+                    onChange={handleChange}
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm text-black"
+                    placeholder="e.g., Engineering, Medical, Finance, Marketing"
                   />
                 </div>
               </div>
