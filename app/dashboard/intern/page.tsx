@@ -182,14 +182,6 @@ export default function InternDashboard() {
     setActiveTab("dashboard");
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
-      </div>
-    );
-  }
-
   const openLogOutModal = () => setLogOutModalOpen(true);
   const closeLogOutModal = () => setLogOutModalOpen(false);
 
@@ -223,74 +215,13 @@ export default function InternDashboard() {
     );
   };
 
-  const sidebarItems = [
-    { 
-      id: "dashboard", 
-      label: "Dashboard", 
-      icon: Home, 
-      description: "Overview & Quick Stats" 
-    },
-    { 
-      id: "my-teams", 
-      label: "My Teams", 
-      icon: Users, 
-      description: "Team Projects & Collaboration" 
-    },
-    { 
-      id: "find-internships", 
-      label: "Find Internships", 
-      icon: Search, 
-      description: "Browse Opportunities" 
-    },
-    { 
-      id: "internship-request", 
-      label: "Apply for Internship", 
-      icon: Upload, 
-      description: "Submit Application" 
-    },
-    { 
-      id: "my-applications", 
-      label: "My Applications", 
-      icon: FileText, 
-      description: "Track Application Status" 
-    },
-    { 
-      id: "project-details", 
-      label: "Project Details", 
-      icon: Briefcase, 
-      description: "View Assigned Projects" 
-    },
-    { 
-      id: "weekly-reports", 
-      label: "Weekly Reports", 
-      icon: ClipboardList, 
-      description: "Submit Progress Reports" 
-    },
-    { 
-      id: "demo-presentation", 
-      label: "Demo Presentation", 
-      icon: Presentation, 
-      description: "Schedule & Present Demo" 
-    },
-    { 
-      id: "feedback-evaluations", 
-      label: "Feedback & Evaluations", 
-      icon: Star, 
-      description: "View Feedback & Ratings" 
-    },
-    { 
-      id: "team-communication", 
-      label: "Team Communication", 
-      icon: MessageSquare, 
-      description: "Chat with Team Members" 
-    },
-    { 
-      id: "profile-settings", 
-      label: "Profile & Settings", 
-      icon: Settings, 
-      description: "Manage Account & Preferences" 
-    },
-  ];
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -712,6 +643,8 @@ export default function InternDashboard() {
           )}
         </main>
       </div>
+      
+      {/* Logout Modal */}
       {logOutModalOpen && <LogOutModal />}
     </div>
   );

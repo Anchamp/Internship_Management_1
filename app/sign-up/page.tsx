@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -67,6 +67,20 @@ export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
   const [formValid, setFormValid] = useState(false);
   const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
+  const [isValidEmail, setIsValidEmail] = useState<boolean>(false);
+  const [showOtpInput, setShowOtpInput] = useState<boolean>(false);
+  const [otpValues, setOtpValues] = useState<string[]>(["", "", "", ""]);
+  const otpInputRefs = Array(4)
+    .fill(0)
+    .map(() => React.createRef<HTMLInputElement>());
+
+  // New state variables for OTP verification
+  const [isEmailVerified, setIsEmailVerified] = useState<boolean>(false);
+  const [sendingOtp, setSendingOtp] = useState<boolean>(false);
+  const [verifyingOtp, setVerifyingOtp] = useState<boolean>(false);
+  const [otpError, setOtpError] = useState<string>("");
+  const [otpSent, setOtpSent] = useState<boolean>(false);
+
   const router = useRouter();
 
   // Fetch organizations created by admins
@@ -174,11 +188,17 @@ export default function SignUp() {
   // Debounced email availability check and format validation
   useEffect(() => {
     const validateEmailFormat = () => {
-      if (!email) return true;
+      if (!email) {
+        setIsValidEmail(false);
+        return true;
+      }
 
       // Simple email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
+      const isValid = emailRegex.test(email);
+      setIsValidEmail(isValid);
+
+      if (!isValid) {
         setEmailError("Please enter a valid email address");
         return false;
       }
@@ -301,6 +321,128 @@ export default function SignUp() {
     passwordError,
     orgNameError,
   ]);
+
+  // Function to send OTP email
+  const sendOtpEmail = async () => {
+    if (!isValidEmail || emailError) return;
+
+    setSendingOtp(true);
+    setOtpError("");
+
+    try {
+      const response = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || data.message || "Failed to send verification code"
+        );
+      }
+
+      setOtpSent(true);
+      setShowOtpInput(true);
+      toast.success("Verification code sent!", {
+        description: "Please check your email inbox",
+        duration: 4000,
+      });
+
+      // Auto-focus the first OTP input field
+      setTimeout(() => {
+        otpInputRefs[0].current?.focus();
+      }, 300);
+    } catch (error: any) {
+      console.error("Error sending OTP:", error);
+      toast.error("Failed to send verification code", {
+        description: error.message || "Please try again later",
+      });
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  // Handle OTP input change
+  const handleOtpChange = (index: number, value: string) => {
+    // Only allow digits
+    if (value && !/^\d+$/.test(value)) return;
+
+    // Create new array with the updated value
+    const newOtpValues = [...otpValues];
+    // Only take the last character if multiple are pasted
+    newOtpValues[index] = value.slice(-1);
+    setOtpValues(newOtpValues);
+    setOtpError("");
+
+    // Auto-advance to next field if value is entered and not on last field
+    if (value && index < 3) {
+      otpInputRefs[index + 1].current?.focus();
+    }
+
+    // Auto-verify if all fields are filled
+    if (value && index === 3) {
+      const allFilled = newOtpValues.every((val) => val !== "");
+      if (allFilled) {
+        setTimeout(() => verifyOtp(), 300);
+      }
+    }
+  };
+
+  // Handle backspace in OTP input
+  const handleOtpKeyDown = (
+    index: number,
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    // If backspace is pressed and current field is empty, focus previous field
+    if (e.key === "Backspace" && !otpValues[index] && index > 0) {
+      otpInputRefs[index - 1].current?.focus();
+    }
+  };
+
+  // Function to verify OTP
+  const verifyOtp = async () => {
+    const enteredOtp = otpValues.join("");
+    if (enteredOtp.length !== 4) return;
+
+    setVerifyingOtp(true);
+    setOtpError("");
+
+    try {
+      const response = await fetch("/api/auth/send-otp", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          otp: enteredOtp,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Invalid verification code");
+      }
+
+      // Email successfully verified
+      setIsEmailVerified(true);
+      setShowOtpInput(false);
+      toast.success("Email verified successfully!", {
+        icon: <CheckCircle2 className="h-5 w-5 text-green-500" />,
+      });
+    } catch (error: any) {
+      console.error("Error verifying OTP:", error);
+      setOtpError(error.message || "Invalid verification code");
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -425,6 +567,7 @@ export default function SignUp() {
     );
   }
 
+  // Main component rendering when mounted
   return (
     <div className="min-h-screen flex flex-col relative bg-white auth-section">
       {/* Back Button */}
@@ -632,30 +775,151 @@ export default function SignUp() {
                       </span>
                     )}
                   </label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="name@example.com"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={isLoading}
-                    className={`input-glow bg-white !border-2 focus:!ring-black/20 !text-black placeholder:text-gray-500 relative z-40 h-8 text-xs ${
-                      emailError ? "!border-red-500" : "!border-black"
-                    }`}
-                    style={{
-                      color: "black",
-                      backgroundColor: "white",
-                      borderColor: emailError ? "#ef4444" : "black",
-                      borderWidth: "2px",
-                      position: "relative",
-                      zIndex: 40,
-                    }}
-                  />
+                  <div className="flex items-center space-x-2">
+                    <div className="relative flex-grow">
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="name@example.com"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={isLoading || showOtpInput || isEmailVerified}
+                        className={`input-glow bg-white !border-2 focus:!ring-black/20 !text-black placeholder:text-gray-500 relative z-40 h-8 text-xs ${
+                          emailError
+                            ? "!border-red-500"
+                            : isEmailVerified
+                            ? "!border-green-500 pr-8"
+                            : "!border-black"
+                        }`}
+                        style={{
+                          color: "black",
+                          backgroundColor: "white",
+                          borderColor: emailError
+                            ? "#ef4444"
+                            : isEmailVerified
+                            ? "#10b981"
+                            : "black",
+                          borderWidth: "2px",
+                          position: "relative",
+                          zIndex: 40,
+                        }}
+                      />
+                      {isEmailVerified && (
+                        <div className="absolute inset-y-0 right-2 flex items-center">
+                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        </div>
+                      )}
+                    </div>
+                    {isValidEmail && !emailError && !isEmailVerified && (
+                      <button
+                        type="button"
+                        onClick={sendOtpEmail}
+                        disabled={sendingOtp || showOtpInput}
+                        className="px-3 py-1.5 h-8 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-xs font-medium rounded-md shadow-sm hover:opacity-90 transition-colors disabled:opacity-50"
+                      >
+                        {sendingOtp ? (
+                          <div className="flex items-center">
+                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                            <span>Sending...</span>
+                          </div>
+                        ) : showOtpInput ? (
+                          "Resend"
+                        ) : (
+                          "Verify"
+                        )}
+                      </button>
+                    )}
+                  </div>
                   {emailError && (
                     <p className="text-xs text-red-500 mt-0.5">{emailError}</p>
                   )}
                 </div>
+
+                {/* OTP Input UI */}
+                {showOtpInput && (
+                  <div className="mt-2 animate-fadeIn bg-gray-50 p-3 rounded-md border border-gray-200">
+                    <div className="space-y-1">
+                      <label
+                        className="text-xs font-bold !text-black"
+                        style={{ color: "black" }}
+                      >
+                        Enter verification code
+                      </label>
+                      <p className="text-xs text-gray-500">
+                        We've sent a 4-digit code to {email}
+                      </p>
+
+                      <div className="flex justify-center mt-3 gap-1.5">
+                        {[0, 1, 2, 3].map((index) => (
+                          <input
+                            key={index}
+                            ref={otpInputRefs[index]}
+                            type="text"
+                            maxLength={1}
+                            value={otpValues[index]}
+                            onChange={(e) =>
+                              handleOtpChange(index, e.target.value)
+                            }
+                            onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                            className={`w-10 h-10 text-center border-2 ${
+                              otpError ? "border-red-500" : "border-black"
+                            } rounded-md text-base font-bold focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 text-black shadow-sm`}
+                            style={{
+                              backgroundColor: "white",
+                              color: "black",
+                            }}
+                            autoComplete="one-time-code"
+                          />
+                        ))}
+                      </div>
+
+                      {otpError && (
+                        <p className="text-xs text-red-500 text-center mt-2">
+                          {otpError}
+                        </p>
+                      )}
+
+                      <div className="flex justify-between mt-3">
+                        <button
+                          type="button"
+                          onClick={() => setShowOtpInput(false)}
+                          className="px-3 py-1 text-xs border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={verifyOtp}
+                          disabled={
+                            otpValues.some((val) => !val) || verifyingOtp
+                          }
+                          className="px-3 py-1 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-xs font-medium rounded-md shadow-sm hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {verifyingOtp ? (
+                            <div className="flex items-center">
+                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                              <span>Verifying...</span>
+                            </div>
+                          ) : (
+                            "Verify Email"
+                          )}
+                        </button>
+                      </div>
+
+                      <div className="text-center mt-2">
+                        <button
+                          type="button"
+                          onClick={sendOtpEmail}
+                          disabled={sendingOtp}
+                          className="text-xs text-cyan-600 hover:text-cyan-700 hover:underline"
+                        >
+                          {sendingOtp ? "Sending..." : "Resend code"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-1 relative">
                   <label
@@ -811,7 +1075,7 @@ export default function SignUp() {
                           organizations.map((org) => (
                             <SelectItem
                               key={org.id}
-                              value={org.id} // This should be the formatted organizationId
+                              value={org.id}
                               className="!text-black hover:!bg-gray-100 cursor-pointer text-xs"
                               style={{ color: "black" }}
                             >
@@ -997,6 +1261,21 @@ export default function SignUp() {
 
         [data-sonner-toast][data-type="loading"] {
           border-left: 4px solid #3b82f6 !important;
+        }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out forwards;
         }
       `}</style>
     </div>

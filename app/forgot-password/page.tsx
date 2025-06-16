@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -13,8 +13,14 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
-import Cookies from "js-cookie";
+import {
+  Eye,
+  EyeOff,
+  ArrowLeft,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 import "../auth.css";
 
@@ -26,7 +32,7 @@ const useSuppressionKey = () => {
   }, []);
 };
 
-export default function SignIn() {
+export default function ForgotPassword() {
   useSuppressionKey();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,18 +44,236 @@ export default function SignIn() {
   const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
 
+  // Email verification states
+  const [isValidEmail, setIsValidEmail] = useState<boolean>(false);
+  const [emailVerified, setEmailVerified] = useState<boolean>(false);
+  const [emailError, setEmailError] = useState<string>("");
+  const [checkingEmail, setCheckingEmail] = useState<boolean>(false);
+  const [showOtpInput, setShowOtpInput] = useState<boolean>(false);
+  const [otpValues, setOtpValues] = useState<string[]>(["", "", "", ""]);
+  const [sendingOtp, setSendingOtp] = useState<boolean>(false);
+  const [verifyingOtp, setVerifyingOtp] = useState<boolean>(false);
+  const [otpError, setOtpError] = useState<string>("");
+  const [otpSent, setOtpSent] = useState<boolean>(false);
+
+  const otpInputRefs = Array(4)
+    .fill(0)
+    .map(() => useRef<HTMLInputElement>(null));
+
   // Run once when component mounts on client
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
+  // Validate email format
+  useEffect(() => {
+    const validateEmailFormat = () => {
+      if (!email) {
+        setIsValidEmail(false);
+        return;
+      }
+
+      // Simple email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const isValid = emailRegex.test(email);
+      setIsValidEmail(isValid);
+
+      if (!isValid) {
+        setEmailError("Please enter a valid email address");
+      } else {
+        setEmailError("");
+      }
+    };
+
+    validateEmailFormat();
+  }, [email]);
+
+  // Check if email exists in the database
+  const checkEmailExists = async () => {
+    if (!isValidEmail) return;
+
+    setCheckingEmail(true);
+    try {
+      const response = await fetch("/api/check-email-exists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Email check failed");
+      }
+
+      if (!data.exists) {
+        toast.error("Email not found", {
+          description: "No account is associated with this email",
+        });
+        return false;
+      }
+
+      return true;
+    } catch (error: any) {
+      console.error("Error checking email:", error);
+      toast.error("Error checking email", {
+        description: error.message || "Please try again",
+      });
+      return false;
+    } finally {
+      setCheckingEmail(false);
+    }
+  };
+
+  // Function to send OTP email
+  const sendOtpEmail = async () => {
+    if (!isValidEmail) return;
+
+    // First check if email exists
+    const emailExists = await checkEmailExists();
+    if (!emailExists) return;
+
+    setSendingOtp(true);
+    setOtpError("");
+
+    try {
+      const response = await fetch("/api/auth/reset-password-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || data.message || "Failed to send verification code"
+        );
+      }
+
+      setOtpSent(true);
+      setShowOtpInput(true);
+      toast.success("Verification code sent!", {
+        description: "Please check your email inbox",
+        duration: 4000,
+      });
+
+      // Auto-focus the first OTP input field
+      setTimeout(() => {
+        otpInputRefs[0].current?.focus();
+      }, 300);
+    } catch (error: any) {
+      console.error("Error sending OTP:", error);
+      toast.error("Failed to send verification code", {
+        description: error.message || "Please try again later",
+      });
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  // Handle OTP input change
+  const handleOtpChange = (index: number, value: string) => {
+    // Only allow digits
+    if (value && !/^\d+$/.test(value)) return;
+
+    // Create new array with the updated value
+    const newOtpValues = [...otpValues];
+    // Only take the last character if multiple are pasted
+    newOtpValues[index] = value.slice(-1);
+    setOtpValues(newOtpValues);
+    setOtpError("");
+
+    // Auto-advance to next field if value is entered and not on last field
+    if (value && index < 3) {
+      otpInputRefs[index + 1].current?.focus();
+    }
+
+    // Auto-verify if all fields are filled
+    if (value && index === 3) {
+      const allFilled = newOtpValues.every((val) => val !== "");
+      if (allFilled) {
+        setTimeout(() => verifyOtp(), 300);
+      }
+    }
+  };
+
+  // Handle backspace in OTP input
+  const handleOtpKeyDown = (
+    index: number,
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    // If backspace is pressed and current field is empty, focus previous field
+    if (e.key === "Backspace" && !otpValues[index] && index > 0) {
+      otpInputRefs[index - 1].current?.focus();
+    }
+  };
+
+  // Function to verify OTP
+  const verifyOtp = async () => {
+    const enteredOtp = otpValues.join("");
+    if (enteredOtp.length !== 4) return;
+
+    setVerifyingOtp(true);
+    setOtpError("");
+
+    try {
+      const response = await fetch("/api/auth/reset-password-otp", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          otp: enteredOtp,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Invalid verification code");
+      }
+
+      // Email successfully verified
+      setEmailVerified(true);
+      setShowOtpInput(false);
+      toast.success("Email verified successfully!", {
+        icon: <CheckCircle2 className="h-5 w-5 text-green-500" />,
+      });
+    } catch (error: any) {
+      console.error("Error verifying OTP:", error);
+      setOtpError(error.message || "Invalid verification code");
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate before submitting
+    if (!emailVerified) {
+      toast.error("Email verification required", {
+        description: "Please verify your email first",
+      });
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error("Passwords don't match", {
+        description: "Please make sure your passwords match",
+      });
+      return;
+    }
+
     setIsLoading(true);
     setError("");
 
     // Show loading toast
-    const loadingToast = toast.loading("Signing in...");
+    const loadingToast = toast.loading("Resetting password...");
 
     try {
       const res = await fetch("/api/forgot-password", {
@@ -59,42 +283,18 @@ export default function SignIn() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to sign in");
-
-      // Store token in both localStorage and cookies
-      localStorage.setItem("token", data.token);
-      Cookies.set("token", data.token, { expires: 1 }); // Expires in 1 day
-
-      // Store user info in localStorage including the role
-      const userData = {
-        email: data.email,
-        userId: data.userId,
-        role: data.role, // Store user role
-        username: data.username,
-      };
-      localStorage.setItem("user", JSON.stringify(userData));
+      if (!res.ok) throw new Error(data.message || "Failed to reset password");
 
       // Dismiss loading toast and show success
       toast.dismiss(loadingToast);
-      toast.success(`Welcome back, ${data.username}!`);
+      toast.success("Password reset successful", {
+        description: "You can now sign in with your new password",
+      });
 
-      // Redirect based on role
-      switch (data.role) {
-        case "intern":
-          router.push("/dashboard/intern");
-          break;
-        case "mentor":
-          router.push("/dashboard/mentor");
-          break;
-        case "panelist":
-          router.push("/dashboard/panelist");
-          break;
-        case "admin":
-          router.push("/dashboard/admin");
-          break;
-        default:
-          router.push("/home"); // Fallback route
-      }
+      // Redirect to sign-in page after short delay
+      setTimeout(() => {
+        router.push("/sign-in");
+      }, 2000);
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "An unknown error occurred";
@@ -102,7 +302,7 @@ export default function SignIn() {
 
       // Dismiss loading toast and show error
       toast.dismiss(loadingToast);
-      toast.error("Sign in failed", { description: errorMessage });
+      toast.error("Password reset failed", { description: errorMessage });
     } finally {
       setIsLoading(false);
     }
@@ -140,13 +340,13 @@ export default function SignIn() {
       {/* Back Button */}
       <div className="absolute top-6 left-6 z-50">
         <Link
-          href="/"
+          href="/sign-in"
           className="flex items-center text-black hover:text-[#0891B2] transition-colors font-bold no-underline group"
           passHref
         >
           <ArrowLeft className="h-5 w-5 mr-1 transition-colors" />
           <span className="text-black group-hover:text-[#0891B2] transition-colors">
-            Back
+            Back to Sign In
           </span>
         </Link>
       </div>
@@ -170,159 +370,315 @@ export default function SignIn() {
             <CardTitle className="auth-title text-3xl font-bold bg-gradient-to-r from-[#06B6D4] to-[#0891B2] text-transparent bg-clip-text">
               Forgot Password
             </CardTitle>
+            <CardDescription className="text-sm text-gray-600">
+              {!emailVerified
+                ? "Enter your email address to reset your password"
+                : "Create a new password for your account"}
+            </CardDescription>
           </CardHeader>
 
           <CardContent className="bg-white relative z-30">
             {error && (
-              <div className="bg-[#F0F9FF] border border-red-500/30 text-red-700 text-sm p-4 rounded-lg mb-4 flex items-start">
+              <div className="bg-[#FFF5F5] border border-red-500/30 text-red-700 text-sm p-4 rounded-lg mb-4 flex items-start">
+                <XCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
                 <span className="font-medium">{error}</span>
               </div>
             )}
+
             <form onSubmit={handleSubmit} className="space-y-5 relative z-40">
-              <div className="space-y-2 relative">
+              {/* Email Input Section */}
+              <div className="space-y-1 relative">
                 <label
                   htmlFor="email"
-                  className="text-sm font-bold !text-black"
+                  className="text-xs font-bold !text-black flex justify-between items-center"
                   style={{ color: "black" }}
                 >
-                  Email address
-                </label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="name@example.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
-                  className="input-glow bg-white !border-2 !border-black focus:!border-black focus:ring-black/20 !text-black placeholder:text-gray-500 relative z-40"
-                  style={{
-                    color: "black",
-                    backgroundColor: "white",
-                    borderColor: "black",
-                    borderWidth: "2px",
-                    position: "relative",
-                    zIndex: 40,
-                  }}
-                />
-              </div>
-
-              <div className="space-y-2 relative">
-                <label
-                  htmlFor="password"
-                  className="text-sm font-bold !text-black"
-                  style={{ color: "black" }}
-                >
-                  New Password
-                </label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={isLoading}
-                    className="input-glow bg-white !border-2 !border-black focus:!border-black focus:ring-black/20 !text-black placeholder:text-gray-500 relative z-40 !pr-12"
-                    style={{
-                      color: "black",
-                      backgroundColor: "white",
-                      borderColor: "black",
-                      borderWidth: "2px",
-                      position: "relative",
-                      zIndex: 40,
-                      paddingRight: "3rem",
-                    }}
-                  />
-                  <div
-                    className="absolute inset-y-0 right-0 flex items-center pr-3"
-                    style={{ zIndex: 60 }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="text-gray-500 hover:text-[#0891B2] transition-colors focus:outline-none"
-                      tabIndex={-1}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-5 w-5" />
-                      ) : (
-                        <Eye className="h-5 w-5" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2 relative">
-                <label
-                  htmlFor="password"
-                  className="text-sm font-bold !text-black"
-                  style={{ color: "black" }}
-                >
-                  Confirm Password
-                </label>
-                <div className="relative">
-                  <Input
-                    id="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    disabled={isLoading}
-                    className="input-glow bg-white !border-2 !border-black focus:!border-black focus:ring-black/20 !text-black placeholder:text-gray-500 relative z-40 !pr-12"
-                    style={{
-                      color: "black",
-                      backgroundColor: "white",
-                      borderColor: "black",
-                      borderWidth: "2px",
-                      position: "relative",
-                      zIndex: 40,
-                      paddingRight: "3rem",
-                    }}
-                  />
-                  <div
-                    className="absolute inset-y-0 right-0 flex items-center pr-3"
-                    style={{ zIndex: 60 }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="text-gray-500 hover:text-[#0891B2] transition-colors focus:outline-none"
-                      tabIndex={-1}
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff className="h-5 w-5" />
-                      ) : (
-                        <Eye className="h-5 w-5" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <Button
-                type="submit"
-                className="gradient-button w-full bg-gradient-to-r from-[#06B6D4] to-[#0891B2] hover:opacity-90 text-white font-bold py-2 shadow-md hover:shadow-lg transition-all duration-300 relative"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <span className="flex items-center justify-center">
-                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                    Resetting...
+                  <span>
+                    Email address<span className="text-red-500">*</span>
                   </span>
-                ) : (
-                  "Reset"
-                )}
-
-                {/* Animated background for loading state */}
-                {isLoading && (
-                  <div className="absolute inset-0 w-full h-full overflow-hidden rounded">
-                    <div className="absolute left-0 top-0 h-full bg-white/20 animate-progress"></div>
+                  {checkingEmail && (
+                    <span className="text-xs text-gray-500 flex items-center">
+                      <Loader2 className="h-2 w-2 animate-spin mr-1" />
+                      Checking...
+                    </span>
+                  )}
+                </label>
+                <div className="flex items-center space-x-2">
+                  <div className="relative flex-grow">
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="name@example.com"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={isLoading || showOtpInput || emailVerified}
+                      className={`input-glow bg-white !border-2 focus:!ring-black/20 !text-black placeholder:text-gray-500 relative z-40 h-9 text-sm ${
+                        emailError
+                          ? "!border-red-500"
+                          : emailVerified
+                          ? "!border-green-500 pr-8"
+                          : "!border-black"
+                      }`}
+                      style={{
+                        color: "black",
+                        backgroundColor: "white",
+                        borderColor: emailError
+                          ? "#ef4444"
+                          : emailVerified
+                          ? "#10b981"
+                          : "black",
+                        borderWidth: "2px",
+                        position: "relative",
+                        zIndex: 40,
+                      }}
+                    />
+                    {emailVerified && (
+                      <div className="absolute inset-y-0 right-2 flex items-center">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      </div>
+                    )}
                   </div>
+                  {isValidEmail && !emailError && !emailVerified && (
+                    <button
+                      type="button"
+                      onClick={sendOtpEmail}
+                      disabled={sendingOtp || showOtpInput}
+                      className="px-3 py-1.5 h-9 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-xs font-medium rounded-md shadow-sm hover:opacity-90 transition-colors disabled:opacity-50"
+                    >
+                      {sendingOtp ? (
+                        <div className="flex items-center">
+                          <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                          <span>Sending...</span>
+                        </div>
+                      ) : showOtpInput ? (
+                        "Resend"
+                      ) : (
+                        "Verify"
+                      )}
+                    </button>
+                  )}
+                </div>
+                {emailError && (
+                  <p className="text-xs text-red-500 mt-0.5">{emailError}</p>
                 )}
-              </Button>
+              </div>
+
+              {/* OTP Input UI */}
+              {showOtpInput && (
+                <div className="mt-2 animate-fadeIn bg-gray-50 p-3 rounded-md border border-gray-200">
+                  <div className="space-y-1">
+                    <label
+                      className="text-xs font-bold !text-black"
+                      style={{ color: "black" }}
+                    >
+                      Enter verification code
+                    </label>
+                    <p className="text-xs text-gray-500">
+                      We've sent a 4-digit code to {email}
+                    </p>
+
+                    <div className="flex justify-center mt-3 gap-1.5">
+                      {[0, 1, 2, 3].map((index) => (
+                        <input
+                          key={index}
+                          ref={otpInputRefs[index]}
+                          type="text"
+                          maxLength={1}
+                          value={otpValues[index]}
+                          onChange={(e) =>
+                            handleOtpChange(index, e.target.value)
+                          }
+                          onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                          className={`w-10 h-10 text-center border-2 ${
+                            otpError ? "border-red-500" : "border-black"
+                          } rounded-md text-base font-bold focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 text-black shadow-sm`}
+                          style={{
+                            backgroundColor: "white",
+                            color: "black",
+                          }}
+                          autoComplete="one-time-code"
+                        />
+                      ))}
+                    </div>
+
+                    {otpError && (
+                      <p className="text-xs text-red-500 text-center mt-2">
+                        {otpError}
+                      </p>
+                    )}
+
+                    <div className="flex justify-between mt-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowOtpInput(false)}
+                        className="px-3 py-1 text-xs border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={verifyOtp}
+                        disabled={otpValues.some((val) => !val) || verifyingOtp}
+                        className="px-3 py-1 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-xs font-medium rounded-md shadow-sm hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {verifyingOtp ? (
+                          <div className="flex items-center">
+                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                            <span>Verifying...</span>
+                          </div>
+                        ) : (
+                          "Verify Email"
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="text-center mt-2">
+                      <button
+                        type="button"
+                        onClick={sendOtpEmail}
+                        disabled={sendingOtp}
+                        className="text-xs text-cyan-600 hover:text-cyan-700 hover:underline"
+                      >
+                        {sendingOtp ? "Sending..." : "Resend code"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Password Fields - Only show after email verification */}
+              {emailVerified && (
+                <>
+                  <div className="space-y-2 relative">
+                    <label
+                      htmlFor="password"
+                      className="text-sm font-bold !text-black"
+                      style={{ color: "black" }}
+                    >
+                      New Password
+                    </label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={isLoading}
+                        className="input-glow bg-white !border-2 !border-black focus:!border-black focus:ring-black/20 !text-black placeholder:text-gray-500 relative z-40 !pr-12"
+                        style={{
+                          color: "black",
+                          backgroundColor: "white",
+                          borderColor: "black",
+                          borderWidth: "2px",
+                          position: "relative",
+                          zIndex: 40,
+                          paddingRight: "3rem",
+                        }}
+                      />
+                      <div
+                        className="absolute inset-y-0 right-0 flex items-center pr-3"
+                        style={{ zIndex: 60 }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="text-gray-500 hover:text-[#0891B2] transition-colors focus:outline-none"
+                          tabIndex={-1}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-5 w-5" />
+                          ) : (
+                            <Eye className="h-5 w-5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-gray-500 mt-0.5">
+                      8+ chars with: 1-A, 1-a, 1-number, 1-@/#/$
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 relative">
+                    <label
+                      htmlFor="confirmPassword"
+                      className="text-sm font-bold !text-black"
+                      style={{ color: "black" }}
+                    >
+                      Confirm Password
+                    </label>
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        required
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        disabled={isLoading}
+                        className="input-glow bg-white !border-2 !border-black focus:!border-black focus:ring-black/20 !text-black placeholder:text-gray-500 relative z-40 !pr-12"
+                        style={{
+                          color: "black",
+                          backgroundColor: "white",
+                          borderColor: "black",
+                          borderWidth: "2px",
+                          position: "relative",
+                          zIndex: 40,
+                          paddingRight: "3rem",
+                        }}
+                      />
+                      <div
+                        className="absolute inset-y-0 right-0 flex items-center pr-3"
+                        style={{ zIndex: 60 }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setShowConfirmPassword(!showConfirmPassword)
+                          }
+                          className="text-gray-500 hover:text-[#0891B2] transition-colors focus:outline-none"
+                          tabIndex={-1}
+                        >
+                          {showConfirmPassword ? (
+                            <EyeOff className="h-5 w-5" />
+                          ) : (
+                            <Eye className="h-5 w-5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    {password !== confirmPassword && confirmPassword && (
+                      <p className="text-xs text-red-500 mt-0.5">
+                        Passwords don't match
+                      </p>
+                    )}
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="gradient-button w-full bg-gradient-to-r from-[#06B6D4] to-[#0891B2] hover:opacity-90 text-white font-bold py-2 shadow-md hover:shadow-lg transition-all duration-300 relative"
+                    disabled={isLoading || password !== confirmPassword}
+                  >
+                    {isLoading ? (
+                      <span className="flex items-center justify-center">
+                        <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                        Resetting...
+                      </span>
+                    ) : (
+                      "Reset Password"
+                    )}
+
+                    {/* Animated background for loading state */}
+                    {isLoading && (
+                      <div className="absolute inset-0 w-full h-full overflow-hidden rounded">
+                        <div className="absolute left-0 top-0 h-full bg-white/20 animate-progress"></div>
+                      </div>
+                    )}
+                  </Button>
+                </>
+              )}
             </form>
           </CardContent>
 
@@ -351,7 +707,7 @@ export default function SignIn() {
         </div>
       </div>
 
-      {/* Remove any potential hidden overlays that might be blocking interactions */}
+      {/* Styles to ensure proper interaction */}
       <style jsx global>{`
         .auth-card::before,
         .auth-card::after {
@@ -369,6 +725,35 @@ export default function SignIn() {
         a {
           position: relative;
           z-index: 50;
+        }
+
+        /* Animation for loading button */
+        @keyframes progress {
+          0% {
+            width: 0%;
+          }
+          100% {
+            width: 100%;
+          }
+        }
+
+        .animate-progress {
+          animation: progress 2s ease-in-out infinite;
+        }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out forwards;
         }
       `}</style>
     </div>
