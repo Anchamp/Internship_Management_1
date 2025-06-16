@@ -35,6 +35,11 @@ export async function POST(request: Request) {
     if (panelistUsers.length !== panelists.length) return NextResponse.json({ error: 'Some panelists not found' }, { status: 400 });
 
     // Prepare team data with ObjectIds
+    const existingTeam = await Team.findOne({ teamName, organizationId }).lean();
+    if (existingTeam) {
+      return NextResponse.json({ error: 'Team with this name already exists in the organization' }, { status: 400 });
+    }
+
     const teamData = {
       teamName,
       mentors: mentorUsers.map(u => u._id),

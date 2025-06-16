@@ -5,7 +5,6 @@ const teamSchema = new Schema(
     teamName: {
       type: String,
       required: true,
-      unique: true,
       trim: true,
     },
     mentors: [{
