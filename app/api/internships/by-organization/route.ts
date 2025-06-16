@@ -46,6 +46,12 @@ export async function GET(request: Request) {
       };
     }
     
+    // Add category to query if provided
+    const category = searchParams.get('category');
+    if (category && category !== 'all') {
+      query = { ...query, category };
+    }
+    
     // Determine sort field and direction
     let sortOptions: any = { postingDate: -1 }; // Default: newest first
     const sortOrder = searchParams.get('sort');
