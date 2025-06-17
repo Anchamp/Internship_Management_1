@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     if (!adminUser) {
       return NextResponse.json({ error: 'Only admins can create teams' }, { status: 403 });
     }
-    const organizationId = adminUser.organizationId;
+    const organizationId = (adminUser as any).organizationId;
 
     // Convert usernames to ObjectIds
     const mentorUsers = await User.find({ username: { $in: mentors }, organizationName: organizationName });

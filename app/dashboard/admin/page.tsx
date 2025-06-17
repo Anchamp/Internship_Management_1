@@ -32,7 +32,6 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [logOutModalOpen, setLogOutModalOpen] = useState(false);
 
-  // Auto-collapse sidebar on small screens
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) {
@@ -42,7 +41,7 @@ export default function AdminDashboard() {
       }
     };
 
-    // Set initial state based on screen size
+    //  initial state based on screen size
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => {
@@ -55,7 +54,6 @@ export default function AdminDashboard() {
     const checkAuth = async () => {
       setIsLoading(true);
       try {
-        // Get user data from localStorage
         const userData = localStorage.getItem("user");
 
         if (!userData) {
@@ -65,13 +63,11 @@ export default function AdminDashboard() {
 
         const user = JSON.parse(userData);
 
-        // Check if user is an admin
         if (user.role !== "admin") {
           router.push(`/dashboard/${user.role}`);
           return;
         }
 
-        // Try to fetch from API first
         try {
           const response = await fetch(`/api/users/${user.username}`);
           if (response.ok) {
@@ -83,13 +79,13 @@ export default function AdminDashboard() {
               );
             }
           } else {
-            // Fallback to localStorage data
+
             setUsername(user.username || "Admin");
             setOrganizationName(user.organizationName || "Your Organization");
           }
         } catch (apiError) {
           console.warn("Couldn't fetch latest user data:", apiError);
-          // Fallback to localStorage data
+
           setUsername(user.username || "Admin");
           setOrganizationName(user.organizationName || "Your Organization");
         }

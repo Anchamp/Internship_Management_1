@@ -1,12 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  X,
-  Loader2,
-  Building,
-  AlertCircle,
-} from "lucide-react";
+import { X, Loader2, Building, AlertCircle } from "lucide-react";
 
 interface TeamData {
   _id: string;
@@ -33,11 +28,11 @@ const DeleteTeamModal = ({
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
       <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">
-          Delete Team
-        </h3>
+        <h3 className="text-lg font-bold text-gray-900 mb-4">Delete Team</h3>
         <p className="text-gray-700 mb-6">
-          Are you sure you want to delete the team "<span className="font-bold text-black">{teamName}</span>"? This action cannot be undone.
+          Are you sure you want to delete the team "
+          <span className="font-bold text-black">{teamName}</span>"? This action
+          cannot be undone.
         </p>
         <div className="flex justify-end gap-2">
           <button
@@ -47,7 +42,7 @@ const DeleteTeamModal = ({
             Cancel
           </button>
           <button
-            onClick={ async () => {
+            onClick={async () => {
               await deleteTeam(teamName);
               closeModal();
             }}
@@ -59,7 +54,7 @@ const DeleteTeamModal = ({
       </div>
     </div>
   );
-})
+};
 
 const CreateTeamModal = ({
   closeModal,
@@ -246,7 +241,7 @@ const Organization = () => {
       console.error("Error deleting team:", error);
       setError(error.message || "An unexpected error occurred");
     }
-  }
+  };
 
   useEffect(() => {
     fetchTeams();
@@ -263,10 +258,10 @@ const Organization = () => {
   const openModal = () => setModalOpen(true);
   const closeModal = () => setModalOpen(false);
   const openDeleteTeamModal = () => setDeleteTeamModalOpen(true);
-  const closeDeleteTeamModal = () => { 
+  const closeDeleteTeamModal = () => {
     setDeleteTeamModalOpen(false);
     setDeleteTeamName("");
-  }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -324,7 +319,7 @@ const Organization = () => {
         throw new Error(errorData.error || "Failed to create team");
       }
 
-      await fetchTeams(); 
+      await fetchTeams();
       resetFormValues();
     } catch (error: any) {
       console.error("Error creating team:", error);
@@ -365,11 +360,11 @@ const Organization = () => {
           </div>
         </div>
         <div className="flex justify-center md:justify-end items-center w-full gap-[25px]">
-          <button 
+          <button
             className="my-2 text-white bg-red-500 cursor-pointer rounded-sm max-w-[300px] p-2"
             onClick={() => {
               setDeleteTeamName(team.teamName);
-              openDeleteTeamModal(team.teamName);
+              openDeleteTeamModal();
             }}
           >
             Delete Team
@@ -480,4 +475,3 @@ const Organization = () => {
 };
 
 export default Organization;
-

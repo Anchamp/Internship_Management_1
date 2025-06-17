@@ -697,27 +697,22 @@ export default function InternProfileSettings({
                     </div>
                   </div>
 
-                  {/* Personal Information - Responsive Grid */}
+                  {/* Personal Information - Responsive Grid - ICONS REMOVED */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
                     <div className="sm:col-span-1">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Full Name <span className="text-red-500">*</span>
                       </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <User className="h-4 w-4 text-gray-400" />
-                        </div>
-                        <input
-                          type="text"
-                          name="fullName"
-                          value={userData.fullName}
-                          onChange={handleChange}
-                          className={`pl-10 w-full p-2.5 sm:p-3 text-sm border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900 ${
-                            errors.fullName ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                          placeholder="Enter your full name"
-                        />
-                      </div>
+                      <input
+                        type="text"
+                        name="fullName"
+                        value={userData.fullName}
+                        onChange={handleChange}
+                        className={`w-full p-2.5 sm:p-3 text-sm border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900 ${
+                          errors.fullName ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder="Enter your full name"
+                      />
                       {errors.fullName && (
                         <p className="mt-1 text-xs sm:text-sm text-red-600">{errors.fullName}</p>
                       )}
@@ -727,21 +722,16 @@ export default function InternProfileSettings({
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Email Address <span className="text-red-500">*</span>
                       </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Mail className="h-4 w-4 text-gray-400" />
-                        </div>
-                        <input
-                          type="email"
-                          name="email"
-                          value={userData.email}
-                          onChange={handleChange}
-                          className={`pl-10 w-full p-2.5 sm:p-3 text-sm border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900 ${
-                            errors.email ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                          placeholder="Enter your email"
-                        />
-                      </div>
+                      <input
+                        type="email"
+                        name="email"
+                        value={userData.email}
+                        onChange={handleChange}
+                        className={`w-full p-2.5 sm:p-3 text-sm border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900 ${
+                          errors.email ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder="Enter your email"
+                      />
                       {errors.email && (
                         <p className="mt-1 text-xs sm:text-sm text-red-600">{errors.email}</p>
                       )}
@@ -751,21 +741,16 @@ export default function InternProfileSettings({
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Phone Number <span className="text-red-500">*</span>
                       </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Phone className="h-4 w-4 text-gray-400" />
-                        </div>
-                        <input
-                          type="tel"
-                          name="phone"
-                          value={userData.phone}
-                          onChange={handleChange}
-                          className={`pl-10 w-full p-2.5 sm:p-3 text-sm border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900 ${
-                            errors.phone ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                          placeholder="Enter your phone number"
-                        />
-                      </div>
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={userData.phone}
+                        onChange={handleChange}
+                        className={`w-full p-2.5 sm:p-3 text-sm border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900 ${
+                          errors.phone ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder="Enter your phone number"
+                      />
                       {errors.phone && (
                         <p className="mt-1 text-xs sm:text-sm text-red-600">{errors.phone}</p>
                       )}
@@ -775,44 +760,34 @@ export default function InternProfileSettings({
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Date of Birth <span className="text-red-500">*</span>
                       </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Calendar className="h-4 w-4 text-gray-400" />
-                        </div>
-                        <input
-                          type="date"
-                          name="dob"
-                          value={userData.dob}
-                          onChange={handleChange}
-                          className={`pl-10 w-full p-2.5 sm:p-3 text-sm border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900 ${
-                            errors.dob ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                        />
-                      </div>
+                      <input
+                        type="date"
+                        name="dob"
+                        value={userData.dob}
+                        onChange={handleChange}
+                        className={`w-full p-2.5 sm:p-3 text-sm border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900 ${
+                          errors.dob ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      />
                       {errors.dob && (
                         <p className="mt-1 text-xs sm:text-sm text-red-600">{errors.dob}</p>
                       )}
                     </div>
                   </div>
 
-                  {/* Address - Full Width */}
+                  {/* Address - Full Width - ICON REMOVED */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Address
                     </label>
-                    <div className="relative">
-                      <div className="absolute top-2.5 sm:top-3 left-3 pointer-events-none">
-                        <MapPin className="h-4 w-4 text-gray-400" />
-                      </div>
-                      <textarea
-                        name="address"
-                        value={userData.address}
-                        onChange={handleChange}
-                        rows={2}
-                        className="pl-10 w-full p-2.5 sm:p-3 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900"
-                        placeholder="Enter your address"
-                      />
-                    </div>
+                    <textarea
+                      name="address"
+                      value={userData.address}
+                      onChange={handleChange}
+                      rows={2}
+                      className="w-full p-2.5 sm:p-3 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900"
+                      placeholder="Enter your address"
+                    />
                   </div>
 
                   {/* Bio and Website - Responsive Grid */}
@@ -835,19 +810,14 @@ export default function InternProfileSettings({
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Website/Portfolio
                       </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Globe className="h-4 w-4 text-gray-400" />
-                        </div>
-                        <input
-                          type="url"
-                          name="website"
-                          value={userData.website}
-                          onChange={handleChange}
-                          className="pl-10 w-full p-2.5 sm:p-3 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900"
-                          placeholder="https://yourwebsite.com"
-                        />
-                      </div>
+                      <input
+                        type="url"
+                        name="website"
+                        value={userData.website}
+                        onChange={handleChange}
+                        className="w-full p-2.5 sm:p-3 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900"
+                        placeholder="https://yourwebsite.com"
+                      />
                     </div>
                   </div>
 
@@ -889,21 +859,16 @@ export default function InternProfileSettings({
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         University/College <span className="text-red-500">*</span>
                       </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Building className="h-4 w-4 text-gray-400" />
-                        </div>
-                        <input
-                          type="text"
-                          name="university"
-                          value={userData.university}
-                          onChange={handleChange}
-                          className={`pl-10 w-full p-2.5 sm:p-3 text-sm border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900 ${
-                            errors.university ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                          placeholder="Enter your university"
-                        />
-                      </div>
+                      <input
+                        type="text"
+                        name="university"
+                        value={userData.university}
+                        onChange={handleChange}
+                        className={`w-full p-2.5 sm:p-3 text-sm border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900 ${
+                          errors.university ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder="Enter your university"
+                      />
                       {errors.university && (
                         <p className="mt-1 text-xs sm:text-sm text-red-600">{errors.university}</p>
                       )}
@@ -1023,26 +988,21 @@ export default function InternProfileSettings({
                 </div>
 
                 <form onSubmit={handleProfileSubmit} className="space-y-6">
-                  {/* Skills */}
+                  {/* Skills - ICON REMOVED */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Skills & Technologies <span className="text-red-500">*</span>
                     </label>
-                    <div className="relative">
-                      <div className="absolute top-2.5 sm:top-3 left-3 pointer-events-none">
-                        <Award className="h-4 w-4 text-gray-400" />
-                      </div>
-                      <textarea
-                        name="skills"
-                        value={userData.skills}
-                        onChange={handleChange}
-                        rows={3}
-                        className={`pl-10 w-full p-2.5 sm:p-3 text-sm border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900 ${
-                          errors.skills ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                        placeholder="e.g., JavaScript, React, Python, Node.js, SQL"
-                      />
-                    </div>
+                    <textarea
+                      name="skills"
+                      value={userData.skills}
+                      onChange={handleChange}
+                      rows={3}
+                      className={`w-full p-2.5 sm:p-3 text-sm border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900 ${
+                        errors.skills ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder="e.g., JavaScript, React, Python, Node.js, SQL"
+                    />
                     {errors.skills && (
                       <p className="mt-1 text-xs sm:text-sm text-red-600">{errors.skills}</p>
                     )}
@@ -1051,49 +1011,39 @@ export default function InternProfileSettings({
                     </p>
                   </div>
 
-                  {/* Internship Goals */}
+                  {/* Internship Goals - ICON REMOVED */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Internship Goals & Objectives <span className="text-red-500">*</span>
                     </label>
-                    <div className="relative">
-                      <div className="absolute top-2.5 sm:top-3 left-3 pointer-events-none">
-                        <Target className="h-4 w-4 text-gray-400" />
-                      </div>
-                      <textarea
-                        name="internshipGoals"
-                        value={userData.internshipGoals}
-                        onChange={handleChange}
-                        rows={4}
-                        className={`pl-10 w-full p-2.5 sm:p-3 text-sm border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900 ${
-                          errors.internshipGoals ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                        placeholder="What do you hope to achieve during your internship?"
-                      />
-                    </div>
+                    <textarea
+                      name="internshipGoals"
+                      value={userData.internshipGoals}
+                      onChange={handleChange}
+                      rows={4}
+                      className={`w-full p-2.5 sm:p-3 text-sm border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900 ${
+                        errors.internshipGoals ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder="What do you hope to achieve during your internship?"
+                    />
                     {errors.internshipGoals && (
                       <p className="mt-1 text-xs sm:text-sm text-red-600">{errors.internshipGoals}</p>
                     )}
                   </div>
 
-                  {/* Previous Experience */}
+                  {/* Previous Experience - ICON REMOVED */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Previous Experience (Optional)
                     </label>
-                    <div className="relative">
-                      <div className="absolute top-2.5 sm:top-3 left-3 pointer-events-none">
-                        <History className="h-4 w-4 text-gray-400" />
-                      </div>
-                      <textarea
-                        name="previousExperience"
-                        value={userData.previousExperience}
-                        onChange={handleChange}
-                        rows={3}
-                        className="pl-10 w-full p-2.5 sm:p-3 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900"
-                        placeholder="Describe any relevant work experience, projects, or volunteer work..."
-                      />
-                    </div>
+                    <textarea
+                      name="previousExperience"
+                      value={userData.previousExperience}
+                      onChange={handleChange}
+                      rows={3}
+                      className="w-full p-2.5 sm:p-3 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900"
+                      placeholder="Describe any relevant work experience, projects, or volunteer work..."
+                    />
                   </div>
 
                   {/* Portfolio Links */}
@@ -1435,15 +1385,12 @@ export default function InternProfileSettings({
                           Current Password
                         </label>
                         <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Key className="h-4 w-4 text-gray-400" />
-                          </div>
                           <input
                             type={showPassword ? "text" : "password"}
                             name="currentPassword"
                             value={passwordData.currentPassword}
                             onChange={handlePasswordChange}
-                            className="pl-10 pr-10 w-full p-2.5 sm:p-3 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900"
+                            className="w-full pr-10 p-2.5 sm:p-3 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900"
                             placeholder="Enter current password"
                           />
                           <button

@@ -16,14 +16,14 @@ export async function POST(request: Request) {
     }
 
     // Check if the requester is an admin
-    const adminUser = await User.findOne({ username, role: 'admin' }).lean();
+    const adminUser = await User.findOne({ username, role: 'admin' });
     if (!adminUser) {
       return NextResponse.json({ error: 'Only admins can delete teams' }, { status: 403 });
     }
     const organizationId = adminUser.organizationId;
 
     // Find the team to delete
-    const teamToDelete = await Team.findOne({ teamName, organizationId }).lean();
+    const teamToDelete = await Team.findOne({ teamName, organizationId });
     if (!teamToDelete) {
       return NextResponse.json({ error: 'Team not found' }, { status: 404 });
     }
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
    
     // Remove the team from each user's `teams` array
     for (const user of allUsers) {
-      user.teams = user.teams.filter(team => team.toString() !== teamToDelete._id.toString());
+      user.teams = user.teams.filter((team: any) => team.toString() !== teamToDelete._id.toString());
       await user.save();
     }
 
