@@ -4,16 +4,16 @@ import Internship from '@/models/Internship';
 
 export async function POST(request: Request) {
   try {
-    // Connect to MongoDB
+    
     await dbConnect();
     
     // Parse request body
     const data = await request.json();
     
-    // Extract user information from request body
+
     const { userData, ...internshipData } = data;
     
-    // Create internship posting with admin info
+    
     const internship = new Internship({
       ...internshipData,
       postedBy: userData.username,
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       organizationId: userData.organizationId,
     });
     
-    // Save to database
+  
     await internship.save();
     
     return NextResponse.json({
