@@ -23,15 +23,8 @@ import {
 } from "lucide-react";
 import InternDashboardScreen from "./dashboardscreen";
 import InternProfileSettings from "./profile-settings";
-//import MyTeamsScreen from "./my-teams";
-//import FindInternshipsScreen from "./find-internships";
-//import InternshipRequestScreen from "./internship-request";
-//import MyApplicationsScreen from "./my-applications";
-//import ProjectDetailsScreen from "./project-details";
-//import WeeklyReportsScreen from "./weekly-reports";
-//import DemoPresentationScreen from "./demo-presentation";
-//import FeedbackEvaluationsScreen from "./feedback-evaluations";
-//import TeamCommunicationScreen from "./team-communication";
+import FindApplyInternships from "./find-apply-internships";
+import MyApplications from "./my-applications";
 
 export default function InternDashboard() {
   const router = useRouter();
@@ -182,6 +175,14 @@ export default function InternDashboard() {
     setActiveTab("dashboard");
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
+      </div>
+    );
+  }
+
   const openLogOutModal = () => setLogOutModalOpen(true);
   const closeLogOutModal = () => setLogOutModalOpen(false);
 
@@ -214,14 +215,6 @@ export default function InternDashboard() {
       </div>
     );
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -296,7 +289,7 @@ export default function InternDashboard() {
               } font-medium text-sm w-full text-left transition-colors`}
             >
               <Search className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>Internships</span>}
+              {!isSidebarCollapsed && <span>Find Internships</span>}
             </button>
 
             {/* My Applications */}
@@ -474,7 +467,7 @@ export default function InternDashboard() {
                     : activeTab === "my-teams"
                     ? "My Teams"
                     : activeTab === "internships"
-                    ? "Internships"
+                    ? "Find Internships"
                     : activeTab === "my-applications"
                     ? "My Applications"
                     : activeTab === "project-details"
@@ -542,39 +535,14 @@ export default function InternDashboard() {
               onProfileUpdate={handleProfileUpdate}
             />
           )}
+          {activeTab === "internships" && <FindApplyInternships />}
+          {activeTab === "my-applications" && <MyApplications />}
           {activeTab === "my-teams" && (
             <div className="flex items-center justify-center min-h-[400px] bg-white rounded-lg shadow-sm border">
               <div className="text-center">
                 <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-gray-700 mb-2">My Teams</h3>
                 <p className="text-gray-500 mb-4">Team collaboration features coming soon</p>
-                <div className="bg-gray-100 px-4 py-2 rounded-md text-sm text-gray-600">
-                  Coming Soon
-                </div>
-              </div>
-            </div>
-          )}
-          {activeTab === "internships" && (
-            <div className="flex items-center justify-center min-h-[400px] bg-white rounded-lg shadow-sm border">
-              <div className="text-center">
-                <div className="flex items-center justify-center space-x-4 mb-4">
-                  <Search className="h-16 w-16 text-gray-300" />
-                  <Upload className="h-16 w-16 text-gray-300" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">Internships</h3>
-                <p className="text-gray-500 mb-4">Find and apply for internship opportunities</p>
-                <div className="bg-gray-100 px-4 py-2 rounded-md text-sm text-gray-600">
-                  Coming Soon
-                </div>
-              </div>
-            </div>
-          )}
-          {activeTab === "my-applications" && (
-            <div className="flex items-center justify-center min-h-[400px] bg-white rounded-lg shadow-sm border">
-              <div className="text-center">
-                <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">My Applications</h3>
-                <p className="text-gray-500 mb-4">Track your application status and progress</p>
                 <div className="bg-gray-100 px-4 py-2 rounded-md text-sm text-gray-600">
                   Coming Soon
                 </div>
@@ -643,8 +611,6 @@ export default function InternDashboard() {
           )}
         </main>
       </div>
-      
-      {/* Logout Modal */}
       {logOutModalOpen && <LogOutModal />}
     </div>
   );
