@@ -17,7 +17,16 @@ export async function GET(request: Request) {
 
     await dbConnect();
 
-    const user = await User.findOne({ username: username }).lean();
+    interface IUser {
+      _id: unknown;
+      username: string;
+      organizationName?: string;
+      role?: string;
+      teams?: unknown[];
+      __v?: number;
+    }
+
+    const user = await User.findOne({ username: username }).lean() as IUser | null;
     if (!user) {
       return NextResponse.json({
         error: 'User not found',
@@ -52,7 +61,7 @@ export async function GET(request: Request) {
     }
 
     if (userRole !== 'admin') {
-      let teams = []
+      let teams: any[] = [];
       if (user.teams && user.teams.length > 0) {
         teams = await Team.find({ _id: { $in: user.teams } }).lean();
       }
