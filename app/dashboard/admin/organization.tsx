@@ -56,6 +56,121 @@ const DeleteTeamModal = ({
   );
 };
 
+const EditTeamModal = ({
+  team,
+  closeModal,
+  resetFormValues,
+  editTeamName,
+  setEditTeamName,
+  editMentors,
+  setEditMentors,
+  editInterns,
+  setEditInterns,
+  editPanelists,
+  setEditPanelists,
+  editDescription,
+  setEditDescription,
+  handleSubmit,
+}: any) => {
+  const mentorIds = editMentors.split(",") 
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+      <div className="bg-white rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden min-w-[310px]">
+        <div className="p-5 border-b flex justify-between items-center sticky top-0 bg-white z-10">
+          <h3 className="text-xl font-bold text-gray-900">Edit Team</h3>
+          <button
+            onClick={closeModal}
+            className="p-1.5 hover:bg-red-50 rounded-full transition-colors"
+          >
+            <X className="h-5 w-5 text-red-500 hover:text-red-700" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="p-6 text-black">
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Team Name
+              </label>
+              <input
+                type="text"
+                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                placeholder="Enter Team Name"
+                value={editTeamName}
+                onChange={(e) => setEditTeamName(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Mentors
+              </label>
+              <input
+                type="text"
+                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                placeholder="Enter mentor usernames (Separated by Commas)"
+                value={editMentors}
+                onChange={(e) => setEditMentors(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2 mt-4">
+                Interns
+              </label>
+              <input
+                type="text"
+                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                placeholder="Enter Intern Usernames (Separated by Commas)"
+                value={editInterns}
+                onChange={(e) => setEditInterns(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2 mt-4">
+                Panelists
+              </label>
+              <input
+                type="text"
+                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                placeholder="Enter Panelist Usernames (Separated by Commas)"
+                value={editPanelists}
+                onChange={(e) => setEditPanelists(e.target.value)}
+              />
+            </div>
+            <div className="mt-4 mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Description
+              </label>
+              <textarea
+                className="w-full h-[200px] p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                style={{ resize: "none" }}
+                placeholder="Enter Team Description"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-between items-center">
+              <button
+                className="border p-2 rounded-sm border-red-500 bg-red-500 text-white cursor-pointer"
+                onClick={(e) => {
+                  e.preventDefault();
+                  closeModal();
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-md hover:bg-gradient-to-l transition-colors"
+              >
+                Edit Team
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 const CreateTeamModal = ({
   closeModal,
   resetFormValues,
@@ -180,12 +295,20 @@ const Organization = () => {
   const [deleteTeamModalOpen, setDeleteTeamModalOpen] = useState(false);
   const [deleteTeamName, setDeleteTeamName] = useState("");
 
-  // Form values
+  // Create Team Form values
   const [newTeamName, setNewTeamName] = useState("");
   const [newMentors, setNewMentors] = useState("");
   const [newInterns, setNewInterns] = useState("");
   const [newPanelists, setNewPanelists] = useState("");
   const [newDescription, setNewDescription] = useState("");
+
+  // Edit Team Form Values
+  const [editTeamName, setEditTeamName] = useState(""); 
+  const [editMentors, setEditMentors] = useState("");
+  const [editInterns, setEditInterns] = useState("");
+  const [editPanelists, setEditPanelists] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editTeamModalOpen, setEditTeamModalOpen] = useState(false);
 
   const fetchTeams = async () => {
     try {
@@ -255,13 +378,27 @@ const Organization = () => {
     setNewDescription("");
   };
 
+  const resetEditFormValues = (team:any) => {
+    console.log(team)
+    setEditTeamName(team.teamName);
+    setEditMentors(team.mentors.join(", "));
+    setEditInterns(team.interns.join(", "));
+    setEditPanelists(team.panelists.join(", "));
+    setEditDescription(team.description);
+  }
+
   const openModal = () => setModalOpen(true);
   const closeModal = () => setModalOpen(false);
-  const openDeleteTeamModal = () => setDeleteTeamModalOpen(true);
-  const closeDeleteTeamModal = () => {
+  const openDeleteTeamModal = (team: teamData) => setDeleteTeamModalOpen(true);
+  const closeDeleteTeamModal = () => { 
     setDeleteTeamModalOpen(false);
     setDeleteTeamName("");
-  };
+  }
+  const openEditTeamModal = (team: TeamData) => {
+    setEditTeamModalOpen(true);
+    resetEditFormValues(team);
+  }
+  const closeEditTeamModal = () => setEditTeamModalOpen(false);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -327,6 +464,42 @@ const Organization = () => {
     }
   };
 
+  const handleEditSubmit = async (e: React.FormEvent, team: TeamData) => {
+    e.preventDefault();
+    closeEditTeamModal();
+
+    const storedUser = localStorage.getItem("user");
+    const { username, organizationId } = JSON.parse(storedUser || "{}");
+
+    const teamData = {
+      username,
+      editTeamName: editTeamName,
+      editMentors: editMentors.split(",").map((m) => m.trim()),
+      editInterns: editInterns.split(",").map((i) => i.trim()),
+      editPanelists: editPanelists.split(",").map((p) => p.trim()),
+      editDescription: editDescription,
+    };
+
+    console.log(teamData)
+    try {
+      const response = await fetch("/api/edit-team", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(teamData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create team");
+      }
+
+      await fetchTeams(); 
+      resetFormValues();
+    } catch (error: any) {
+      console.error("Error creating team:", error);
+      setError(error.message || "An unexpected error occurred");
+    }
+  }
   const TeamCard = ({ team }: { team: TeamData }) => (
     <div className="p-4 border-b hover:bg-gray-50 cursor-pointer transition-colors">
       <div className="flex justify-between items-center">
@@ -369,7 +542,13 @@ const Organization = () => {
           >
             Delete Team
           </button>
-          <button className="cursor-pointer rounded-sm bg-gradient-to-r from-cyan-600 to-blue-600 text-white p-2">
+          <button 
+            className="cursor-pointer rounded-sm bg-gradient-to-r from-cyan-600 to-blue-600 text-white p-2"
+            onClick={() => {
+              openEditTeamModal(team);
+              resetEditFormValues(team);
+            }}
+          >
             Edit Team
           </button>
         </div>
@@ -408,6 +587,24 @@ const Organization = () => {
 
   return (
     <>
+      {editTeamModalOpen && 
+        <EditTeamModal 
+          team={editTeamName} 
+          closeModal={closeEditTeamModal}
+          resetFormValues={resetEditFormValues}
+          editTeamName={editTeamName}
+          setEditTeamName={setEditTeamName}
+          editMentors={editMentors}
+          setEditMentors={setEditMentors}
+          editInterns={editInterns}
+          setEditInterns={setEditInterns}
+          editPanelists={editPanelists}
+          setEditPanelists={setEditPanelists}
+          editDescription={editDescription}
+          setEditDescription={setEditDescription}
+          handleSubmit={(e) => handleEditSubmit(e, editTeamName)}
+        />
+      }
       <div className="grid grid-cols-1 gap-6">
         <div className="bg-gradient-to-r from-cyan-50 to-blue-100 p-6 rounded-lg border border-cyan-200 shadow-md">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -445,7 +642,6 @@ const Organization = () => {
           )}
         </div>
       </div>
-
       {modalOpen && (
         <CreateTeamModal
           closeModal={closeModal}
@@ -475,3 +671,4 @@ const Organization = () => {
 };
 
 export default Organization;
+
