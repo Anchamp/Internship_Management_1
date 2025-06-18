@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X, Loader2, Building, AlertCircle } from "lucide-react";
+import AsyncSelect from 'react-select/async';
 
 interface TeamData {
   _id: string;
@@ -15,6 +16,103 @@ interface TeamData {
   status: string;
   createdAt?: string;
 }
+
+const CustomUserSelector = ({
+  label,
+  role,
+  selected,
+  setSelected,
+  organizationName,
+}: {
+  label: string;
+  role: string;
+  selected: string[];
+  setSelected: (value: string[]) => void;
+  organizationName: string;
+}) => {
+  const [input, setInput] = useState("");
+  const [options, setOptions] = useState<string[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  const user = localStorage.getItem("user");
+  if (!user) {
+    console.error("User not found in local storage");
+    return null;
+  }
+  const { username } = JSON.parse(user);
+
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      if (input.trim()) {
+        fetch(`/api/admin/get-users-by-role?username=${username}&role=${role}`)
+          .then(res => res.json())
+          .then(data => setOptions(data.users.map(u => u.username)))
+          .catch(() => setOptions([]));
+      } else {
+        setOptions([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounce);
+  }, [input, role, organizationName]);
+
+  const addUser = (username: string) => {
+    if (!selected.includes(username)) {
+      setSelected([...selected, username]);
+    }
+    setInput("");
+    setShowDropdown(false);
+  };
+
+  const removeUser = (username: string) => {
+    setSelected(selected.filter(u => u !== username));
+  };
+
+  return (
+    <div className="mb-4">
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <div className="border border-gray-300 rounded p-2 flex flex-wrap gap-2 min-h-[40px] p-1">
+        {selected && selected.map((username) => (
+          <span
+            key={username}
+            className="flex items-center gap-1 bg-cyan-100 text-cyan-800 px-2 py-1 rounded-full text-sm"
+          >
+            {username}
+            <button
+              onClick={() => removeUser(username)}
+              className="text-cyan-500 hover:text-red-500"
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        <input
+          value={input}
+          onChange={(e) => {
+            setInput(e.target.value);
+            setShowDropdown(true);
+          }}
+          onFocus={() => setShowDropdown(true)}
+          className="flex-1 min-w-[120px] border-none outline-none"
+          placeholder={`Add ${label.toLowerCase()}...`}
+        />
+      </div>
+      {showDropdown && options.length > 0 && (
+        <ul className="mt-1 rounded shadow border-gray-100 max-h-40 overflow-auto bg-white z-10 absolute w-[inherit]">
+          {options.map((u) => (
+            <li
+              key={u}
+              onClick={() => addUser(u)}
+              className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+            >
+              {u}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
 
 const DeleteTeamModal = ({
   closeModal,
@@ -72,7 +170,6 @@ const EditTeamModal = ({
   setEditDescription,
   handleSubmit,
 }: any) => {
-  const mentorIds = editMentors.split(",") 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
       <div className="bg-white rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden min-w-[310px]">
@@ -100,39 +197,30 @@ const EditTeamModal = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Mentors
-              </label>
-              <input
-                type="text"
-                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                placeholder="Enter mentor usernames (Separated by Commas)"
-                value={editMentors}
-                onChange={(e) => setEditMentors(e.target.value)}
+              <CustomUserSelector
+                label="Mentors"
+                role="mentor"
+                selected={editMentors}
+                setSelected={setEditMentors}
+                organizationName={team.organizationName}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 mt-4">
-                Interns
-              </label>
-              <input
-                type="text"
-                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                placeholder="Enter Intern Usernames (Separated by Commas)"
-                value={editInterns}
-                onChange={(e) => setEditInterns(e.target.value)}
+              <CustomUserSelector
+                label="Interns"
+                role="intern"
+                selected={editInterns}
+                setSelected={setEditInterns}
+                organizationName={team.organizationName}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 mt-4">
-                Panelists
-              </label>
-              <input
-                type="text"
-                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                placeholder="Enter Panelist Usernames (Separated by Commas)"
-                value={editPanelists}
-                onChange={(e) => setEditPanelists(e.target.value)}
+              <CustomUserSelector
+                label="Panelists"
+                role="panelist"
+                selected={editPanelists}
+                setSelected={setEditPanelists}
+                organizationName={team.organizationName}
               />
             </div>
             <div className="mt-4 mb-4">
@@ -186,6 +274,12 @@ const CreateTeamModal = ({
   setNewDescription,
   handleSubmit,
 }: any) => {
+  const user = localStorage.getItem("user");
+  if (!user) {
+    console.error("User not found in local storage");
+    return null;
+  }
+  const { username, organizationName } = JSON.parse(user);
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
       <div className="bg-white rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden min-w-[310px]">
@@ -213,39 +307,30 @@ const CreateTeamModal = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Mentors
-              </label>
-              <input
-                type="text"
-                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                placeholder="Enter mentor usernames (Separated by Commas)"
-                value={newMentors}
-                onChange={(e) => setNewMentors(e.target.value)}
+              <CustomUserSelector
+                label="Mentors"
+                role="mentor"
+                selected={newMentors}
+                setSelected={setNewMentors}
+                organizationName={organizationName}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 mt-4">
-                Interns
-              </label>
-              <input
-                type="text"
-                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                placeholder="Enter Intern Usernames (Separated by Commas)"
-                value={newInterns}
-                onChange={(e) => setNewInterns(e.target.value)}
+              <CustomUserSelector
+                label="Interns"
+                role="intern"
+                selected={newInterns}
+                setSelected={setNewInterns}
+                organizationName={organizationName}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 mt-4">
-                Panelists
-              </label>
-              <input
-                type="text"
-                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                placeholder="Enter Panelist Usernames (Separated by Commas)"
-                value={newPanelists}
-                onChange={(e) => setNewPanelists(e.target.value)}
+              <CustomUserSelector
+                label="Panelists"
+                role="panelist"
+                selected={newPanelists}
+                setSelected={setNewPanelists}
+                organizationName={organizationName}
               />
             </div>
             <div className="mt-4 mb-4">
@@ -297,16 +382,16 @@ const Organization = () => {
 
   // Create Team Form values
   const [newTeamName, setNewTeamName] = useState("");
-  const [newMentors, setNewMentors] = useState("");
-  const [newInterns, setNewInterns] = useState("");
-  const [newPanelists, setNewPanelists] = useState("");
+  const [newMentors, setNewMentors] = useState<string[]>([]);
+  const [newInterns, setNewInterns] = useState<string[]>([]);
+  const [newPanelists, setNewPanelists] = useState<string[]>([]);
   const [newDescription, setNewDescription] = useState("");
 
   // Edit Team Form Values
   const [editTeamName, setEditTeamName] = useState(""); 
-  const [editMentors, setEditMentors] = useState("");
-  const [editInterns, setEditInterns] = useState("");
-  const [editPanelists, setEditPanelists] = useState("");
+  const [editMentors, setEditMentors] = useState<string[]>([]);
+  const [editInterns, setEditInterns] = useState<string[]>([]);
+  const [editPanelists, setEditPanelists] = useState<string[]>([]);
   const [editDescription, setEditDescription] = useState("");
   const [editTeamModalOpen, setEditTeamModalOpen] = useState(false);
 
@@ -381,9 +466,9 @@ const Organization = () => {
   const resetEditFormValues = (team:any) => {
     console.log(team)
     setEditTeamName(team.teamName);
-    setEditMentors(team.mentors.join(", "));
-    setEditInterns(team.interns.join(", "));
-    setEditPanelists(team.panelists.join(", "));
+    setEditMentors(team.mentors);
+    setEditInterns(team.interns);
+    setEditPanelists(team.panelists);
     setEditDescription(team.description);
   }
 
@@ -427,18 +512,19 @@ const Organization = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
     closeModal();
+    resetFormValues();
 
     const storedUser = localStorage.getItem("user");
     const { username, organizationId } = JSON.parse(storedUser || "{}");
 
+    console.log(newMentors)
     const teamData = {
       username,
       teamName: newTeamName,
-      mentors: newMentors.split(",").map((m) => m.trim()),
-      interns: newInterns.split(",").map((i) => i.trim()),
-      panelists: newPanelists.split(",").map((p) => p.trim()),
+      mentors: newMentors,
+      interns: newInterns,
+      panelists: newPanelists,
       description: newDescription,
       organizationName,
       organizationId,
@@ -474,9 +560,9 @@ const Organization = () => {
     const teamData = {
       username,
       editTeamName: editTeamName,
-      editMentors: editMentors.split(",").map((m) => m.trim()),
-      editInterns: editInterns.split(",").map((i) => i.trim()),
-      editPanelists: editPanelists.split(",").map((p) => p.trim()),
+      editMentors: editMentors,
+      editInterns: editInterns,
+      editPanelists: editPanelists,
       editDescription: editDescription,
     };
 
