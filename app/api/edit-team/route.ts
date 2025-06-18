@@ -13,8 +13,28 @@ export async function POST(request: Request) {
     const { username, editTeamName, editMentors, editInterns, editPanelists, editDescription} = body;
 
     // Validate required fields
-    if (!username || !editTeamName || !editMentors || !editInterns || !editPanelists || !editDescription) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!username) {
+      return NextResponse.json({ error: 'Username is required' }, { status: 400 });
+    }
+
+    if (!editTeamName) {
+      return NextResponse.json({ error: 'Team name is required' }, { status: 400 });
+    }
+
+    if (!editMentors) {
+      return NextResponse.json({ error: 'Mentors are required' }, { status: 400 });
+    }
+
+    if (!editInterns) {
+      return NextResponse.json({ error: 'Interns are required' }, { status: 400 });
+    }
+
+    if (!editPanelists) {
+      return NextResponse.json({ error: 'Panelists are required' }, { status: 400 });
+    }
+
+    if (!editDescription) {
+      return NextResponse.json({ error: 'Description is required' }, { status: 400 });
     }
 
     // Check if the requester is an admin of the organization
