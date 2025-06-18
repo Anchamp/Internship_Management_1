@@ -38,12 +38,10 @@ export async function GET(request: Request) {
     const employees = await User.find({
       role: requestedRole,
       organizationName: organizationName,
-    }).select("-password").lean();
+    }).select("username -_id").lean();
     
     return NextResponse.json({
-      success: true,
-      employees,
-      organizationName
+      users: employees,
     });
   } catch (error: any) {
     console.error("Error fetching Employees:", error);
