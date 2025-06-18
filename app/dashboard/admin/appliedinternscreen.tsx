@@ -343,7 +343,7 @@ export default function AppliedInternScreen() {
         <div className="bg-white rounded-lg shadow-md p-12 text-center">
           <UserSearch className="h-16 w-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-700 mb-2">
-            No Applications Found
+            Applinctions not Found
           </h3>
           <p className="text-gray-500">
             {searchQuery || selectedInternship !== "all" || selectedStatus !== "all"
@@ -576,8 +576,7 @@ export default function AppliedInternScreen() {
                 </div>
               </div>
             </div>
-
-            {/* Modal Footer */}
+            {/* Modal Footer with Status and Actions */}
             <div className="p-6 border-t border-gray-200 bg-gray-50">
               <div className="flex justify-between items-center">
                 <div className="flex items-center space-x-2">
