@@ -53,6 +53,37 @@ export async function GET(request: Request) {
 
     if (userRole === 'admin') {
       const teams = await Team.find({ organizationName: organizationName }).lean();
+      for (let team of teams) {
+        const mentorIds = team.mentors;
+        const internIds = team.interns;
+        const panelistIds = team.panelists;
+
+        team.mentors = []
+        team.interns = []
+        team.panelists = []
+
+        for (const mentorId of mentorIds) {
+          const mentorUsername = await User.findById(mentorId, 'username').lean();
+          if (mentorUsername) {
+            team.mentors.push(mentorUsername.username);
+          }
+        }
+
+        for (const internId of internIds) {
+          const internUsername = await User.findById(internId, 'username').lean();
+          if (internUsername) {
+            team.interns.push(internUsername.username);
+          }
+        }
+
+        for (const panelistId of panelistIds) {
+          const panelistUsername = await User.findById(panelistId, 'username').lean();
+          if (panelistUsername) {
+            team.panelists.push(panelistUsername.username);
+          }
+        }
+      }
+
       return NextResponse.json({
         success: true,
         teams,
@@ -64,6 +95,37 @@ export async function GET(request: Request) {
       let teams: any[] = [];
       if (user.teams && user.teams.length > 0) {
         teams = await Team.find({ _id: { $in: user.teams } }).lean();
+      }
+
+      for (let team of teams) {
+        const mentorIds = team.mentors;
+        const internIds = team.interns;
+        const panelistIds = team.panelists;
+
+        team.mentors = []
+        team.interns = []
+        team.panelists = []
+
+        for (const mentorId of mentorIds) {
+          const mentorUsername = await User.findById(mentorId, 'username').lean();
+          if (mentorUsername) {
+            team.mentors.push(mentorUsername.username);
+          }
+        }
+
+        for (const internId of internIds) {
+          const internUsername = await User.findById(internId, 'username').lean();
+          if (internUsername) {
+            team.interns.push(internUsername.username);
+          }
+        }
+
+        for (const panelistId of panelistIds) {
+          const panelistUsername = await User.findById(panelistId, 'username').lean();
+          if (panelistUsername) {
+            team.panelists.push(panelistUsername.username);
+          }
+        }
       }
       return NextResponse.json({
         success: true,
