@@ -24,15 +24,20 @@ export async function POST(request: Request) {
     }
     const organizationId = (adminUser as any).organizationId;
 
+    // Remove duplicates in mentors, interns, and panelists
+    const uniqueMentors = Array.from(new Set(mentors));
+    const uniqueInterns = Array.from(new Set(interns));
+    const uniquePanelists = Array.from(new Set(panelists));
+
     // Convert usernames to ObjectIds
-    const mentorUsers = await User.find({ username: { $in: mentors }, organizationName: organizationName });
-    const internUsers = await User.find({ username: { $in: interns }, organizationName: organizationName });
-    const panelistUsers = await User.find({ username: { $in: panelists }, organizationName: organizationName });
+    const mentorUsers = await User.find({ username: { $in: uniqueMentors }, organizationName: organizationName });
+    const internUsers = await User.find({ username: { $in: uniqueInterns }, organizationName: organizationName });
+    const panelistUsers = await User.find({ username: { $in: uniquePanelists }, organizationName: organizationName });
 
     // Check if all users were found
-    if (mentorUsers.length !== mentors.length) return NextResponse.json({ error: 'Some mentors not found' }, { status: 400 });
-    if (internUsers.length !== interns.length) return NextResponse.json({ error: 'Some interns not found' }, { status: 400 });
-    if (panelistUsers.length !== panelists.length) return NextResponse.json({ error: 'Some panelists not found' }, { status: 400 });
+    if (mentorUsers.length !== uniqueMentors.length) return NextResponse.json({ error: 'Some mentors not found' }, { status: 400 });
+    if (internUsers.length !== uniqueInterns.length) return NextResponse.json({ error: 'Some interns not found' }, { status: 400 });
+    if (panelistUsers.length !== uniquePanelists.length) return NextResponse.json({ error: 'Some panelists not found' }, { status: 400 });
 
     // Prepare team data with ObjectIds
     const existingTeam = await Team.findOne({ teamName, organizationId }).lean();

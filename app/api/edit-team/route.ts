@@ -67,10 +67,15 @@ export async function POST(request: Request) {
     const internUsers = await User.find({ username: { $in: editInterns }, organizationName });
     const panelistUsers = await User.find({ username: { $in: editPanelists }, organizationId });
 
+    // Remove duplicates in mentors, interns, and Panelists
+    const uniqueMentors = Array.from(new Set(editMentors));
+    const uniqueInterns = Array.from(new Set(editInterns));
+    const uniquePanelists = Array.from(new Set(editPanelists));
+
     // validate if the users exist in the organization
-    if (mentorUsers.length !== editMentors.length) return NextResponse.json({ error: 'Some mentors not found' }, { status: 400 });
-    if (internUsers.length !== editInterns.length) return NextResponse.json({ error: 'Some interns not found' }, { status: 400 });
-    if (panelistUsers.length !== editPanelists.length) return NextResponse.json({ error: 'Some panelists not found' }, { status: 400 });
+    if (mentorUsers.length !== uniqueMentors.length) return NextResponse.json({ error: 'Some mentors not found' }, { status: 400 });
+    if (internUsers.length !== uniqueInterns.length) return NextResponse.json({ error: 'Some interns not found' }, { status: 400 });
+    if (panelistUsers.length !== uniquePanelists.length) return NextResponse.json({ error: 'Some panelists not found' }, { status: 400 });
 
     // Create the updated team data
     const teamData = {
