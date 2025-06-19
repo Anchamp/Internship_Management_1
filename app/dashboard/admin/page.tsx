@@ -20,7 +20,7 @@ import AdminDashboardScreen from "./dashboardscreen";
 import AdminProfile from "./profile";
 import OnboardingScreen from "./onboarding";
 import UsersScreen from "./users";
-import Organization from "./organization";
+import TeamBuilding from "./teamBuilding";
 import InternshipPosting from "./internshipposting"; // Import the InternshipPosting component
 
 export default function AdminDashboard() {
@@ -416,17 +416,16 @@ export default function AdminDashboard() {
           {activeTab === "profile" && <AdminProfile inDashboard={true} />}
           {activeTab === "onboarding" && <OnboardingScreen />}
           {activeTab === "users" && <UsersScreen />}
-          {activeTab === "organization" && <Organization />}
+          {activeTab === "teambuilding" && <TeamBuilding />}
           {activeTab === "internships" && <InternshipPosting />}{" "}
           {/* Properly render the InternshipPosting component */}
-          {activeTab === "teambuilding" && (
+          {activeTab === "organization" && (
             <div className="p-4 bg-white rounded-md shadow">
               <p className="text-lg font-medium">
-                Team Building section coming soon
+               Oraganization section coming soon
               </p>
               <p className="text-sm text-gray-500 mt-2">
-                Create and manage teams for your internship programs and
-                projects.
+                Manage your Organization details here.
               </p>
             </div>
           )}
