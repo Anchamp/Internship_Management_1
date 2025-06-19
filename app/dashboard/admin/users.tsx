@@ -51,6 +51,7 @@ export default function OnboardingScreen() {
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [processingUser, setProcessingUser] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>("all");
+  const [removeUserModalOpen, setRemoveUserModalOpen] = useState<boolean>(true);
 
   // State for fetching real data
   const [users, setUsers] = useState<UserData[]>([]);
@@ -285,7 +286,8 @@ export default function OnboardingScreen() {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              handleRemoveUser(user._id);
+              setSelectedUser(user);
+              openRemoveUserModal();
             }}
             disabled={processingUser === user._id}
             className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-medium rounded-md flex items-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[80px] justify-center shadow-sm"
@@ -592,6 +594,45 @@ export default function OnboardingScreen() {
     );
   }
 
+  const closeRemoveUserModal = () => {
+    setRemoveUserModalOpen(false);
+    setSelectedUser(null);
+  };
+  const openRemoveUserModal = () => setRemoveUserModalOpen(true);
+
+  const RemoveUserModal = () => {
+    if (selectedUser) {
+      return (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Remove User</h3>
+            <p className="text-gray-700 mb-6">
+              Are you sure you want to remove the user <span className="font-bold text-black">{selectedUser.username}</span> from the Organization?
+              This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={closeRemoveUserModal}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  await handleRemoveUser(selectedUser._id);
+                  closeRemoveUserModal();
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+              >
+                Remove User
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+  } 
+
   return (
     <>
       <div className="grid grid-cols-1 gap-6">
@@ -667,6 +708,9 @@ export default function OnboardingScreen() {
 
       {/* User detail modal */}
       {modalOpen && <UserModal />}
+      {/* Remove user confirmation modal */}
+      {removeUserModalOpen && <RemoveUserModal />}
+
 
       {/* Add custom styles for enhanced dropdown */}
       <style jsx global>{`

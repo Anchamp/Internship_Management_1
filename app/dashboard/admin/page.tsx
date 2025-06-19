@@ -129,7 +129,7 @@ export default function AdminDashboard() {
   const LogOutModal = () => {
     return (
       <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-        <div className="bg-white rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
+        <div className="bg-white rounded-lg shadow-2xl max-w-3xl w-[30%] max-h-[90vh] overflow-hidden">
           <div className="p-5 border-b flex justify-center items-center sticky top-0 bg-white z-10">
             <h3 className="text-xl font-bold text-gray-900">
               Are you sure you want to log out?
