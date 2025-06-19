@@ -370,7 +370,7 @@ const CreateTeamModal = ({
   );
 };
 
-const Organization = () => {
+const TeamBuilding = () => {
   const [organizationName, setOrganizationName] = useState("Microsoft");
   const [teams, setTeams] = useState<TeamData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -756,5 +756,5 @@ const Organization = () => {
   );
 };
 
-export default Organization;
+export default TeamBuilding;
 
