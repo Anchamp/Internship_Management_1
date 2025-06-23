@@ -23,7 +23,7 @@ const userSchema = new Schema(
     },
     role: {
       type: String,
-      enum: ["student", "intern", "mentor", "panelist", "admin"],
+      enum: ["student", "intern", "employee", "admin"],
       required: true,
     },
     organizationName: {
@@ -111,9 +111,8 @@ const userSchema = new Schema(
       }
     }],
     
-    // Mentor and Panelist Assignment
-    mentorId: String,
-    panelists: [String],
+    // Mentors and Panelists assignments
+    employees: [String],
     
     // Weekly Reports (for intern progress tracking)
     weeklyReports: [{
