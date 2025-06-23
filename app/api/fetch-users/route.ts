@@ -26,21 +26,19 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Admin has no organization Name' }, { status: 400 });
     }
     // Fetching all employees from the database
-    const employees = await User.find({
+    const users = await User.find({
       organizationName: organizationName,
     }).select("-password").lean();
 
     // Grouping employees by role
-    const mentors = employees.filter(emp => emp.role === 'mentor');
-    const panelists = employees.filter(emp => emp.role === 'panelist');
-    const admins = employees.filter(emp => emp.role === 'admin');
-    const interns = employees.filter(emp => emp.role === 'intern');
+    const employees = users.filter(emp => emp.role === 'employee');
+    const admins = users.filter(emp => emp.role === 'admin');
+    const interns = users.filter(emp => emp.role === 'intern');
 
     return NextResponse.json({
       success: true,
       admins,
-      mentors,
-      panelists,
+      employees,
       interns,
       organizationName
     });
