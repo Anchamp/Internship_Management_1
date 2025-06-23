@@ -29,92 +29,128 @@ export async function GET(request: Request) {
     
     const organizationId = adminUser.organizationId;
     
-    // Build aggregation pipeline to get applications
-    let matchStage: any = {
-      'appliedInternships': { $exists: true, $not: { $size: 0 } }
-    };
+    // Step 1: Get all internships for this organization
+    const organizationInternships = await Internship.find({ 
+      organizationId: organizationId 
+    }).select('_id title organizationName department mode location');
     
-    // Get all applications from users, filtered by organization
-    const pipeline: any[] = [
-      { $match: matchStage },
-      { $unwind: '$appliedInternships' },
-      {
-        $lookup: {
-          from: 'internships',
-          localField: 'appliedInternships.internshipId',
-          foreignField: '_id',
-          as: 'internshipDetails'
-        }
-      },
-      { $unwind: '$internshipDetails' },
-      {
-        $match: {
-          'internshipDetails.organizationId': organizationId
-        }
-      }
-    ];
-    
-    // Add internship filter if specified
-    if (internshipId && internshipId !== 'all') {
-      pipeline.push({
-        $match: {
-          'appliedInternships.internshipId': internshipId
-        }
+    if (organizationInternships.length === 0) {
+      return NextResponse.json({
+        success: true,
+        applications: [],
+        count: 0
       });
     }
     
-    // Add status filter if specified
-    if (status && status !== 'all') {
-      pipeline.push({
-        $match: {
-          'appliedInternships.status': status
-        }
-      });
-    }
+    // Step 2: Extract internship IDs (both string and ObjectId formats)
+    const internshipIds = organizationInternships.map(internship => internship._id.toString());
+    const internshipObjectIds = organizationInternships.map(internship => internship._id);
     
-    // Add search filter if specified
-    if (search) {
-      const searchRegex = new RegExp(search, 'i');
-      pipeline.push({
-        $match: {
+    // Create a map for quick internship details lookup
+    const internshipDetailsMap = organizationInternships.reduce((map, internship) => {
+      map[internship._id.toString()] = {
+        title: internship.title,
+        organizationName: internship.organizationName,
+        department: internship.department,
+        mode: internship.mode,
+        location: internship.location
+      };
+      return map;
+    }, {});
+    
+    // Step 3: Build query for users with applications to these internships
+    let userQuery: any = {
+      'appliedInternships': { 
+        $elemMatch: {
           $or: [
-            { 'fullName': searchRegex },
-            { 'email': searchRegex },
-            { 'appliedInternships.position': searchRegex }
+            { 'internshipId': { $in: internshipIds } },
+            { 'internshipId': { $in: internshipObjectIds } }
           ]
         }
-      });
-    }
+      }
+    };
     
-    // Project the final structure
-    pipeline.push({
-      $project: {
-        _id: '$appliedInternships._id',
-        internshipId: '$appliedInternships.internshipId',
-        companyName: '$appliedInternships.companyName',
-        position: '$appliedInternships.position',
-        appliedDate: '$appliedInternships.appliedDate',
-        status: '$appliedInternships.status',
-        applicationData: '$appliedInternships.applicationData',
-        userProfileSnapshot: '$appliedInternships.userProfileSnapshot',
-        applicantInfo: {
-          username: '$username',
-          fullName: '$fullName',
-          email: '$email'
+    // Step 4: Get users and extract relevant applications
+    const usersWithApplications = await User.find(userQuery).select(
+      'username fullName email appliedInternships'
+    );
+    
+    // Step 5: Process and filter applications
+    let allApplications = [];
+    
+    for (const user of usersWithApplications) {
+      if (!user.appliedInternships) continue;
+      
+      for (const application of user.appliedInternships) {
+        const appInternshipId = application.internshipId?.toString();
+        
+        // Check if this application belongs to the organization
+        if (internshipIds.includes(appInternshipId)) {
+          // Apply filters
+          let includeApplication = true;
+          
+          // Filter by specific internship
+          if (internshipId && internshipId !== 'all') {
+            if (appInternshipId !== internshipId) {
+              includeApplication = false;
+            }
+          }
+          
+          // Filter by status
+          if (status && status !== 'all') {
+            if (application.status !== status) {
+              includeApplication = false;
+            }
+          }
+          
+          // Filter by search term
+          if (search) {
+            const searchRegex = new RegExp(search, 'i');
+            const searchMatch = (
+              searchRegex.test(user.fullName || '') ||
+              searchRegex.test(user.email || '') ||
+              searchRegex.test(application.position || '') ||
+              searchRegex.test(application.companyName || '')
+            );
+            
+            if (!searchMatch) {
+              includeApplication = false;
+            }
+          }
+          
+          if (includeApplication) {
+            allApplications.push({
+              _id: application._id,
+              internshipId: application.internshipId,
+              companyName: application.companyName,
+              position: application.position,
+              appliedDate: application.appliedDate,
+              status: application.status,
+              applicationData: application.applicationData,
+              userProfileSnapshot: application.userProfileSnapshot,
+              applicantInfo: {
+                username: user.username,
+                fullName: user.fullName,
+                email: user.email
+              },
+              internshipDetails: internshipDetailsMap[appInternshipId] || {}
+            });
+          }
         }
       }
-    });
+    }
     
-    // Sort by application date (newest first)
-    pipeline.push({
-      $sort: { appliedDate: -1 }
+    // Step 6: Sort by application date (newest first)
+    allApplications.sort((a, b) => {
+      const dateA = new Date(a.appliedDate);
+      const dateB = new Date(b.appliedDate);
+      return dateB.getTime() - dateA.getTime();
     });
-    
-    const applications = await User.aggregate(pipeline);
     
     return NextResponse.json({
       success: true,
-      applications
+      applications: allApplications,
+      count: allApplications.length
     });
     
   } catch (error: any) {
