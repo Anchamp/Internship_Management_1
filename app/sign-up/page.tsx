@@ -86,7 +86,7 @@ export default function SignUp() {
   // Fetch organizations created by admins
   useEffect(() => {
     const fetchOrganizations = async () => {
-      if (role === "mentor" || role === "panelist") {
+      if (role === "employee") {
         setIsLoadingOrgs(true);
         try {
           const response = await fetch("/api/organizations");
@@ -302,9 +302,7 @@ export default function SignUp() {
 
       // Role-specific required fields
       if (role === "admin" && !organizationName) return false;
-      if ((role === "mentor" || role === "panelist") && !selectedOrganization)
-        return false;
-
+      if (role === "employee" && !selectedOrganization) return false;
       return true;
     };
 
@@ -468,7 +466,7 @@ export default function SignUp() {
       email,
       password,
       ...(role === "admin" ? { organizationName } : {}),
-      ...(["mentor", "panelist"].includes(role)
+      ...(role === "employee"
         ? { organizationId: selectedOrganization } // This should be the formatted ID now
         : {}),
     };
@@ -633,11 +631,11 @@ export default function SignUp() {
             {!isSuccess && (
               <form onSubmit={handleSubmit} className="space-y-3 relative z-40">
                 {/* Role Selection */}
-                <div className="grid grid-cols-4 gap-1 mb-3">
+                <div className="flex items-center justify-around gap-2">
                   <Button
                     type="button"
                     onClick={() => setRole("intern")}
-                    className={`py-1 px-2 text-xs transition-all duration-300 ${
+                    className={`flex-1 py-1 px-2 text-xs transition-all duration-300 ${
                       role === "intern"
                         ? "!bg-[#06B6D4] !text-black font-bold"
                         : "bg-white !border-2 !border-[#06B6D4] !text-[#06B6D4] hover:shadow-[0_0_10px_rgba(6,182,212,0.5)] hover:!border-[#0891B2]"
@@ -651,39 +649,23 @@ export default function SignUp() {
                   </Button>
                   <Button
                     type="button"
-                    onClick={() => setRole("mentor")}
-                    className={`py-1 px-2 text-xs transition-all duration-300 ${
-                      role === "mentor"
+                    onClick={() => setRole("employee")}
+                    className={`flex-1 py-1 px-2 text-xs transition-all duration-300 ${
+                      role === "employee"
                         ? "!bg-[#06B6D4] !text-black font-bold"
                         : "bg-white !border-2 !border-[#06B6D4] !text-[#06B6D4] hover:shadow-[0_0_10px_rgba(6,182,212,0.5)] hover:!border-[#0891B2]"
                     }`}
                     style={{
-                      backgroundColor: role === "mentor" ? "#06B6D4" : "white",
-                      color: role === "mentor" ? "black" : "#06B6D4",
+                      backgroundColor: role === "employee" ? "#06B6D4" : "white",
+                      color: role === "employee" ? "black" : "#06B6D4",
                     }}
                   >
-                    Mentor
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => setRole("panelist")}
-                    className={`py-1 px-2 text-xs transition-all duration-300 ${
-                      role === "panelist"
-                        ? "!bg-[#06B6D4] !text-black font-bold"
-                        : "bg-white !border-2 !border-[#06B6D4] !text-[#06B6D4] hover:shadow-[0_0_10px_rgba(6,182,212,0.5)] hover:!border-[#0891B2]"
-                    }`}
-                    style={{
-                      backgroundColor:
-                        role === "panelist" ? "#06B6D4" : "white",
-                      color: role === "panelist" ? "black" : "#06B6D4",
-                    }}
-                  >
-                    Panelist
+                    Employee
                   </Button>
                   <Button
                     type="button"
                     onClick={() => setRole("admin")}
-                    className={`py-1 px-2 text-xs transition-all duration-300 ${
+                    className={`flex-1 py-1 px-2 text-xs transition-all duration-300 ${
                       role === "admin"
                         ? "!bg-[#06B6D4] !text-black font-bold"
                         : "bg-white !border-2 !border-[#06B6D4] !text-[#06B6D4] hover:shadow-[0_0_10px_rgba(6,182,212,0.5)] hover:!border-[#0891B2]"
@@ -1026,7 +1008,7 @@ export default function SignUp() {
                   </div>
                 )}
 
-                {(role === "mentor" || role === "panelist") && (
+                {(role === "employee") && (
                   <div className="space-y-1 relative">
                     <label
                       htmlFor="organization"
