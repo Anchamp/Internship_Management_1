@@ -7,7 +7,10 @@ export async function PUT(request) {
   try {
     // Get the ID from the URL path segments
     const pathParts = request.nextUrl.pathname.split('/');
-    const id = pathParts[pathParts.length - 2]; // Get the username/id from URL path
+    const encodedId = pathParts[pathParts.length - 2]; // Get the username/id from URL path
+    
+    // Decode the ID (username) to handle spaces and special characters
+    const id = decodeURIComponent(encodedId);
     
     // Parse the request body
     const profileData = await request.json();
@@ -20,7 +23,7 @@ export async function PUT(request) {
       ? { _id: new ObjectId(id) } 
       : { username: id };
     
-    // First get the current user to check the submission count
+    // First get the current user to check the submission count and role
     const client = await dbConnect();
     const db = client.connection.db;
     const collection = db.collection('users');
@@ -28,6 +31,7 @@ export async function PUT(request) {
     const currentUser = await collection.findOne(filter);
     
     if (!currentUser) {
+      console.log(`User not found with identifier: ${id}`);
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
@@ -35,28 +39,48 @@ export async function PUT(request) {
     const currentCount = currentUser.profileSubmissionCount || 0;
     const isFirstSubmission = currentCount === 0;
     
-    // Fields that should be updated - ensure fields match schema exactly
-    const updateFields = {
-      fullName: profileData.fullName || '',
-      phone: profileData.phone || '',
-      position: profileData.position || '',
-      address: profileData.address || '',
-      experience: profileData.experience || '',
-      skills: profileData.skills || '',
-      bio: profileData.bio || '',
-      website: profileData.website || '',
-      profileImage: profileData.profileImage || '',
-      dob: profileData.dob || '',
-      teams: profileData.teams || [],
-      // Use consistent field naming
-      organizationName: profileData.organization || 'none',
-      updatedAt: new Date(),
-      // Increment the profile submission count
-      profileSubmissionCount: currentCount + 1
-    };
+    // Define fields to update based on user role
+    let updateFields = {};
+    
+    if (currentUser.role === 'admin') {
+      // Admin-specific fields - don't modify organizationName
+      updateFields = {
+        fullName: profileData.fullName || currentUser.fullName || '',
+        phone: profileData.phone || '',
+        address: profileData.address || '',
+        bio: profileData.bio || '',
+        website: profileData.website || '',
+        profileImage: profileData.profileImage || '',
+        dob: profileData.dob || '',
+        // Don't modify organizationName for admins
+        updatedAt: new Date(),
+        // Increment the profile submission count
+        profileSubmissionCount: currentCount + 1
+      };
+    } else {
+      // For non-admin users (mentors, interns, panelists)
+      updateFields = {
+        fullName: profileData.fullName || '',
+        phone: profileData.phone || '',
+        position: profileData.position || '',
+        address: profileData.address || '',
+        experience: profileData.experience || '',
+        skills: profileData.skills || '',
+        bio: profileData.bio || '',
+        website: profileData.website || '',
+        profileImage: profileData.profileImage || '',
+        dob: profileData.dob || '',
+        teams: profileData.teams || [],
+        // Only use organizationName from profileData for non-admins
+        organizationName: profileData.organization || 'none',
+        updatedAt: new Date(),
+        // Increment the profile submission count
+        profileSubmissionCount: currentCount + 1
+      };
+    }
     
     // If this is the first submission, set verification status to pending
-    if (isFirstSubmission) {
+    if (isFirstSubmission && currentUser.role !== 'admin') {
       updateFields.verificationStatus = 'pending';
       
       // If user is mentor or panelist, create a verification notification for the admin
@@ -115,6 +139,7 @@ export async function PUT(request) {
       isFirstSubmission: isFirstSubmission // Return flag to indicate if this was the first submission
     });
   } catch (error) {
+    console.error("Error in update-profile route:", error);
     return NextResponse.json({ 
       error: 'Internal server error', 
       details: error.message
