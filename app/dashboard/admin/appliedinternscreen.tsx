@@ -1,41 +1,36 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   UserSearch,
   Eye,
-  Download,
-  Filter,
   Search,
-  Calendar,
   Mail,
-  Phone,
-  GraduationCap,
-  Briefcase,
-  User,
-  FileText,
+  Calendar,
   Clock,
   CheckCircle,
   XCircle,
   AlertCircle,
   Loader2,
-  X,
-  ExternalLink,
+  ArrowLeft,
+  RotateCcw,
+  Settings,
+  Filter,
+  X
 } from "lucide-react";
 
+// Type definitions
 interface Application {
   _id: string;
   internshipId: string;
   companyName: string;
   position: string;
   appliedDate: string;
-  status: string;
+  status: "pending" | "shortlisted" | "interview_scheduled" | "selected" | "rejected";
   applicationData: {
     coverLetter: string;
     whyInterestedReason: string;
     relevantExperience: string;
-    expectedOutcome: string;
-    availableStartDate: string;
     additionalComments: string;
   };
   userProfileSnapshot: {
@@ -47,11 +42,7 @@ interface Application {
     major: string;
     graduationYear: string;
     skills: string;
-    resumeFile: string;
-    gpa?: string;
-    portfolioLinks?: string[];
-    internshipGoals?: string;
-    previousExperience?: string;
+    gpa: string;
   };
   applicantInfo: {
     username: string;
@@ -60,34 +51,43 @@ interface Application {
   };
 }
 
-interface InternshipPost {
+interface Internship {
   _id: string;
   title: string;
+  organizationName: string;
   department: string;
-  applications: string[];
+  mode: string;
+  location: {
+    city: string;
+    state: string;
+    country: string;
+  };
 }
 
 export default function AppliedInternScreen() {
   const [applications, setApplications] = useState<Application[]>([]);
-  const [internships, setInternships] = useState<InternshipPost[]>([]);
+  const [internships, setInternships] = useState<Internship[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedInternship, setSelectedInternship] = useState<string>("all");
-  const [selectedStatus, setSelectedStatus] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedInternship, setSelectedInternship] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   useEffect(() => {
     fetchInternships();
+    fetchApplications();
   }, []);
 
   useEffect(() => {
-    if (internships.length > 0) {
+    const timer = setTimeout(() => {
       fetchApplications();
-    }
-  }, [internships, selectedInternship, selectedStatus, searchQuery]);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, selectedInternship, selectedStatus]);
 
   const fetchInternships = async () => {
     try {
@@ -193,7 +193,7 @@ export default function AppliedInternScreen() {
       
       // Close modal if open
       if (showModal && selectedApplication?._id === applicationId) {
-        setSelectedApplication(prev => prev ? {...prev, status: newStatus} : null);
+        setSelectedApplication(prev => prev ? {...prev, status: newStatus as any} : null);
       }
 
       alert("Application status updated successfully");
@@ -291,9 +291,8 @@ export default function AppliedInternScreen() {
           </div>
         </div>
 
-        {/* Filters */}
+        {/* Search and Filters */}
         <div className="flex flex-col lg:flex-row gap-4">
-          {/* Search */}
           <div className="flex-1 relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="h-5 w-5 text-gray-400" />
@@ -307,34 +306,31 @@ export default function AppliedInternScreen() {
             />
           </div>
 
-          {/* Filters */}
-          <div className="flex gap-3">
-            <select
-              className="px-3 py-2 border border-gray-300 rounded-md focus:ring-cyan-500 focus:border-cyan-500 text-black"
-              value={selectedInternship}
-              onChange={(e) => setSelectedInternship(e.target.value)}
-            >
-              <option value="all">All Internships</option>
-              {internships.map((internship) => (
-                <option key={internship._id} value={internship._id}>
-                  {internship.title}
-                </option>
-              ))}
-            </select>
+          <select
+            className="px-3 py-2 border border-gray-300 rounded-md focus:ring-cyan-500 focus:border-cyan-500 text-black"
+            value={selectedInternship}
+            onChange={(e) => setSelectedInternship(e.target.value)}
+          >
+            <option value="all">All Internships</option>
+            {internships.map((internship) => (
+              <option key={internship._id} value={internship._id}>
+                {internship.title} - {internship.department}
+              </option>
+            ))}
+          </select>
 
-            <select
-              className="px-3 py-2 border border-gray-300 rounded-md focus:ring-cyan-500 focus:border-cyan-500 text-black"
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-            >
-              <option value="all">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="shortlisted">Shortlisted</option>
-              <option value="interview_scheduled">Interview Scheduled</option>
-              <option value="selected">Selected</option>
-              <option value="rejected">Rejected</option>
-            </select>
-          </div>
+          <select
+            className="px-3 py-2 border border-gray-300 rounded-md focus:ring-cyan-500 focus:border-cyan-500 text-black"
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+          >
+            <option value="all">All Status</option>
+            <option value="pending">Pending Review</option>
+            <option value="shortlisted">Shortlisted</option>
+            <option value="interview_scheduled">Interview Scheduled</option>
+            <option value="selected">Selected/Accepted</option>
+            <option value="rejected">Rejected</option>
+          </select>
         </div>
       </div>
 
@@ -343,7 +339,7 @@ export default function AppliedInternScreen() {
         <div className="bg-white rounded-lg shadow-md p-12 text-center">
           <UserSearch className="h-16 w-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-700 mb-2">
-            Applinctions not Found
+            Applications not Found
           </h3>
           <p className="text-gray-500">
             {searchQuery || selectedInternship !== "all" || selectedStatus !== "all"
@@ -394,38 +390,121 @@ export default function AppliedInternScreen() {
                         {application.userProfileSnapshot.degree}
                       </span>
                     </div>
-                  </div>
 
-                  <div className="flex flex-col lg:items-end space-y-2 mt-4 lg:mt-0">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleViewApplication(application)}
-                        className="px-3 py-1 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm font-medium flex items-center"
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View Details
-                      </button>
-                    </div>
-
-                    {/* Quick Status Actions */}
-                    {application.status === "pending" && (
-                      <div className="flex space-x-1">
+                    <div className="flex flex-col lg:items-end space-y-2 mt-4 lg:mt-0">
+                      <div className="flex space-x-2">
                         <button
-                          onClick={() => handleStatusUpdate(application._id, "shortlisted")}
-                          disabled={isUpdatingStatus}
-                          className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50"
+                          onClick={() => handleViewApplication(application)}
+                          className="px-3 py-1 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm font-medium flex items-center"
                         >
-                          Shortlist
-                        </button>
-                        <button
-                          onClick={() => handleStatusUpdate(application._id, "rejected")}
-                          disabled={isUpdatingStatus}
-                          className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 disabled:opacity-50"
-                        >
-                          Reject
+                          <Eye className="h-4 w-4 mr-1" />
+                          View Details
                         </button>
                       </div>
-                    )}
+
+                      {/* Enhanced Quick Status Actions */}
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {/* For Pending Applications */}
+                        {application.status === "pending" && (
+                          <>
+                            <button
+                              onClick={() => handleStatusUpdate(application._id, "shortlisted")}
+                              disabled={isUpdatingStatus}
+                              className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50 flex items-center"
+                            >
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Shortlist
+                            </button>
+                            <button
+                              onClick={() => handleStatusUpdate(application._id, "rejected")}
+                              disabled={isUpdatingStatus}
+                              className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 disabled:opacity-50 flex items-center"
+                            >
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Reject
+                            </button>
+                          </>
+                        )}
+
+                        {/* For Shortlisted Applications */}
+                        {application.status === "shortlisted" && (
+                          <>
+                            <button
+                              onClick={() => handleStatusUpdate(application._id, "interview_scheduled")}
+                              disabled={isUpdatingStatus}
+                              className="px-2 py-1 bg-purple-600 text-white rounded text-xs hover:bg-purple-700 disabled:opacity-50 flex items-center"
+                            >
+                              <Calendar className="h-3 w-3 mr-1" />
+                              Schedule
+                            </button>
+                            <button
+                              onClick={() => handleStatusUpdate(application._id, "selected")}
+                              disabled={isUpdatingStatus}
+                              className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 disabled:opacity-50 flex items-center"
+                            >
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Select
+                            </button>
+                            <button
+                              onClick={() => handleStatusUpdate(application._id, "rejected")}
+                              disabled={isUpdatingStatus}
+                              className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 disabled:opacity-50 flex items-center"
+                            >
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Reject
+                            </button>
+                          </>
+                        )}
+
+                        {/* For Interview Scheduled Applications */}
+                        {application.status === "interview_scheduled" && (
+                          <>
+                            <button
+                              onClick={() => handleStatusUpdate(application._id, "selected")}
+                              disabled={isUpdatingStatus}
+                              className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 disabled:opacity-50 flex items-center"
+                            >
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Select
+                            </button>
+                            <button
+                              onClick={() => handleStatusUpdate(application._id, "rejected")}
+                              disabled={isUpdatingStatus}
+                              className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 disabled:opacity-50 flex items-center"
+                            >
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Reject
+                            </button>
+                          </>
+                        )}
+
+                        {/* For Selected Applications */}
+                        {application.status === "selected" && (
+                          <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs flex items-center">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Selected
+                          </span>
+                        )}
+
+                        {/* For Rejected Applications */}
+                        {application.status === "rejected" && (
+                          <>
+                            <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs flex items-center">
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Rejected
+                            </span>
+                            <button
+                              onClick={() => handleStatusUpdate(application._id, "pending")}
+                              disabled={isUpdatingStatus}
+                              className="px-2 py-1 bg-yellow-600 text-white rounded text-xs hover:bg-yellow-700 disabled:opacity-50 flex items-center"
+                            >
+                              <RotateCcw className="h-3 w-3 mr-1" />
+                              Reconsider
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -447,64 +526,47 @@ export default function AppliedInternScreen() {
                 onClick={handleCloseModal}
                 className="p-1.5 rounded-full hover:bg-red-100"
               >
-                <X className="h-5 w-5 text-red-600" />
+                <X className="h-6 w-6 text-gray-500 hover:text-red-600" />
               </button>
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 overflow-y-auto flex-grow">
+            <div className="flex-1 overflow-y-auto">
               {/* Applicant Information */}
-              <div className="mb-6 pb-6 border-b border-gray-200">
-                <h4 className="text-lg font-semibold text-gray-900 mb-4">
-                  Applicant Information
-                </h4>
+              <div className="p-6 border-b border-gray-200">
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">Applicant Information</h4>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center">
-                      <User className="h-5 w-5 text-gray-400 mr-3" />
-                      <div>
-                        <p className="text-sm text-gray-600">Full Name</p>
-                        <p className="font-medium">{selectedApplication.userProfileSnapshot.fullName}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center">
-                      <Mail className="h-5 w-5 text-gray-400 mr-3" />
-                      <div>
-                        <p className="text-sm text-gray-600">Email</p>
-                        <p className="font-medium">{selectedApplication.userProfileSnapshot.email}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center">
-                      <Phone className="h-5 w-5 text-gray-400 mr-3" />
-                      <div>
-                        <p className="text-sm text-gray-600">Phone</p>
-                        <p className="font-medium">{selectedApplication.userProfileSnapshot.phone}</p>
-                      </div>
+                  <div className="flex items-center">
+                    <UserSearch className="h-5 w-5 text-gray-400 mr-3" />
+                    <div>
+                      <p className="text-sm text-gray-600">Full Name</p>
+                      <p className="font-medium">{selectedApplication.userProfileSnapshot.fullName}</p>
                     </div>
                   </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center">
-                      <GraduationCap className="h-5 w-5 text-gray-400 mr-3" />
-                      <div>
-                        <p className="text-sm text-gray-600">University</p>
-                        <p className="font-medium">{selectedApplication.userProfileSnapshot.university}</p>
-                      </div>
+                  <div className="flex items-center">
+                    <Mail className="h-5 w-5 text-gray-400 mr-3" />
+                    <div>
+                      <p className="text-sm text-gray-600">Email</p>
+                      <p className="font-medium">{selectedApplication.userProfileSnapshot.email}</p>
                     </div>
-                    <div className="flex items-center">
-                      <Briefcase className="h-5 w-5 text-gray-400 mr-3" />
-                      <div>
-                        <p className="text-sm text-gray-600">Degree</p>
-                        <p className="font-medium">
-                          {selectedApplication.userProfileSnapshot.degree} in {selectedApplication.userProfileSnapshot.major}
-                        </p>
-                      </div>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="h-5 w-5 text-gray-400 mr-3 flex items-center justify-center">
+                      🎓
                     </div>
-                    <div className="flex items-center">
-                      <Calendar className="h-5 w-5 text-gray-400 mr-3" />
-                      <div>
-                        <p className="text-sm text-gray-600">Graduation Year</p>
-                        <p className="font-medium">{selectedApplication.userProfileSnapshot.graduationYear}</p>
-                      </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Education</p>
+                      <p className="font-medium">
+                        {selectedApplication.userProfileSnapshot.degree} in {selectedApplication.userProfileSnapshot.major}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <Calendar className="h-5 w-5 text-gray-400 mr-3" />
+                    <div>
+                      <p className="text-sm text-gray-600">Graduation Year</p>
+                      <p className="font-medium">{selectedApplication.userProfileSnapshot.graduationYear}</p>
                     </div>
                   </div>
                 </div>
@@ -519,7 +581,7 @@ export default function AppliedInternScreen() {
               </div>
 
               {/* Application Content */}
-              <div className="space-y-6">
+              <div className="space-y-6 p-6">
                 {/* Cover Letter */}
                 <div>
                   <h4 className="text-lg font-semibold text-gray-900 mb-2">Cover Letter</h4>
@@ -550,20 +612,6 @@ export default function AppliedInternScreen() {
                       </div>
                     )}
 
-                    <div>
-                      <p className="font-medium text-gray-700 mb-1">Expected Outcome</p>
-                      <p className="text-gray-900 bg-gray-50 p-3 rounded">
-                        {selectedApplication.applicationData.expectedOutcome}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="font-medium text-gray-700 mb-1">Available Start Date</p>
-                      <p className="text-gray-900 bg-gray-50 p-3 rounded">
-                        {formatDate(selectedApplication.applicationData.availableStartDate)}
-                      </p>
-                    </div>
-
                     {selectedApplication.applicationData.additionalComments && (
                       <div>
                         <p className="font-medium text-gray-700 mb-1">Additional Comments</p>
@@ -575,75 +623,50 @@ export default function AppliedInternScreen() {
                   </div>
                 </div>
               </div>
-            </div>
-            {/* Modal Footer with Status and Actions */}
-            <div className="p-6 border-t border-gray-200 bg-gray-50">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-600">Current Status:</span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium flex items-center ${getStatusColor(selectedApplication.status)}`}>
+
+              {/* Simple Status Management Section */}
+              <div className="border-t border-gray-200 p-6">
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">Update Application Status</h4>
+                
+                {/* Current Status Display */}
+                <div className="mb-4">
+                  <p className="text-sm text-gray-600 mb-2">Current Status:</p>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium flex items-center w-fit ${getStatusColor(selectedApplication.status)}`}>
                     {getStatusIcon(selectedApplication.status)}
-                    <span className="ml-1 capitalize">{selectedApplication.status.replace('_', ' ')}</span>
+                    <span className="ml-2 capitalize">{selectedApplication.status.replace('_', ' ')}</span>
                   </span>
                 </div>
 
-                <div className="flex space-x-3">
-                  <button
-                    onClick={handleCloseModal}
-                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 font-medium"
+                {/* Status Selection Dropdown */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Change Status To:
+                  </label>
+                  <select
+                    value={selectedApplication.status}
+                    onChange={(e) => {
+                      if (window.confirm(`Are you sure you want to change the status to "${e.target.value.replace('_', ' ')}"?`)) {
+                        handleStatusUpdate(selectedApplication._id, e.target.value);
+                      }
+                    }}
+                    disabled={isUpdatingStatus}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-cyan-500 focus:border-cyan-500 text-black disabled:opacity-50"
                   >
-                    Close
-                  </button>
-                  
-                  {/* Status Update Buttons */}
-                  {selectedApplication.status === "pending" && (
-                    <>
-                      <button
-                        onClick={() => handleStatusUpdate(selectedApplication._id, "shortlisted")}
-                        disabled={isUpdatingStatus}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium disabled:opacity-50"
-                      >
-                        Shortlist
-                      </button>
-                      <button
-                        onClick={() => handleStatusUpdate(selectedApplication._id, "rejected")}
-                        disabled={isUpdatingStatus}
-                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium disabled:opacity-50"
-                      >
-                        Reject
-                      </button>
-                    </>
-                  )}
-                  
-                  {selectedApplication.status === "shortlisted" && (
-                    <>
-                      <button
-                        onClick={() => handleStatusUpdate(selectedApplication._id, "interview_scheduled")}
-                        disabled={isUpdatingStatus}
-                        className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 font-medium disabled:opacity-50"
-                      >
-                        Schedule Interview
-                      </button>
-                      <button
-                        onClick={() => handleStatusUpdate(selectedApplication._id, "selected")}
-                        disabled={isUpdatingStatus}
-                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium disabled:opacity-50"
-                      >
-                        Select
-                      </button>
-                    </>
-                  )}
-                  
-                  {selectedApplication.status === "interview_scheduled" && (
-                    <button
-                      onClick={() => handleStatusUpdate(selectedApplication._id, "selected")}
-                      disabled={isUpdatingStatus}
-                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium disabled:opacity-50"
-                    >
-                      Select Candidate
-                    </button>
-                  )}
+                    <option value="pending">Pending Review</option>
+                    <option value="shortlisted">Shortlisted</option>
+                    <option value="interview_scheduled">Interview Scheduled</option>
+                    <option value="selected">Selected/Accepted</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
                 </div>
+
+                {/* Loading Indicator */}
+                {isUpdatingStatus && (
+                  <div className="flex items-center justify-center py-2">
+                    <Loader2 className="h-5 w-5 animate-spin text-cyan-500 mr-2" />
+                    <span className="text-sm text-gray-600">Updating status...</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
