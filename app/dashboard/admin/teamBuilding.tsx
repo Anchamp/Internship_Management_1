@@ -199,7 +199,7 @@ const EditTeamModal = ({
             <div>
               <CustomUserSelector
                 label="Mentors"
-                role="mentor"
+                role="employee"
                 selected={editMentors}
                 setSelected={setEditMentors}
                 organizationName={team.organizationName}
@@ -217,7 +217,7 @@ const EditTeamModal = ({
             <div>
               <CustomUserSelector
                 label="Panelists"
-                role="panelist"
+                role="employee"
                 selected={editPanelists}
                 setSelected={setEditPanelists}
                 organizationName={team.organizationName}
@@ -309,7 +309,7 @@ const CreateTeamModal = ({
             <div>
               <CustomUserSelector
                 label="Mentors"
-                role="mentor"
+                role="employee"
                 selected={newMentors}
                 setSelected={setNewMentors}
                 organizationName={organizationName}
@@ -327,7 +327,7 @@ const CreateTeamModal = ({
             <div>
               <CustomUserSelector
                 label="Panelists"
-                role="panelist"
+                role="employee"
                 selected={newPanelists}
                 setSelected={setNewPanelists}
                 organizationName={organizationName}
