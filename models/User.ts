@@ -85,18 +85,27 @@ const userSchema = new Schema(
     
     // Applied Internships Tracking
     appliedInternships: [{
-      internshipId: String,
-      companyName: String,
-      position: String,
-      appliedDate: Date,
-      status: {
-        type: String,
-        enum: ["pending", "shortlisted", "interview_scheduled", "selected", "rejected"],
-        default: "pending"
-      },
-      interviewDate: Date,
-      notes: String
-    }],
+  internshipId: String,
+  companyName: String,
+  position: String,
+  appliedDate: Date,
+  status: {
+    type: String,
+    enum: ["pending", "shortlisted", "interview_scheduled", "selected", "accepted", "declined", "rejected"],
+    default: "pending"
+  },
+  respondedDate: Date, // NEW: When intern responded to selection
+  interviewDate: Date,
+  notes: String,
+  applicationData: {
+    type: Schema.Types.Mixed, // Store the application form data
+    default: {}
+  },
+  userProfileSnapshot: {
+    type: Schema.Types.Mixed, // Store user profile at time of application
+    default: {}
+  }
+}],
     
     // Team Assignment Tracking
     assignedTeams: [{
