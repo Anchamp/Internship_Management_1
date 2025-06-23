@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import Internship from '@/models/Internship';
 import User from '@/models/User';
+import mongoose from 'mongoose';
 
 export async function POST(request: Request) {
   try {
@@ -27,8 +28,18 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
     
+    // Ensure internshipId is a valid ObjectId
+    let validInternshipId;
+    try {
+      validInternshipId = new mongoose.Types.ObjectId(internshipId);
+    } catch (error) {
+      return NextResponse.json({
+        error: 'Invalid internship ID format'
+      }, { status: 400 });
+    }
+    
     // Check if internship exists and is still accepting applications
-    const internship = await Internship.findById(internshipId);
+    const internship = await Internship.findById(validInternshipId);
     if (!internship) {
       return NextResponse.json({
         error: 'Internship not found'
@@ -55,9 +66,13 @@ export async function POST(request: Request) {
       }, { status: 404 });
     }
     
-    // Check if already applied to this internship
+    // Check if already applied to this internship (check both string and ObjectId formats)
     const existingApplication = user.appliedInternships?.find(
-      (app: any) => app.internshipId === internshipId
+      (app: any) => {
+        const appId = app.internshipId?.toString();
+        const targetId = validInternshipId.toString();
+        return appId === targetId;
+      }
     );
     
     if (existingApplication) {
@@ -87,7 +102,7 @@ export async function POST(request: Request) {
     }
     
     const applicationEntry = {
-      internshipId: internshipId,
+      internshipId: validInternshipId.toString(), // Store as string for consistency
       companyName: organizationName,
       position: internshipTitle,
       appliedDate: new Date(),
