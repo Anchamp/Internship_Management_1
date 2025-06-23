@@ -133,7 +133,7 @@ export async function POST(request: Request) {
         .replace(/[^a-z0-9]/g, '-');
       orgId = `org_${nameSlug}_${timestamp}`; // Formatted organization ID for admins
       orgName = organizationName; // Admins keep their organization name
-    } else if (role === '') {
+    } else if (role === 'employee') {
       // For mentors and panelists, use the provided organizationId but set name to "none"
       orgId = organizationId; // This should be the formatted ID from the frontend dropdown
       orgName = 'none';

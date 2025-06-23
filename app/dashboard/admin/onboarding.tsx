@@ -50,8 +50,7 @@ export default function OnboardingScreen() {
   const [processingUser, setProcessingUser] = useState<string | null>(null);
 
   // State for fetching real data
-  const [mentors, setMentors] = useState<UserData[]>([]);
-  const [panelists, setPanelists] = useState<UserData[]>([]);
+  const [employees, setEmployees] = useState<UserData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [organizationName, setOrganizationName] = useState("");
@@ -86,8 +85,7 @@ export default function OnboardingScreen() {
         const data = await response.json();
 
         // Update state with the fetched data
-        setMentors(data.mentors || []);
-        setPanelists(data.panelists || []);
+        setEmployees(data.employees || []);
         setOrganizationName(data.organizationName || "Your Organization");
       } catch (error: any) {
         console.error("Error fetching pending verifications:", error);
@@ -149,20 +147,14 @@ export default function OnboardingScreen() {
         }
       );
 
-      // Find the user in either mentors or panelists array
-      const userToRemove = [...mentors, ...panelists].find(
-        (user) => user._id === userId
-      );
+      // Find the user in Employees array
+      const userToRemove = employees.find((user) => user._id === userId);
 
       // Remove user from the appropriate list based on their role
       if (userToRemove) {
-        if (userToRemove.role === "mentor") {
-          setMentors((prev) => prev.filter((mentor) => mentor._id !== userId));
-        } else if (userToRemove.role === "panelist") {
-          setPanelists((prev) =>
-            prev.filter((panelist) => panelist._id !== userId)
-          );
-        }
+        if (userToRemove.role === "employee") {
+          setEmployees((prev) => prev.filter((employee) => employee._id !== userId));
+        } 
       }
 
       // If modal is open for this user, close it
@@ -533,47 +525,24 @@ export default function OnboardingScreen() {
   return (
     <>
       <div className="grid grid-cols-1 gap-6">
-        {/* Mentor Verification Section */}
+        {/* Employee Verification Section */}
         <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100">
           <div className="p-5 border-b bg-gradient-to-r from-cyan-50 to-cyan-100">
             <h2 className="text-xl font-bold text-gray-800">
-              Mentor Verification
+              Employee Verification
             </h2>
           </div>
           <div className="h-96 overflow-y-auto">
-            {mentors.length === 0 ? (
+            {employees.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-gray-500 p-4">
                 <div className="bg-cyan-50 p-3 rounded-full mb-2">
                   <User className="h-6 w-6 text-cyan-500" />
                 </div>
-                <p>No pending mentor verifications</p>
+                <p>No pending employee verifications</p>
               </div>
             ) : (
-              mentors.map((mentor) => (
-                <UserCard key={mentor._id} user={mentor} />
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Panelist Verification Section */}
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100">
-          <div className="p-5 border-b bg-gradient-to-r from-indigo-50 to-indigo-100">
-            <h2 className="text-xl font-bold text-gray-800">
-              Panelist Verification
-            </h2>
-          </div>
-          <div className="h-96 overflow-y-auto">
-            {panelists.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-gray-500 p-4">
-                <div className="bg-indigo-50 p-3 rounded-full mb-2">
-                  <Users className="h-6 w-6 text-indigo-500" />
-                </div>
-                <p>No pending panelist verifications</p>
-              </div>
-            ) : (
-              panelists.map((panelist) => (
-                <UserCard key={panelist._id} user={panelist} />
+              employees.map((employee) => (
+                <UserCard key={employee._id} user={employee} />
               ))
             )}
           </div>
