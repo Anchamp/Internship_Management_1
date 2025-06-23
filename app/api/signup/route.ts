@@ -29,9 +29,9 @@ export async function POST(request: Request) {
     }
     
     // Additional validation for mentor/panelist roles - require organizationId
-    if (['mentor', 'panelist'].includes(role) && !organizationId) {
+    if (role === 'employee' && !organizationId) {
       return NextResponse.json(
-        { error: 'Organization selection is required for mentor/panelist accounts' },
+        { error: 'Organization selection is required for employee accounts' },
         { status: 400 }
       );
     }
@@ -100,7 +100,7 @@ export async function POST(request: Request) {
     }
     
     // For mentor/panelist roles, verify that selected organizationId exists
-    if (['mentor', 'panelist'].includes(role) && organizationId) {
+    if (role === 'employee' && organizationId) {
       // Log the organizationId for debugging
       console.log(`Checking if organization exists: ${organizationId}`);
       
@@ -133,7 +133,7 @@ export async function POST(request: Request) {
         .replace(/[^a-z0-9]/g, '-');
       orgId = `org_${nameSlug}_${timestamp}`; // Formatted organization ID for admins
       orgName = organizationName; // Admins keep their organization name
-    } else if (['mentor', 'panelist'].includes(role)) {
+    } else if (role === 'employee') {
       // For mentors and panelists, use the provided organizationId but set name to "none"
       orgId = organizationId; // This should be the formatted ID from the frontend dropdown
       orgName = 'none';

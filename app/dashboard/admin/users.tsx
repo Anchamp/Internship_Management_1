@@ -87,8 +87,7 @@ export default function OnboardingScreen() {
         // Combine all users into a single array
         const allUsers = [
           ...(data.admins || []),
-          ...(data.mentors || []),
-          ...(data.panelists || []),
+          ...(data.employees || []),
           ...(data.interns || []),
         ];
 
@@ -191,10 +190,8 @@ export default function OnboardingScreen() {
   // Get role background color
   const getRoleColor = (role: string) => {
     switch (role) {
-      case "mentor":
+      case "employee":
         return "bg-cyan-100 text-cyan-700";
-      case "panelist":
-        return "bg-indigo-100 text-indigo-700";
       case "intern":
         return "bg-emerald-100 text-emerald-700";
       case "admin":
@@ -219,8 +216,7 @@ export default function OnboardingScreen() {
   const getRoleCounts = () => {
     const counts = {
       all: users.length,
-      mentor: users.filter((user) => user.role === "mentor").length,
-      panelist: users.filter((user) => user.role === "panelist").length,
+      employee: users.filter((user) => user.role === "employee").length,
       intern: users.filter((user) => user.role === "intern").length,
       admin: users.filter((user) => user.role === "admin").length,
     };
@@ -658,10 +654,7 @@ export default function OnboardingScreen() {
                 >
                   <option value="all">All Users ({roleCounts.all})</option>
                   <option value="admin">Admins ({roleCounts.admin})</option>
-                  <option value="mentor">Mentors ({roleCounts.mentor})</option>
-                  <option value="panelist">
-                    Panelists ({roleCounts.panelist})
-                  </option>
+                  <option value="employee">Employee ({roleCounts.employee})</option>
                   <option value="intern">Interns ({roleCounts.intern})</option>
                 </select>
                 {/* Custom arrow indicator */}

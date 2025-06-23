@@ -81,11 +81,8 @@ export default function SignIn() {
         case "intern":
           router.push("/dashboard/intern");
           break;
-        case "mentor":
-          router.push("/dashboard/mentor");
-          break;
-        case "panelist":
-          router.push("/dashboard/panelist");
+        case "employee":
+          router.push("/dashboard/employee");
           break;
         case "admin":
           router.push("/dashboard/admin");

@@ -35,19 +35,17 @@ export async function GET(request: Request) {
       organizationId: organizationId,
       verificationStatus: 'pending', // Specifically filter for 'pending' status
       profileSubmissionCount: { $gt: 0 }, // Only users who have submitted their profile
-      role: { $in: ['mentor', 'panelist'] }
+      role: 'employee'
     }).select('-password').lean();
     
     console.log(`Found ${pendingVerifications.length} pending verification requests`);
     
     // Group by role
-    const mentors = pendingVerifications.filter(user => user.role === 'mentor');
-    const panelists = pendingVerifications.filter(user => user.role === 'panelist');
+    const employees = pendingVerifications.filter(user => user.role === 'employee');
     
     return NextResponse.json({
       success: true,
-      mentors,
-      panelists,
+      employees,
       organizationId,
       organizationName: adminUser.organizationName
     });
