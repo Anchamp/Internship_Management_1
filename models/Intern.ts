@@ -23,7 +23,7 @@ const internSchema = new Schema(
     },
     role: {
       type: String,
-      enum: ['intern']
+      enum: ['intern'],
       default: 'intern',
       required: true,
       immutable: true,
@@ -46,19 +46,19 @@ const internSchema = new Schema(
     profileSubmissionCount: {
       type: Number,
       default: 0,
-    }
+    },
     verificationStatus: {
       type: String,
       enum: ['pending', 'verified', 'rejected'],
       default: 'pending',
-    }
+    },
 
     // Academic details
     university: String,
     degree: String,
     major: String,
     graduationYear: String,
-    gpa: String
+    gpa: String,
 
     // Goals and Expereince
     internshipGoals: String,
@@ -68,7 +68,7 @@ const internSchema = new Schema(
     // Documents
     resumeFile: String,
     idDocumentFile: String,
-    transcriptFiles: [String]
+    transcriptFiles: [String],
   
     applicationStatus: {
       type: String,
