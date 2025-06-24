@@ -19,7 +19,9 @@ import {
   Users,
   X,
   Upload,
-  Trash2, // Add Trash2 icon import
+  Trash2,
+  AlertCircle,
+  Check,
 } from "lucide-react";
 
 interface EmployeeProfileProps {
@@ -75,12 +77,15 @@ export default function EmployeeProfile({
     useState<number>(0);
   const [verificationStatus, setVerificationStatus] =
     useState<string>("pending");
+  const [loadError, setLoadError] = useState<string>("");
+  const [phoneError, setPhoneError] = useState(""); // Added for phone validation
 
   const [userData, setUserData] = useState({
     username: "",
     fullName: "",
     email: "",
     phone: "",
+    countryCode: "+91", // Added country code with default value
     organization: "",
     position: "",
     address: "",
@@ -101,6 +106,7 @@ export default function EmployeeProfile({
     const loadUserData = async () => {
       try {
         setIsLoading(true);
+        setLoadError("");
 
         // Get username from session or localStorage (temporary until full auth implementation)
         const storedUser = localStorage.getItem("user");
@@ -111,26 +117,39 @@ export default function EmployeeProfile({
 
         // Get username for API call
         const { username, role } = JSON.parse(storedUser);
-        if (role !== "mentor") {
-          router.push(`/dashboard/${role}`);
-          return;
-        }
 
         // Fetch user data directly from the database
         const response = await fetch(`/api/users/${username}`);
         if (!response.ok) {
-          throw new Error("Failed to fetch user data");
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to fetch user data");
         }
 
         const data = await response.json();
 
         if (data.user) {
+          console.log("Fetched user data:", data.user); // Debug log
+
+          // Extract country code and phone number from stored phone
+          let countryCode = "+91";
+          let phoneNumber = data.user.phone || "";
+
+          // If phone number includes a '+', extract the country code
+          if (phoneNumber && phoneNumber.includes("+")) {
+            const parts = phoneNumber.split(" ");
+            if (parts.length > 1) {
+              countryCode = parts[0];
+              phoneNumber = parts.slice(1).join("");
+            }
+          }
+
           // Set state with user data from MongoDB
           setUserData({
             username: data.user.username || "",
             fullName: data.user.fullName || "",
             email: data.user.email || "",
-            phone: data.user.phone || "",
+            phone: phoneNumber,
+            countryCode: countryCode,
             organization:
               data.user.organizationName || data.user.organization || "",
             position: data.user.position || "",
@@ -152,9 +171,12 @@ export default function EmployeeProfile({
           // Set profile submission count and verification status
           setProfileSubmissionCount(data.user.profileSubmissionCount || 0);
           setVerificationStatus(data.user.verificationStatus || "pending");
+        } else {
+          setLoadError("User data not found");
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error loading user data:", error);
+        setLoadError(error.message || "Failed to load profile data");
       } finally {
         setIsLoading(false);
       }
@@ -164,14 +186,80 @@ export default function EmployeeProfile({
   }, [router]);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     const { name, value } = e.target;
-    setUserData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+
+    // Special handling for phone number validation
+    if (name === "phone") {
+      // Only allow digits
+      const phoneValue = value.replace(/\D/g, "");
+
+      // Validate phone number length
+      if (phoneValue.length > 0 && phoneValue.length !== 10) {
+        setPhoneError("Phone number must be 10 digits");
+      } else {
+        setPhoneError("");
+      }
+
+      setUserData((prev) => ({
+        ...prev,
+        phone: phoneValue,
+      }));
+    } else {
+      setUserData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
+
+  // Create the phone number field component with country code
+  const PhoneNumberField = () => (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        Phone Number
+      </label>
+      <div className="flex">
+        <select
+          name="countryCode"
+          value={userData.countryCode}
+          onChange={handleChange}
+          className="p-2 border rounded-l-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
+        >
+          <option value="+1">+1 (USA)</option>
+          <option value="+44">+44 (UK)</option>
+          <option value="+91">+91 (India)</option>
+          <option value="+61">+61 (Australia)</option>
+          <option value="+86">+86 (China)</option>
+          <option value="+49">+49 (Germany)</option>
+          <option value="+33">+33 (France)</option>
+          <option value="+81">+81 (Japan)</option>
+          <option value="+7">+7 (Russia)</option>
+          <option value="+55">+55 (Brazil)</option>
+        </select>
+        <div className="relative flex-grow">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Phone className="h-4 w-4 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            name="phone"
+            value={userData.phone}
+            onChange={handleChange}
+            className={`pl-10 w-full p-2 border rounded-r-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black ${
+              phoneError ? "border-red-500" : ""
+            }`}
+            placeholder="10-digit number"
+            maxLength={10}
+          />
+        </div>
+      </div>
+      {phoneError && <p className="text-sm text-red-500 mt-1">{phoneError}</p>}
+    </div>
+  );
 
   // Modified handleImageUpload function with compression
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -214,6 +302,13 @@ export default function EmployeeProfile({
   // Modified handleSubmit function to update MongoDB only
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate phone number before submission
+    if (userData.phone && userData.phone.length !== 10) {
+      setPhoneError("Phone number must be 10 digits");
+      return;
+    }
+
     setIsSaving(true);
 
     try {
@@ -227,13 +322,21 @@ export default function EmployeeProfile({
 
       const { username } = JSON.parse(storedUser);
 
+      // Format the data with country code for storage
+      const formattedData = {
+        ...userData,
+        phone: userData.phone
+          ? `${userData.countryCode} ${userData.phone}`
+          : "",
+      };
+
       // Call API to update profile in MongoDB
       const response = await fetch(`/api/users/${username}/update-profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(userData),
+        body: JSON.stringify(formattedData),
       });
 
       const data = await response.json();
@@ -272,6 +375,26 @@ export default function EmployeeProfile({
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
+        <div className="bg-red-50 p-6 rounded-lg border border-red-200 max-w-lg w-full text-center">
+          <AlertCircle className="h-10 w-10 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-red-700 mb-2">
+            Error Loading Profile
+          </h3>
+          <p className="text-red-600 mb-4">{loadError}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
@@ -374,8 +497,8 @@ export default function EmployeeProfile({
                   type="email"
                   name="email"
                   value={userData.email}
-                  onChange={handleChange}
-                  className="pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
+                  readOnly
+                  className="pl-10 w-full p-2 border rounded-md bg-gray-100 cursor-not-allowed text-gray-500"
                   placeholder="Enter your email"
                   autoComplete="email"
                 />
@@ -400,24 +523,8 @@ export default function EmployeeProfile({
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Phone Number
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Phone className="h-4 w-4 text-gray-400" />
-                </div>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={userData.phone}
-                  onChange={handleChange}
-                  className="pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
-                  placeholder="Enter your phone number"
-                />
-              </div>
-            </div>
+            {/* Replace phone input with PhoneNumberField */}
+            <PhoneNumberField />
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -462,9 +569,6 @@ export default function EmployeeProfile({
                   className="pl-10 w-full p-2 border rounded-md bg-gray-100 cursor-not-allowed text-gray-500"
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Organization is assigned by admin and cannot be edited
-              </p>
             </div>
 
             <div>

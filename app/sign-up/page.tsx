@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import {
   Loader2,
   Eye,
   EyeOff,
+  Search,
 } from "lucide-react";
 import "../auth.css";
 
@@ -80,6 +81,22 @@ export default function SignUp() {
   const [verifyingOtp, setVerifyingOtp] = useState<boolean>(false);
   const [otpError, setOtpError] = useState<string>("");
   const [otpSent, setOtpSent] = useState<boolean>(false);
+
+  // New state for organization search
+  const [orgSearchQuery, setOrgSearchQuery] = useState("");
+
+  // Add clearOrgSearch function
+  const clearOrgSearch = () => {
+    setOrgSearchQuery("");
+  };
+
+  // Add filtered organizations logic with useMemo
+  const filteredOrganizations = useMemo(() => {
+    if (!orgSearchQuery.trim()) return organizations;
+    return organizations.filter((org) =>
+      org.name.toLowerCase().includes(orgSearchQuery.toLowerCase())
+    );
+  }, [organizations, orgSearchQuery]);
 
   const router = useRouter();
 
@@ -656,7 +673,8 @@ export default function SignUp() {
                         : "bg-white !border-2 !border-[#06B6D4] !text-[#06B6D4] hover:shadow-[0_0_10px_rgba(6,182,212,0.5)] hover:!border-[#0891B2]"
                     }`}
                     style={{
-                      backgroundColor: role === "employee" ? "#06B6D4" : "white",
+                      backgroundColor:
+                        role === "employee" ? "#06B6D4" : "white",
                       color: role === "employee" ? "black" : "#06B6D4",
                     }}
                   >
@@ -1008,7 +1026,7 @@ export default function SignUp() {
                   </div>
                 )}
 
-                {(role === "employee") && (
+                {role === "employee" && (
                   <div className="space-y-1 relative">
                     <label
                       htmlFor="organization"
@@ -1022,6 +1040,11 @@ export default function SignUp() {
                       onValueChange={setSelectedOrganization}
                       required
                       disabled={isLoading || isLoadingOrgs}
+                      onOpenChange={(open) => {
+                        if (!open) {
+                          clearOrgSearch();
+                        }
+                      }}
                     >
                       <SelectTrigger
                         className="input-glow bg-white !border-2 !border-black focus:!border-black focus:ring-black/20 !text-black placeholder:text-gray-500 relative z-40 h-8 text-xs"
@@ -1030,8 +1053,6 @@ export default function SignUp() {
                           backgroundColor: "white",
                           borderColor: "black",
                           borderWidth: "2px",
-                          position: "relative",
-                          zIndex: 40,
                         }}
                       >
                         {isLoadingOrgs ? (
@@ -1044,7 +1065,7 @@ export default function SignUp() {
                         )}
                       </SelectTrigger>
                       <SelectContent
-                        className="!bg-white !text-black border-2 border-black shadow-lg max-h-40 overflow-y-auto z-50"
+                        className="!bg-white !text-black border-2 border-black shadow-xl overflow-hidden z-50 p-0"
                         style={{
                           backgroundColor: "white",
                           color: "black",
@@ -1053,20 +1074,85 @@ export default function SignUp() {
                           borderWidth: "2px",
                         }}
                       >
-                        {organizations.length > 0 ? (
-                          organizations.map((org) => (
-                            <SelectItem
-                              key={org.id}
-                              value={org.id}
-                              className="!text-black hover:!bg-gray-100 cursor-pointer text-xs"
-                              style={{ color: "black" }}
-                            >
-                              {org.name}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <div className="p-2 text-center text-gray-500 text-xs">
-                            No organizations available
+                        {/* Improved Search Header */}
+                        <div className="sticky top-0 bg-gradient-to-r from-gray-50 to-white border-b border-gray-200 p-2.5 shadow-sm">
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                              <Search className="h-3.5 w-3.5 text-cyan-600" />
+                            </div>
+                            <Input
+                              placeholder="Search organizations..."
+                              value={orgSearchQuery}
+                              onChange={(e) =>
+                                setOrgSearchQuery(e.target.value)
+                              }
+                              className="h-7 pl-8 pr-8 text-xs !bg-white !border !border-gray-300 !text-black placeholder:text-gray-500 focus:!border-cyan-500 focus:!ring-1 focus:!ring-cyan-500/30 rounded-md transition-all duration-200"
+                              style={{
+                                color: "black",
+                                backgroundColor: "white",
+                              }}
+                              autoComplete="off"
+                            />
+                            {orgSearchQuery && (
+                              <button
+                                onClick={clearOrgSearch}
+                                className="absolute inset-y-0 right-0 pr-2.5 flex items-center transition-opacity duration-200 opacity-70 hover:opacity-100"
+                              >
+                                <XCircle className="h-3.5 w-3.5 text-gray-500 hover:text-red-500" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Results Area with Enhanced Styling */}
+                        <div className="max-h-[180px] overflow-y-auto py-1.5 px-1">
+                          {isLoadingOrgs ? (
+                            <div className="flex items-center justify-center py-6">
+                              <Loader2 className="h-5 w-5 animate-spin text-cyan-500 mr-2" />
+                              <span className="text-sm text-gray-600">
+                                Loading organizations...
+                              </span>
+                            </div>
+                          ) : filteredOrganizations.length > 0 ? (
+                            <div className="space-y-0.5">
+                              {filteredOrganizations.map((org) => (
+                                <SelectItem
+                                  key={org.id}
+                                  value={org.id}
+                                  className="!text-black hover:!bg-cyan-50 cursor-pointer text-xs py-2 px-3 rounded-md transition-colors duration-150"
+                                  style={{ color: "black" }}
+                                >
+                                  <div className="flex items-center">
+                                    <div className="flex-shrink-0 w-4 h-4 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full mr-2 opacity-80"></div>
+                                    <span>{org.name}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-6 px-3">
+                              <div className="bg-gray-50 rounded-lg p-3 inline-flex items-center justify-center mb-2">
+                                <Search className="h-4 w-4 text-gray-400" />
+                              </div>
+                              <p className="text-sm text-gray-500 font-medium">
+                                {organizations.length > 0
+                                  ? "No matching organizations found"
+                                  : "No organizations available"}
+                              </p>
+                              <p className="text-xs text-gray-400 mt-1">
+                                {organizations.length > 0
+                                  ? "Try a different search term"
+                                  : "Please contact an administrator"}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Footer with Organization Count */}
+                        {organizations.length > 0 && !isLoadingOrgs && (
+                          <div className="border-t border-gray-200 py-1.5 px-3 text-[10px] text-gray-500 bg-gray-50">
+                            {filteredOrganizations.length} of{" "}
+                            {organizations.length} organizations
                           </div>
                         )}
                       </SelectContent>

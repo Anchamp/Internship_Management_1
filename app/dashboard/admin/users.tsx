@@ -51,7 +51,8 @@ export default function OnboardingScreen() {
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [processingUser, setProcessingUser] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>("all");
-  const [removeUserModalOpen, setRemoveUserModalOpen] = useState<boolean>(true);
+  const [removeUserModalOpen, setRemoveUserModalOpen] =
+    useState<boolean>(false);
 
   // State for fetching real data
   const [users, setUsers] = useState<UserData[]>([]);
@@ -592,42 +593,47 @@ export default function OnboardingScreen() {
 
   const closeRemoveUserModal = () => {
     setRemoveUserModalOpen(false);
-    setSelectedUser(null);
   };
-  const openRemoveUserModal = () => setRemoveUserModalOpen(true);
+
+  const openRemoveUserModal = () => {
+    setRemoveUserModalOpen(true);
+  };
 
   const RemoveUserModal = () => {
-    if (selectedUser) {
-      return (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Remove User</h3>
-            <p className="text-gray-700 mb-6">
-              Are you sure you want to remove the user <span className="font-bold text-black">{selectedUser.username}</span> from the Organization?
-              This action cannot be undone.
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={closeRemoveUserModal}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  await handleRemoveUser(selectedUser._id);
-                  closeRemoveUserModal();
-                }}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-              >
-                Remove User
-              </button>
-            </div>
+    if (!selectedUser || !removeUserModalOpen) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-4">Remove User</h3>
+          <p className="text-gray-700 mb-6">
+            Are you sure you want to remove the user{" "}
+            <span className="font-bold text-black">
+              {selectedUser.username}
+            </span>{" "}
+            from the Organization? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={closeRemoveUserModal}
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={async () => {
+                await handleRemoveUser(selectedUser._id);
+                closeRemoveUserModal();
+              }}
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+            >
+              Remove User
+            </button>
           </div>
         </div>
-      )
-    }
-  } 
+      </div>
+    );
+  };
 
   return (
     <>
@@ -644,21 +650,23 @@ export default function OnboardingScreen() {
 
             {/* Enhanced dropdown with arrow indicator and proper sizing */}
             <div className="relative inline-block w-full md:w-auto">
-              <div className="flex items-center gap-2 bg-white/80 px-4 py-2.5 rounded-lg shadow-sm border border-cyan-100 hover:border-cyan-300 transition-all duration-200">
-                <Filter className="h-4 w-4 text-cyan-600" />
+              <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-lg shadow-sm border border-black hover:border-gray-600 transition-all duration-200">
+                <Filter className="h-4 w-4 text-black" />
                 <select
                   value={selectedRole}
                   onChange={(e) => setSelectedRole(e.target.value)}
-                  className="bg-transparent border-none text-gray-800 text-sm font-medium focus:outline-none appearance-none pr-8 cursor-pointer w-full"
+                  className="bg-transparent border-none text-black text-sm font-medium focus:outline-none appearance-none pr-8 cursor-pointer w-full"
                   aria-label="Filter by role"
                 >
                   <option value="all">All Users ({roleCounts.all})</option>
                   <option value="admin">Admins ({roleCounts.admin})</option>
-                  <option value="employee">Employee ({roleCounts.employee})</option>
+                  <option value="employee">
+                    Employee ({roleCounts.employee})
+                  </option>
                   <option value="intern">Interns ({roleCounts.intern})</option>
                 </select>
                 {/* Custom arrow indicator */}
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-600">
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-black">
                   <svg
                     width="10"
                     height="6"
@@ -703,7 +711,6 @@ export default function OnboardingScreen() {
       {modalOpen && <UserModal />}
       {/* Remove user confirmation modal */}
       {removeUserModalOpen && <RemoveUserModal />}
-
 
       {/* Add custom styles for enhanced dropdown */}
       <style jsx global>{`

@@ -24,8 +24,7 @@ export default function CreatePostScreen() {
   const [formData, setFormData] = useState({
     title: "",
     category: "", // Add category field to the state
-    startDate: "",
-    endDate: "",
+    duration: "", // Replace startDate and endDate with duration
     mode: "onsite", // Default: onsite
     location: {
       city: "",
@@ -46,7 +45,6 @@ export default function CreatePostScreen() {
 
   const [newSkill, setNewSkill] = useState("");
   const [newResponsibility, setNewResponsibility] = useState("");
-  const [organizationLogo, setOrganizationLogo] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false); // Loading state
 
   // Add useEffect to populate organization data when component loads
@@ -61,23 +59,6 @@ export default function CreatePostScreen() {
       }));
     }
   }, []);
-
-  // Helper function to handle image upload and compression
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setOrganizationLogo(base64String);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleLogoRemove = () => {
-    setOrganizationLogo(null);
-  };
 
   // Handle form field changes
   const handleChange = (
@@ -191,16 +172,22 @@ export default function CreatePostScreen() {
         organizationId: userData.user.organizationId,
       });
 
+      // Calculate startDate and endDate from duration
+      const durationInMonths = parseInt(formData.duration);
+      const startDate = new Date(); // Today's date as start date
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + durationInMonths); // Add duration in months
+
       // Format dates to ISO string
       const formattedData = {
         ...formData,
-        startDate: new Date(formData.startDate).toISOString(),
-        endDate: new Date(formData.endDate).toISOString(),
         applicationDeadline: new Date(
           formData.applicationDeadline
         ).toISOString(),
         postingDate: new Date(formData.postingDate).toISOString(),
-        organizationLogo: organizationLogo,
+        // Add calculated startDate and endDate
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
         // Include admin data from database query results
         userData: {
           username: userData.user.username,
@@ -318,58 +305,6 @@ export default function CreatePostScreen() {
                   />
                 </div>
               </div>
-
-              {/* Organization Logo */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Organization Logo
-                </label>
-                <div className="flex items-center">
-                  {organizationLogo ? (
-                    <div className="relative mr-4">
-                      <div className="h-16 w-16 rounded-md overflow-hidden border border-gray-300">
-                        <Image
-                          src={organizationLogo}
-                          alt="Organization Logo"
-                          width={64}
-                          height={64}
-                          className="object-contain"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleLogoRemove}
-                        className="absolute -top-2 -right-2 bg-red-100 text-red-600 rounded-full p-0.5 hover:bg-red-200"
-                        title="Remove logo"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="h-16 w-16 bg-gray-100 rounded-md border border-dashed border-gray-300 flex items-center justify-center mr-4">
-                      <Building className="h-8 w-8 text-gray-300" />
-                    </div>
-                  )}
-
-                  <label
-                    htmlFor="logo-upload"
-                    className="relative cursor-pointer bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
-                  >
-                    <span>Upload logo</span>
-                    <input
-                      id="logo-upload"
-                      name="logo-upload"
-                      type="file"
-                      accept="image/*"
-                      className="sr-only"
-                      onChange={handleLogoUpload}
-                    />
-                  </label>
-                </div>
-                <p className="mt-1 text-xs text-gray-500">
-                  Recommended: Square image, 500x500px or larger
-                </p>
-              </div>
             </div>
           </div>
 
@@ -383,52 +318,34 @@ export default function CreatePostScreen() {
             </h3>
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-              {/* Start Date */}
+              {/* Internship Duration (in months) - replacing Start and End Date */}
               <div>
                 <label
-                  htmlFor="startDate"
+                  htmlFor="duration"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Start Date<span className="text-red-500">*</span>
+                  Internship Duration (in months)
+                  <span className="text-red-500">*</span>
                 </label>
                 <div className="relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Calendar className="h-5 w-5 text-gray-400" />
                   </div>
                   <input
-                    type="date"
-                    name="startDate"
-                    id="startDate"
+                    type="number"
+                    name="duration"
+                    id="duration"
+                    min="1"
                     required
-                    value={formData.startDate}
+                    value={formData.duration}
                     onChange={handleChange}
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm text-black"
+                    placeholder="e.g., 3"
                   />
                 </div>
-              </div>
-
-              {/* End Date */}
-              <div>
-                <label
-                  htmlFor="endDate"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  End Date<span className="text-red-500">*</span>
-                </label>
-                <div className="relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Calendar className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="date"
-                    name="endDate"
-                    id="endDate"
-                    required
-                    value={formData.endDate}
-                    onChange={handleChange}
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm text-black"
-                  />
-                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Enter the total duration in months
+                </p>
               </div>
 
               {/* Mode of Internship */}
@@ -628,54 +545,54 @@ export default function CreatePostScreen() {
                   </div>
                 </div>
 
-                {/* Application Deadline & Posting Date */}
-                <div className="mb-6">
-                  <label
-                    htmlFor="applicationDeadline"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Application Deadline<span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative rounded-md shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Clock className="h-5 w-5 text-gray-400" />
+                {/* Application Deadline & Posting Date - Now arranged horizontally */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="applicationDeadline"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Application Deadline
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative rounded-md shadow-sm">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Clock className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <input
+                        type="date"
+                        name="applicationDeadline"
+                        id="applicationDeadline"
+                        required
+                        value={formData.applicationDeadline}
+                        onChange={handleChange}
+                        className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm text-black"
+                      />
                     </div>
-                    <input
-                      type="date"
-                      name="applicationDeadline"
-                      id="applicationDeadline"
-                      required
-                      value={formData.applicationDeadline}
-                      onChange={handleChange}
-                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm text-black"
-                    />
                   </div>
-                </div>
 
-                <div>
-                  <label
-                    htmlFor="postingDate"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Posting Date<span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative rounded-md shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Calendar className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <label
+                      htmlFor="postingDate"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Posting Date<span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative rounded-md shadow-sm">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Calendar className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <input
+                        type="date"
+                        name="postingDate"
+                        id="postingDate"
+                        required
+                        value={formData.postingDate}
+                        onChange={handleChange}
+                        className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm text-black"
+                      />
                     </div>
-                    <input
-                      type="date"
-                      name="postingDate"
-                      id="postingDate"
-                      required
-                      value={formData.postingDate}
-                      onChange={handleChange}
-                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm text-black"
-                    />
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">
-                    Defaults to today but can be changed if needed
-                  </p>
                 </div>
               </div>
 
