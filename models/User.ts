@@ -23,7 +23,7 @@ const userSchema = new Schema(
     },
     role: {
       type: String,
-      enum: ["student", "intern", "employee", "admin"],
+      enum: ["employee", "admin"],
       required: true,
     },
     organizationName: {
@@ -55,116 +55,6 @@ const userSchema = new Schema(
       type: String,
       enum: ["pending", "verified", "rejected"],
       default: "pending",
-    },
-    
-    // Academic Information (for interns)
-    university: String,
-    degree: String,
-    major: String,
-    graduationYear: String,
-    gpa: String,
-    
-    // Intern Goals and Experience
-    internshipGoals: String,
-    previousExperience: String,
-    portfolioLinks: [String],
-    
-    // Document Fields (for resume, ID, transcript storage as base64 or file paths)
-    resumeFile: String,
-    idDocumentFile: String,
-    transcriptFile: String,
-    
-    // Application Status Tracking
-    applicationStatus: {
-      type: String,
-      enum: ["none", "pending", "approved", "rejected", "active", "completed"],
-      default: "none",
-    },
-    
-    // Applied Internships Tracking
-    appliedInternships: [{
-  internshipId: String,
-  companyName: String,
-  position: String,
-  appliedDate: Date,
-  status: {
-    type: String,
-    enum: ["pending", "shortlisted", "interview_scheduled", "selected", "accepted", "declined", "rejected"],
-    default: "pending"
-  },
-  respondedDate: Date, // NEW: When intern responded to selection
-  interviewDate: Date,
-  notes: String,
-  applicationData: {
-    type: Schema.Types.Mixed, // Store the application form data
-    default: {}
-  },
-  userProfileSnapshot: {
-    type: Schema.Types.Mixed, // Store user profile at time of application
-    default: {}
-  }
-}],
-    
-    // Team Assignment Tracking
-    assignedTeams: [{
-      teamId: String,
-      teamName: String,
-      projectTitle: String,
-      assignedDate: Date,
-      status: {
-        type: String,
-        enum: ["active", "completed", "inactive"],
-        default: "active"
-      }
-    }],
-    
-    // Mentors and Panelists assignments
-    employees: [String],
-    
-    // Weekly Reports (for intern progress tracking)
-    weeklyReports: [{
-      weekNumber: Number,
-      startDate: Date,
-      endDate: Date,
-      hoursWorked: Number,
-      tasksCompleted: String,
-      challengesFaced: String,
-      nextWeekGoals: String,
-      mentorFeedback: String,
-      submittedDate: Date,
-      status: {
-        type: String,
-        enum: ["pending", "submitted", "reviewed"],
-        default: "pending"
-      }
-    }],
-    
-    // Feedback and Evaluation System
-    feedback: [{
-      fromUserId: String,
-      fromUserName: String,
-      fromUserRole: String,
-      type: {
-        type: String,
-        enum: ["mentor_feedback", "panelist_evaluation", "admin_review", "self_evaluation"],
-      },
-      rating: Number,
-      comments: String,
-      dateGiven: Date,
-      relatedToWeek: Number
-    }],
-    
-    // Demo Presentation Tracking
-    demoScheduled: {
-      type: Boolean,
-      default: false
-    },
-    demoDate: Date,
-    demoMaterials: String,
-    demoStatus: {
-      type: String,
-      enum: ["not_scheduled", "scheduled", "completed", "cancelled"],
-      default: "not_scheduled"
     },
     
     // User Preferences and Settings
@@ -216,9 +106,8 @@ const userSchema = new Schema(
       type: Boolean,
       default: true
     },
+
     lastLoginDate: Date,
-    
-    //END OF INTERN-SPECIFIC FIELDS 
     
     createdAt: {
       type: Date,
