@@ -1,5 +1,5 @@
 import mongoose, { Schema, models } from "mongoose";
-import bycrypt from "bcryptjs";
+import * as bcrypt from 'bcryptjs';
 
 // Define the Intern Schema
 const internSchema = new Schema(
@@ -42,7 +42,7 @@ const internSchema = new Schema(
     bio: String,
     profileImage: String,
     dob: String,
-    team: [String],
+    teams: [String],
     profileSubmissionCount: {
       type: Number,
       default: 0,
@@ -217,7 +217,7 @@ const internSchema = new Schema(
 
 internSchema.pre("save", async function (next) {
   if (this.isModified("password")) {
-    this.password = await bcrypt.hash(this.password, 10);
+    this.password = await bcrypt.default.hash(this.password, 10);
   }
   next();
 });

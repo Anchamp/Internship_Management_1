@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
+import Intern from '@/models/Intern';
 
 // Function to generate alternative username suggestions
 const generateUsernameSuggestions = async (username: string): Promise<string[]> => {
@@ -17,11 +18,15 @@ const generateUsernameSuggestions = async (username: string): Promise<string[]> 
   const suggestion2 = `${username}${currentYear}`;
   
   // Check if suggestions are available
+  const existingSuggestionsForIntern = await Intern.find({
+    username: { $in: [suggestion1, suggestion2] }
+  }).select('username');
+  
   const existingSuggestions = await User.find({
     username: { $in: [suggestion1, suggestion2] }
   }).select('username');
   
-  const takenUsernames = existingSuggestions.map(user => user.username);
+  const takenUsernames = [...existingSuggestions, ...existingSuggestionsForIntern].map(user => user.username);
   
   // Only add suggestions that are not taken
   [suggestion1, suggestion2].forEach(suggestion => {
@@ -81,9 +86,10 @@ export async function POST(request: Request) {
     // Original username/email check logic
     const query = { [field]: value };
     const user = await User.findOne(query);
+    const intern = await Intern.findOne(query);
     
     // For usernames, generate suggestions if already taken
-    if (field === 'username' && user) {
+    if (field === 'username' && (user || intern)) {
       const suggestions = await generateUsernameSuggestions(value);
       
       return NextResponse.json({

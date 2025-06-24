@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
+import Intern from '@/models/Intern';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -27,9 +28,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const user = await User.findOne({ email });
+    const userAsEmployee = await User.findOne({ email });
+    const userAsIntern = await Intern.findOne({ email });
 
-    if (!user) {
+    if (!userAsEmployee && !userAsIntern) {
       return NextResponse.json(
         { error: 'Invalid email' },
         { status: 401 }
@@ -47,10 +49,17 @@ export async function POST(request: Request) {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    await User.updateOne(
-      { _id: user._id },
-      { $set: { password: hashedPassword } }
-    );
+    if (userAsEmployee) {
+      await User.updateOne(
+        { _id: user._id },
+        { $set: { password: hashedPassword } }
+      );
+    } else {
+      await Intern.updateOne(
+        { _id: user._id},
+        { $set: { password: hashedPassword } }
+      );
+    }
 
     const token = jwt.sign(
       { 

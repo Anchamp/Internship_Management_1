@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
+import Intern from '@/models/Intern';
 import Internship from '@/models/Internship';
 
 export async function GET(request: Request) {
@@ -71,7 +72,7 @@ export async function GET(request: Request) {
     };
     
     // Step 4: Get users and extract relevant applications
-    const usersWithApplications = await User.find(userQuery).select(
+    const usersWithApplications = await Intern.find(userQuery).select(
       'username fullName email appliedInternships'
     );
     

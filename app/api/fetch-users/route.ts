@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
+import Intern from '@/models/Intern';
 
 export async function GET(request: Request) {
   try {
@@ -30,10 +31,13 @@ export async function GET(request: Request) {
       organizationName: organizationName,
     }).select("-password").lean();
 
+    const interns = await Intern.find({
+      organizationName: organizationName,
+    }).select("-password").lean();
+
     // Grouping employees by role
     const employees = users.filter(emp => emp.role === 'employee');
     const admins = users.filter(emp => emp.role === 'admin');
-    const interns = users.filter(emp => emp.role === 'intern');
 
     return NextResponse.json({
       success: true,

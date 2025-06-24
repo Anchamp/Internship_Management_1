@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import Internship from '@/models/Internship';
 import User from '@/models/User';
+import Intern from '@/models/Intern';
 import mongoose from 'mongoose';
 
 export async function POST(request: Request) {
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
     }
     
     // Check if user has already applied
-    const user = await User.findOne({ username: applicantUsername });
+    const user = await Intern.findOne({ username: applicantUsername });
     if (!user) {
       return NextResponse.json({
         error: 'User not found'

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
+import Intern from '@/models/Intern';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -25,7 +26,11 @@ export async function POST(request: Request) {
     }
     
     // Find user by email
-    const user = await User.findOne({ email });
+    let user = await User.findOne({ email });
+    if (!user) {
+      let intern = await Intern.findOne({ email });
+      user = intern;
+    }
     
     // Check if user exists
     if (!user) {

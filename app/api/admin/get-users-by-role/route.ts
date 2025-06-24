@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
+import Intern from '@/models/Intern';
 
 export async function GET(request: Request) {
   try {
@@ -35,10 +36,18 @@ export async function GET(request: Request) {
     }
 
     // Fetching all employees from the database
-    const employees = await User.find({
-      role: requestedRole,
-      organizationName: organizationName,
-    }).select("username -_id").lean();
+    let employees;
+    if (requestedRole !== 'intern') {
+      employees = await User.find({
+        role: requestedRole,
+        organizationName: organizationName,
+      }).select("username -_id").lean();
+    } else {
+      employees = await Intern.find({
+        role: requestedRole,
+        organizationName: organizationName,
+      }).select("username -_id").lean();
+    }
     
     return NextResponse.json({
       users: employees,

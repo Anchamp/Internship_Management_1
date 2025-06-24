@@ -5,7 +5,7 @@
 import { NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
 import dbConnect from '@/lib/mongoose';
-import User from '@/models/User';
+import Intern from '@/models/Intern';
 
 export async function PUT(request) {
   try {
@@ -27,7 +27,7 @@ export async function PUT(request) {
     // First get the current user to check the submission count
     const client = await dbConnect();
     const db = client.connection.db;
-    const collection = db.collection('users');
+    const collection = db.collection('interns');
     
     const currentUser = await collection.findOne(filter);
     
@@ -123,4 +123,4 @@ export async function PUT(request) {
       details: error.message
     }, { status: 500 });
   }
-}
+
