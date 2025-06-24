@@ -90,6 +90,7 @@ export default function MyApplications() {
 
       const user = JSON.parse(userData);
       const response = await fetch(`/api/users/${user.username}`);
+      console.log(response)
       
       if (!response.ok) {
         throw new Error("Failed to fetch user data");

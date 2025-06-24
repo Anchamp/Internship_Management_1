@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import Team from '@/models/Team';
 import User from '@/models/User';
+import Intern from '@/models/Intern';
 
 export async function GET(request: Request) {
   try {
@@ -62,7 +63,7 @@ export async function GET(request: Request) {
       }
 
       for (const internId of internIds) {
-        const intern = await User.findById(internId).select('username').lean();
+        const intern = await Intern.findById(internId).select('username').lean();
         if (intern) {
           team.interns.push(intern.username);
         }
@@ -101,7 +102,7 @@ export async function GET(request: Request) {
       }
 
       for (const internId of internIds) {
-        const intern = await User.findById(internId).select('username').lean();
+        const intern = await Intern.findById(internId).select('username').lean();
         if (intern) {
           team.interns.push(intern.username);
         }

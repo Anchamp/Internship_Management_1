@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
+import Intern from '@/models/Intern';
 
 export async function GET(request: Request) {
   try {
@@ -35,9 +36,14 @@ export async function GET(request: Request) {
       organizationId: organizationId,
       verificationStatus: 'verified',
     }).select('-password').lean();
+
+    const interns = await Intern.find({
+      organizationId: organizationId,
+      verificationStatus: 'verified',
+    }).select('-password').lean();
     
     // Sort users by role and name for better organization
-    const sortedUsers = verifiedUsers.sort((a, b) => {
+    const sortedUsers = [...verifiedUsers, ...interns].sort((a, b) => {
       // First sort by role
       const roleOrder = { admin: 1, mentor: 2, panelist: 3, intern: 4 };
       const roleA = roleOrder[a.role as keyof typeof roleOrder] || 999;

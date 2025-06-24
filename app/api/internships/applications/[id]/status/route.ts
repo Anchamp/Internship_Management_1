@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
-import User from '@/models/User';
+import Intern from '@/models/Intern';
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -18,7 +18,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     }
     
     // Find the user with this application and update the status
-    const result = await User.updateOne(
+    const result = await Intern.updateOne(
       { 'appliedInternships._id': applicationId },
       { 
         $set: { 

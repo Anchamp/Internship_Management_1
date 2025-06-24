@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
+import Intern from '@/models/Intern';
 import Team from '@/models/Team';
 
 export async function POST(request: Request) {
@@ -32,10 +33,15 @@ export async function POST(request: Request) {
     const allUsers = await User.find({
       $or: [
         { _id: { $in: teamToDelete.mentors } },
-        { _id: { $in: teamToDelete.interns } },
-        { _id: { $in: teamToDelete.panelists } }
+        { _id: { $in: teamToDelete.panelists } },
       ],
       organizationId
+    })
+
+    const allInterns = await Intern.find({
+      $or: [
+        { _id: { $in: teamToDelete.interns } },
+      ]
     })
 
 
@@ -49,6 +55,11 @@ export async function POST(request: Request) {
     for (const user of allUsers) {
       user.teams = user.teams.filter((team: any) => team.toString() !== teamToDelete._id.toString());
       await user.save();
+    }
+
+    for (const intern of allInterns) {
+      intern.teams = intern.teams.filter((team: any) => team.toString() !== teamToDelete._id.toString());
+      await intern.save();
     }
 
     return NextResponse.json({ message: 'Team deleted successfully' }, { status: 200 });

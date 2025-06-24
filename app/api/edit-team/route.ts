@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
+import Intern from '@/models/Intern';
 import Team from '@/models/Team';
 
 export async function POST(request: Request) {
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
     }
 
     // Remove the team from all the users' teams
-    const allUsers = [...existingTeam.mentors, ...existingTeam.interns, ...existingTeam.panelists];
+    const allUsers = [...existingTeam.mentors, ...existingTeam.panelists];
     for (const user of allUsers) {
       await User.findOneAndUpdate(
         { _id: user, organizationName },
@@ -60,11 +61,18 @@ export async function POST(request: Request) {
       )
     }
 
+    for (const intern of existingTeam.interns) {
+      await Intern.findOneAndUpdate(
+        { _id: intern, organizationName },
+        { $pull: {teams: existingTeam._id} },
+      )
+    }
+
     
     // Get all the new Team members
     const mentorUsers = await User.find({ username: { $in: editMentors }, organizationId });
     // TODO: Need to change OrganizationName to organizationId for interns when intern onboarding process is complete
-    const internUsers = await User.find({ username: { $in: editInterns }, organizationName });
+    const internUsers = await Intern.find({ username: { $in: editInterns }, organizationName });
     const panelistUsers = await User.find({ username: { $in: editPanelists }, organizationId });
 
     // Remove duplicates in mentors, interns, and Panelists
@@ -98,10 +106,17 @@ export async function POST(request: Request) {
     }
 
     // push the team into the new team members' teams array
-    const newTeamMembers = [...mentorUsers, ...internUsers, ...panelistUsers];
+    const newTeamMembers = [...mentorUsers, ...panelistUsers];
     for (const user of newTeamMembers) {
       await User.findOneAndUpdate(
         { username: user.username, organizationName },
+        { $addToSet: { teams: updatedTeam._id } },
+      );
+    }
+
+    for (const intern of internUsers) {
+      await Intern.findOneAndUpdate(
+        { username: intern.username, organizationName },
         { $addToSet: { teams: updatedTeam._id } },
       );
     }

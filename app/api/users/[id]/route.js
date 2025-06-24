@@ -22,13 +22,19 @@ export async function GET(request) {
     // Use direct MongoDB operations
     const client = await dbConnect();
     const db = client.connection.db;
-    const collection = db.collection('users');
+    const userCollection = db.collection('users');
+    const internCollection = db.collection('interns');
     
     // Find the user document
-    const user = await collection.findOne(filter);
-    
-    if (!user) {
+    let user = await userCollection.findOne(filter);
+    let intern = await internCollection.findOne(filter);
+
+    if (!user && !intern) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    if (!user) {
+      user = intern
     }
     
     // Remove sensitive fields

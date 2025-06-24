@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
+import Intern from '@/models/Intern';
 import Team from '@/models/Team';
 
 export async function POST(request: Request) {
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
 
     // Convert usernames to ObjectIds
     const mentorUsers = await User.find({ username: { $in: uniqueMentors }, organizationName: organizationName });
-    const internUsers = await User.find({ username: { $in: uniqueInterns }, organizationName: organizationName });
+    const internUsers = await Intern.find({ username: { $in: uniqueInterns }, organizationName: organizationName });
     const panelistUsers = await User.find({ username: { $in: uniquePanelists }, organizationName: organizationName });
 
     // Check if all users were found
@@ -61,10 +62,17 @@ export async function POST(request: Request) {
     await newTeam.save();
 
     // Add team to each user's `teams` array
-    const allUsers = [...mentorUsers, ...internUsers, ...panelistUsers];
+    const allUsers = [...mentorUsers, ...panelistUsers];
     for (const user of allUsers) {
       user.teams.push(newTeam._id);
       await user.save();
+    }
+
+    console.log(internUsers);
+
+    for (const intern of internUsers) {
+      intern.teams.push(newTeam._id);
+      await intern.save();
     }
 
     return NextResponse.json({

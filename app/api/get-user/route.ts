@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
+import Intern from '@/models/Intern';
 
 export async function GET(request: Request) {
   try {
@@ -17,17 +18,27 @@ export async function GET(request: Request) {
     await dbConnect();
 
     const user = await User.findById(id, {username: 1}).lean();
-    if (!user) {
+    const intern = await Intern.findById(id, {username: 1}).lean();
+
+    if (!user && !intern) {
       return NextResponse.json({
         error: 'User not found',
         status: 404
       });
     }
 
-    return NextResponse.json({
-      success: true,
-      username: user.username
-    });
+    if (user) {
+      return NextResponse.json({
+        success: true,
+        username: user.username
+      });
+    } else {
+      return NextResponse.json({
+        success: true,
+        username: intern.username
+      });
+    }
+
   } catch (error) {
     console.error('Error fetching user:', error);
     return NextResponse.json({

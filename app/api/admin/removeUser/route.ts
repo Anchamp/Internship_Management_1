@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
+import Intern from '@/models/Intern';
 import { ObjectId } from 'mongodb';
 
 export async function POST(request: Request) {
@@ -31,12 +32,14 @@ export async function POST(request: Request) {
     const client = await dbConnect();
     const db = client.connection.db;
     const userCollection = db.collection('users');
+    const internCollection = db.collection('interns');
     
     // Convert userId to ObjectId
     const objectId = new ObjectId(userId);
-    const userToRemove = await userCollection.findOne({ _id: objectId });
+    let userToRemove = await userCollection.findOne({ _id: objectId });
+    let userToRemoveIntern = await internCollection.findOne({ _id: objectId });
     
-    if (!userToRemove) {
+    if (!userToRemove && !userToRemoveIntern) {
       console.error(`User not found with ID: ${userId}`);
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
@@ -54,13 +57,25 @@ export async function POST(request: Request) {
     console.log(`Updating user with data:`, updateData);
     
     // Update directly in MongoDB to bypass any Mongoose validation or middleware issues
-    const result = await userCollection.updateOne(
-      { _id: objectId },
-      { $set: updateData }
-    );
+    if (userToRemove) {
+      const result = await userCollection.updateOne(
+        { _id: objectId },
+        { $set: updateData }
+      );
+    } else {
+      const result = await internCollection.updateOne(
+        { _id: objectId },
+        { $set: updateData }
+      )
+    }
     
     // Get the updated user to confirm the change
-    const updatedUser = await userCollection.findOne({ _id: objectId });
+    if (userToRemove) {
+      const updatedUser = await userCollection.findOne({ _id: objectId });
+    } else {
+      const updatedUser = await internCollection.findOne({ _id: objectId });
+    }
+
     console.log(`Removing user: ${updatedUser.username} organizationName: ${updatedUser.organizationName}`);
     
     // Create a notification for the user

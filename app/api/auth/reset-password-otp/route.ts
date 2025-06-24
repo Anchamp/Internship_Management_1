@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
+import Intern from '@/models/Intern';
 
 // Create a transporter using Gmail SMTP
 // Note: For production, use environment variables for these credentials
@@ -33,14 +34,18 @@ export async function POST(request: Request) {
 
     // Verify that the email exists in the database
     await dbConnect();
-    const user = await User.findOne({ email });
+    let user = await User.findOne({ email });
+    let intern = await Intern.findOne({ email });
     
-    if (!user) {
+    if (!user && !intern) {
       return NextResponse.json({ 
         error: 'No account is associated with this email' 
       }, { status: 404 });
     }
 
+    if (!user) {
+      user = intern;
+    }
     // Generate a new OTP
     const otp = generateOTP();
     

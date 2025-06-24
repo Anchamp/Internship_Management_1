@@ -1,8 +1,8 @@
 import mongoose, { Schema, models } from "mongoose";
-import bcrypt from "bcryptjs";
+import * as bcrypt from 'bcryptjs';
 
-// Define the User schema
-const userSchema = new Schema(
+// Define the Intern Schema
+const internSchema = new Schema(
   {
     username: {
       type: String,
@@ -23,12 +23,14 @@ const userSchema = new Schema(
     },
     role: {
       type: String,
-      enum: ["student", "intern", "employee", "admin"],
+      enum: ['intern'],
+      default: 'intern',
       required: true,
+      immutable: true,
     },
     organizationName: {
       type: String,
-      default: "none",
+      default: 'none',
     },
     organizationId: {
       type: String,
@@ -36,74 +38,57 @@ const userSchema = new Schema(
     },
     fullName: String,
     phone: String,
-    position: String,
-    address: String,
-    experience: String,
     skills: String,
     bio: String,
-    website: String,
     profileImage: String,
     dob: String,
     teams: [String],
-    // Add field to track profile submission count
     profileSubmissionCount: {
       type: Number,
       default: 0,
     },
-    // Add field to track verification status
     verificationStatus: {
       type: String,
-      enum: ["pending", "verified", "rejected"],
-      default: "pending",
+      enum: ['pending', 'verified', 'rejected'],
+      default: 'pending',
     },
-    
-    // Academic Information (for interns)
+
+    // Academic details
     university: String,
     degree: String,
     major: String,
     graduationYear: String,
     gpa: String,
-    
-    // Intern Goals and Experience
+
+    // Goals and Expereince
     internshipGoals: String,
     previousExperience: String,
     portfolioLinks: [String],
-    
-    // Document Fields (for resume, ID, transcript storage as base64 or file paths)
+
+    // Documents
     resumeFile: String,
     idDocumentFile: String,
-    transcriptFile: String,
-    
-    // Application Status Tracking
+    transcriptFiles: [String],
+  
     applicationStatus: {
       type: String,
       enum: ["none", "pending", "approved", "rejected", "active", "completed"],
       default: "none",
     },
-    
-    // Applied Internships Tracking
-    appliedInternships: [{
-  internshipId: String,
-  companyName: String,
-  position: String,
-  appliedDate: Date,
-  status: {
-    type: String,
-    enum: ["pending", "shortlisted", "interview_scheduled", "selected", "accepted", "declined", "rejected"],
-    default: "pending"
-  },
-  respondedDate: Date, // NEW: When intern responded to selection
-  interviewDate: Date,
-  notes: String,
-  applicationData: {
-    type: Schema.Types.Mixed, // Store the application form data
-    default: {}
-  },
-  userProfileSnapshot: {
-    type: Schema.Types.Mixed, // Store user profile at time of application
-    default: {}
-  }
-}],
+
+    appliedInternsips: [{
+      internshipId: String,
+      companyName: String,
+      position: String,
+      appliedDate: Date,
+      status: {
+        type:String,
+        enum: ["pending", "shortlisted", "interview_scheduled", "selected", "rejected"],
+        default: "pending",
+      },
+      interviewDate: Date,
+      notes: String,
+    }],
     
     // Team Assignment Tracking
     assignedTeams: [{
@@ -112,16 +97,16 @@ const userSchema = new Schema(
       projectTitle: String,
       assignedDate: Date,
       status: {
-        type: String,
+        type:String,
         enum: ["active", "completed", "inactive"],
-        default: "active"
+        default: "active",
       }
     }],
-    
-    // Mentors and Panelists assignments
+
+    // Mentors and Panelists assignements
     employees: [String],
-    
-    // Weekly Reports (for intern progress tracking)
+
+    // Weekly Reports
     weeklyReports: [{
       weekNumber: Number,
       startDate: Date,
@@ -134,65 +119,66 @@ const userSchema = new Schema(
       submittedDate: Date,
       status: {
         type: String,
-        enum: ["pending", "submitted", "reviewed"],
-        default: "pending"
-      }
+        enum: ["pending", "active", "submitted", "reviewed"],
+        default: "pending",
+      },
     }],
-    
-    // Feedback and Evaluation System
+
     feedback: [{
-      fromUserId: String,
+      formUserId: String,
       fromUserName: String,
       fromUserRole: String,
       type: {
         type: String,
-        enum: ["mentor_feedback", "panelist_evaluation", "admin_review", "self_evaluation"],
+        enum: ["mentor_feedback", "panelist_evaluation", "admin_review", "self_evaluation", "peer_review"],
       },
       rating: Number,
       comments: String,
       dateGiven: Date,
       relatedToWeek: Number
     }],
-    
+
     // Demo Presentation Tracking
     demoScheduled: {
       type: Boolean,
-      default: false
+      default: false,
     },
     demoDate: Date,
     demoMaterials: String,
     demoStatus: {
       type: String,
       enum: ["not_scheduled", "scheduled", "completed", "cancelled"],
-      default: "not_scheduled"
+      default: "not_scheduled",
     },
-    
-    // User Preferences and Settings
+
+    // Inter Preferences and Settings
     preferences: {
       theme: {
         type: String,
         enum: ["light", "dark", "system"],
-        default: "light"
+        default: "light",
       },
       emailNotifications: {
         type: Boolean,
-        default: true
+        default: true,
       },
       weeklyReportReminders: {
         type: Boolean,
-        default: true
+        default: true,
       },
       teamChatNotifications: {
-        type: Boolean,
-        default: true
+        type: Boolean, 
+        default: true,
       },
       feedbackNotifications: {
         type: Boolean,
-        default: true
-      }
+        default: true,
+      },
     },
-    
-    // Notification System
+
+
+    // Notification system
+
     notifications: [{
       type: {
         type: String,
@@ -202,29 +188,26 @@ const userSchema = new Schema(
       message: String,
       read: {
         type: Boolean,
-        default: false
+        default: false,
       },
       createdAt: {
         type: Date,
-        default: Date.now
+        default: Date.now,
       },
-      relatedId: String // Can reference team, application, etc.
+      relatedId: String
     }],
-    
-    // Additional Status Fields
+
     isActive: {
       type: Boolean,
-      default: true
+      default: true,
     },
     lastLoginDate: Date,
-    
-    //END OF INTERN-SPECIFIC FIELDS 
     
     createdAt: {
       type: Date,
       default: Date.now,
     },
-    updatedAt: {
+    updatedat: {
       type: Date,
       default: Date.now,
     },
@@ -232,20 +215,18 @@ const userSchema = new Schema(
   { strict: false }
 );
 
-// Pre-save hook to hash password before saving to database
-userSchema.pre("save", async function (next) {
+internSchema.pre("save", async function (next) {
   if (this.isModified("password")) {
-    this.password = await bcrypt.hash(this.password, 10);
+    this.password = await bcrypt.default.hash(this.password, 10);
   }
   next();
 });
 
-// Update the timestamp when document is modified
-userSchema.pre("updateOne", function () {
+internSchema.pre("updateOne", function () {
   this.set({ updatedAt: new Date() });
 });
 
-// Check if model exists already to prevent overwriting during hot reloads in development
-const User = models.User || mongoose.model("User", userSchema);
+const Intern = models.Intern || mongoose.model("Intern", internSchema);
 
-export default User;
+export default Intern;
+

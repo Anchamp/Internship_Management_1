@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
+import Intern from '@/models/Intern';
 import { ObjectId } from 'mongodb';
 
 export async function POST(request: Request) {
@@ -61,21 +62,40 @@ export async function POST(request: Request) {
         { username }
       ]
     });
+    const existingUserIntern = await Intern.findOne({
+      $or: [
+        { email },
+        { username },
+      ]
+    });
     
-    if (existingUser) {
-      // Check which field caused the conflict
-      if (existingUser.email === email) {
-        return NextResponse.json(
-          { error: 'Email already exists' },
-          { status: 409 }
-        );
-      }
-      
-      if (existingUser.username === username) {
-        return NextResponse.json(
-          { error: 'Username already exists' },
-          { status: 409 }
-        );
+    if (existingUser || existingUserIntern) {
+      if (existingUser) {
+        if(existingUser.email === email) {
+          return NextResponse.json(
+            { error: 'Email already exists' },
+            { status: 409 }
+          );
+        }
+        if (existingUser.username === username) {
+          return NextResponse.json(
+            { error: 'Username already exists' },
+            { status: 409 },
+          )
+        }
+      } else {
+        if (existingUserIntern.username === username) {
+          return NextResponse.json(
+            { error: 'Username already exists' },
+            { status: 409 },
+          )
+        }
+        if(existingUserIntern.email === email) {
+          return NextResponse.json(
+            { error: 'Email already exists' },
+            { status: 409 }
+          );
+        }
       }
       
       return NextResponse.json(
@@ -156,8 +176,14 @@ export async function POST(request: Request) {
     }
     
     // Create new user
-    const newUser = new User(userData);
-    await newUser.save();
+    let newUser;
+    if (role === 'admin' || role === 'employee') {
+      newUser = new User(userData);
+      await newUser.save();
+    } else {
+      newUser = new Intern(userData);
+      await newUser.save();
+    }
     
     // Return success response (without password)
     const { password: _, ...userWithoutPassword } = newUser.toObject();
