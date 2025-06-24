@@ -75,12 +75,14 @@ export default function PanelistProfile({
     useState<number>(0);
   const [verificationStatus, setVerificationStatus] =
     useState<string>("pending");
+  const [phoneError, setPhoneError] = useState(""); // Add state for phone validation error
 
   const [userData, setUserData] = useState({
     username: "",
     fullName: "",
     email: "",
     phone: "",
+    countryCode: "+91", // Add country code with default value
     organization: "",
     position: "",
     address: "",
@@ -122,12 +124,25 @@ export default function PanelistProfile({
         const data = await response.json();
 
         if (data.user) {
-          // Set state with user data from MongoDB - Check for both organization and organizationName
+          // Extract country code and phone number from stored phone
+          let countryCode = "+91";
+          let phoneNumber = data.user.phone || "";
+
+          // If phone number includes a '+', extract the country code
+          if (phoneNumber && phoneNumber.includes("+")) {
+            const parts = phoneNumber.split(" ");
+            if (parts.length > 1) {
+              countryCode = parts[0];
+              phoneNumber = parts.slice(1).join("");
+            }
+          }
+
           setUserData({
             username: data.user.username || "",
             fullName: data.user.fullName || "",
             email: data.user.email || "",
-            phone: data.user.phone || "",
+            phone: phoneNumber,
+            countryCode: countryCode,
             organization:
               data.user.organizationName || data.user.organization || "",
             position: data.user.position || "",
@@ -159,13 +174,34 @@ export default function PanelistProfile({
   }, [router]);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     const { name, value } = e.target;
-    setUserData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+
+    // Special handling for phone number validation
+    if (name === "phone") {
+      // Only allow digits
+      const phoneValue = value.replace(/\D/g, "");
+
+      // Validate phone number length
+      if (phoneValue.length > 0 && phoneValue.length !== 10) {
+        setPhoneError("Phone number must be 10 digits");
+      } else {
+        setPhoneError("");
+      }
+
+      setUserData((prev) => ({
+        ...prev,
+        phone: phoneValue,
+      }));
+    } else {
+      setUserData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -196,6 +232,13 @@ export default function PanelistProfile({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate phone number before submission
+    if (userData.phone && userData.phone.length !== 10) {
+      setPhoneError("Phone number must be 10 digits");
+      return;
+    }
+
     setIsSaving(true);
 
     try {
@@ -209,14 +252,28 @@ export default function PanelistProfile({
 
       const { username } = JSON.parse(storedUser);
 
+      // Format data with country code for storage
+      const formattedData = {
+        ...userData,
+        phone: userData.phone
+          ? `${userData.countryCode} ${userData.phone}`
+          : "",
+      };
+
+      // Use encodeURIComponent to handle usernames with spaces
+      const encodedUsername = encodeURIComponent(username);
+
       // Call API to update profile in MongoDB
-      const response = await fetch(`/api/users/${username}/update-profile`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(userData),
-      });
+      const response = await fetch(
+        `/api/users/${encodedUsername}/update-profile`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formattedData),
+        }
+      );
 
       const data = await response.json();
 
@@ -251,6 +308,51 @@ export default function PanelistProfile({
       </div>
     );
   }
+
+  // Create the phone number field component with country code
+  const PhoneNumberField = () => (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        Phone Number
+      </label>
+      <div className="flex">
+        <select
+          name="countryCode"
+          value={userData.countryCode}
+          onChange={handleChange}
+          className="p-2 border rounded-l-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
+        >
+          <option value="+1">+1 (USA)</option>
+          <option value="+44">+44 (UK)</option>
+          <option value="+91">+91 (India)</option>
+          <option value="+61">+61 (Australia)</option>
+          <option value="+86">+86 (China)</option>
+          <option value="+49">+49 (Germany)</option>
+          <option value="+33">+33 (France)</option>
+          <option value="+81">+81 (Japan)</option>
+          <option value="+7">+7 (Russia)</option>
+          <option value="+55">+55 (Brazil)</option>
+        </select>
+        <div className="relative flex-grow">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Phone className="h-4 w-4 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            name="phone"
+            value={userData.phone}
+            onChange={handleChange}
+            className={`pl-10 w-full p-2 border rounded-r-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black ${
+              phoneError ? "border-red-500" : ""
+            }`}
+            placeholder="10-digit number"
+            maxLength={10}
+          />
+        </div>
+      </div>
+      {phoneError && <p className="text-sm text-red-500 mt-1">{phoneError}</p>}
+    </div>
+  );
 
   const profileContent = (
     <>
@@ -350,8 +452,8 @@ export default function PanelistProfile({
                   type="email"
                   name="email"
                   value={userData.email}
-                  onChange={handleChange}
-                  className="pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
+                  readOnly
+                  className="pl-10 w-full p-2 border rounded-md bg-gray-100 cursor-not-allowed text-gray-500"
                   placeholder="Enter your email"
                   autoComplete="email"
                 />
@@ -376,24 +478,8 @@ export default function PanelistProfile({
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Phone Number
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Phone className="h-4 w-4 text-gray-400" />
-                </div>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={userData.phone}
-                  onChange={handleChange}
-                  className="pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
-                  placeholder="Enter your phone number"
-                />
-              </div>
-            </div>
+            {/* Replace phone input with PhoneNumberField */}
+            <PhoneNumberField />
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">

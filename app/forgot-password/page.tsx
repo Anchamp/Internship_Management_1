@@ -37,6 +37,21 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  // Add password validation states
+  const [passwordErrors, setPasswordErrors] = useState<{
+    length: boolean;
+    uppercase: boolean;
+    lowercase: boolean;
+    number: boolean;
+    symbol: boolean;
+  }>({
+    length: false,
+    uppercase: false,
+    lowercase: false,
+    number: false,
+    symbol: false,
+  });
+  const [showPasswordErrors, setShowPasswordErrors] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -234,7 +249,13 @@ export default function ForgotPassword() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Invalid verification code");
+        // Don't throw an error, just handle it inline to prevent console errors
+        setOtpError(data.message || "Invalid verification code");
+        toast.error("Verification failed", {
+          description: data.message || "Invalid verification code",
+        });
+        setVerifyingOtp(false);
+        return;
       }
 
       // Email successfully verified
@@ -243,11 +264,71 @@ export default function ForgotPassword() {
       toast.success("Email verified successfully!", {
         icon: <CheckCircle2 className="h-5 w-5 text-green-500" />,
       });
-    } catch (error: any) {
-      console.error("Error verifying OTP:", error);
-      setOtpError(error.message || "Invalid verification code");
+    } catch (error) {
+      // This will only run for network errors or JSON parsing errors
+      console.error("Network error during OTP verification:", error);
+
+      // Still set the error state but with a more generic message
+      setOtpError("Connection error. Please try again.");
+
+      toast.error("Connection error", {
+        description: "Please check your internet connection and try again",
+      });
     } finally {
       setVerifyingOtp(false);
+    }
+  };
+
+  // Add password validation function
+  const validatePassword = (value: string) => {
+    const errors = {
+      length: value.length < 8,
+      uppercase: !/[A-Z]/.test(value),
+      lowercase: !/[a-z]/.test(value),
+      number: !/[0-9]/.test(value),
+      symbol: !/[@#$%^&*]/.test(value),
+    };
+    setPasswordErrors(errors);
+    return !Object.values(errors).some(Boolean); // returns true if password is valid
+  };
+
+  // Modify handleChange to include password validation
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
+    const { name, value } = e.target;
+
+    if (name === "password") {
+      setPassword(value);
+      validatePassword(value);
+      if (value) {
+        setShowPasswordErrors(true);
+      }
+    } else if (name === "confirmPassword") {
+      setConfirmPassword(value);
+    } else if (name === "phone") {
+      // Special handling for phone number validation
+      const phoneValue = value.replace(/\D/g, "");
+
+      // Validate phone number length
+      if (phoneValue.length > 0 && phoneValue.length !== 10) {
+        setPhoneError("Phone number must be 10 digits");
+      } else {
+        setPhoneError("");
+      }
+
+      setUserData((prev) => ({
+        ...prev,
+        phone: phoneValue,
+      }));
+    } else {
+      // Handle other fields
+      setUserData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
     }
   };
 
@@ -258,6 +339,17 @@ export default function ForgotPassword() {
     if (!emailVerified) {
       toast.error("Email verification required", {
         description: "Please verify your email first",
+      });
+      return;
+    }
+
+    // Validate password
+    const isPasswordValid = validatePassword(password);
+    setShowPasswordErrors(true);
+
+    if (!isPasswordValid) {
+      toast.error("Invalid password", {
+        description: "Please meet all password requirements",
       });
       return;
     }
@@ -335,6 +427,7 @@ export default function ForgotPassword() {
     );
   }
 
+  // Otherwise render with the back button and full page layout
   return (
     <div className="min-h-screen flex flex-col relative bg-white auth-section">
       {/* Back Button */}
@@ -491,10 +584,14 @@ export default function ForgotPassword() {
                           }
                           onKeyDown={(e) => handleOtpKeyDown(index, e)}
                           className={`w-10 h-10 text-center border-2 ${
-                            otpError ? "border-red-500" : "border-black"
+                            otpError
+                              ? "border-red-500 bg-red-50"
+                              : "border-black"
                           } rounded-md text-base font-bold focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 text-black shadow-sm`}
                           style={{
-                            backgroundColor: "white",
+                            backgroundColor: otpError
+                              ? "rgb(254, 242, 242)"
+                              : "white",
                             color: "black",
                           }}
                           autoComplete="one-time-code"
@@ -503,9 +600,12 @@ export default function ForgotPassword() {
                     </div>
 
                     {otpError && (
-                      <p className="text-xs text-red-500 text-center mt-2">
-                        {otpError}
-                      </p>
+                      <div className="mt-2 bg-red-100 border border-red-300 p-2 rounded-md">
+                        <p className="text-xs text-red-600 text-center font-medium">
+                          <XCircle className="h-4 w-4 inline-block mr-1 -mt-0.5" />
+                          {otpError}
+                        </p>
+                      </div>
                     )}
 
                     <div className="flex justify-between mt-3">
@@ -533,10 +633,15 @@ export default function ForgotPassword() {
                       </button>
                     </div>
 
+                    {/* Enhance the resend button to clear errors */}
                     <div className="text-center mt-2">
                       <button
                         type="button"
-                        onClick={sendOtpEmail}
+                        onClick={() => {
+                          setOtpError(""); // Clear any errors when resending
+                          setOtpValues(["", "", "", ""]); // Clear OTP fields
+                          sendOtpEmail();
+                        }}
                         disabled={sendingOtp}
                         className="text-xs text-cyan-600 hover:text-cyan-700 hover:underline"
                       >
@@ -564,8 +669,9 @@ export default function ForgotPassword() {
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
                         required
+                        name="password"
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={handleChange}
                         disabled={isLoading}
                         className="input-glow bg-white !border-2 !border-black focus:!border-black focus:ring-black/20 !text-black placeholder:text-gray-500 relative z-40 !pr-12"
                         style={{
@@ -596,9 +702,41 @@ export default function ForgotPassword() {
                         </button>
                       </div>
                     </div>
-                    <p className="text-[10px] text-gray-500 mt-0.5">
-                      8+ chars with: 1-A, 1-a, 1-number, 1-@/#/$
-                    </p>
+
+                    {/* Display password requirements and validation errors */}
+                    <div className="text-[10px] mt-0.5">
+                      <p className="text-gray-500">
+                        8+ chars with 1 uppercase, 1 lowercase, 1 number, 1
+                        symbol (@#$%^&*)
+                      </p>
+                      {showPasswordErrors && (
+                        <div className="mt-1 space-y-0.5">
+                          {passwordErrors.length && (
+                            <p className="text-red-500">
+                              • At least 8 characters required
+                            </p>
+                          )}
+                          {passwordErrors.uppercase && (
+                            <p className="text-red-500">
+                              • Uppercase letter required
+                            </p>
+                          )}
+                          {passwordErrors.lowercase && (
+                            <p className="text-red-500">
+                              • Lowercase letter required
+                            </p>
+                          )}
+                          {passwordErrors.number && (
+                            <p className="text-red-500">• Number required</p>
+                          )}
+                          {passwordErrors.symbol && (
+                            <p className="text-red-500">
+                              • Symbol (@#$%^&*) required
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-2 relative">
