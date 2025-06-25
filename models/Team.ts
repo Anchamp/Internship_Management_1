@@ -42,6 +42,7 @@ const teamSchema = new Schema(
       enum: ["active", "underReview", "completed"],
       default: "active",
     },
+    assignments: [String],
     createdAt: {
       type: Date,
       default: Date.now,
