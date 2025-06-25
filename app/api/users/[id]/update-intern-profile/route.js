@@ -109,8 +109,7 @@ export async function PUT(request) {
     
     // Remove sensitive information before returning
     const { password, ...userWithoutPassword } = updatedUser;
-    
-    return NextResponse.json({
+      return NextResponse.json({
       success: true,
       message: 'Intern profile updated successfully',
       user: userWithoutPassword,
@@ -123,4 +122,5 @@ export async function PUT(request) {
       details: error.message
     }, { status: 500 });
   }
+}
 
