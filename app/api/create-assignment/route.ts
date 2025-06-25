@@ -127,12 +127,19 @@ export async function POST(request: Request) {
     };
 
     // Creating the assignment
-    const newAssigment = new Assignment(assignmentData);
-    await newAssigment.save();
+    const newAssignment = new Assignment(assignmentData);
+    await newAssignment.save();
 
+    // Push the assignment to the team
+    await Team.findOneAndUpdate(
+      { teamName: assignmentTeamName, organizationName },
+      { $addToSet: { assignments: newAssignment._id } },
+    );
+
+    // Return the Response
     return NextResponse.json({
       message: 'Assignment Created Successfully',
-      assignment: newAssigment
+      assignment: newAssignment
     }, { status: 201 });
   } catch (error: any) {
     console.error("Assigment Creation Error: ", error);
