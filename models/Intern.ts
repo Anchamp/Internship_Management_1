@@ -151,6 +151,9 @@ const internSchema = new Schema(
       default: "not_scheduled",
     },
 
+    // Assignments 
+    assignments: [String]
+
     // Inter Preferences and Settings
     preferences: {
       theme: {
