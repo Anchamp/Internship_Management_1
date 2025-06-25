@@ -152,7 +152,7 @@ const internSchema = new Schema(
     },
 
     // Assignments 
-    assignments: [String]
+    assignments: [String],
 
     // Inter Preferences and Settings
     preferences: {
