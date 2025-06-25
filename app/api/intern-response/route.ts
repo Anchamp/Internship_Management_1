@@ -1,7 +1,7 @@
 // app/api/intern-response/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
-import User from '@/models/User';
+import Intern from '@/models/Intern';
 
 export async function PUT(request: NextRequest) {
   try {
@@ -42,19 +42,19 @@ export async function PUT(request: NextRequest) {
     console.log('Database connected successfully');
 
     // Find the user and the specific application
-    const user = await User.findOne({ username });
-    if (!user) {
+    const intern = await Intern.findOne({ username });
+    if (!intern) {
       console.log('User not found:', username);
       return NextResponse.json({
         error: 'User not found'
       }, { status: 404 });
     }
 
-    console.log('User found:', user.username);
-    console.log('User has applied internships count:', user.appliedInternships?.length || 0);
+    console.log('User found:', intern.username);
+    console.log('User has applied internships count:', intern.appliedInternships?.length || 0);
 
     // Find the application in user's appliedInternships array
-    const applicationIndex = user.appliedInternships.findIndex(
+    const applicationIndex = intern.appliedInternships.findIndex(
       (app: any) => app._id.toString() === applicationId
     );
 
@@ -62,13 +62,13 @@ export async function PUT(request: NextRequest) {
 
     if (applicationIndex === -1) {
       console.log('Application not found in user applications');
-      console.log('Available application IDs:', user.appliedInternships.map((app: any) => app._id.toString()));
+      console.log('Available application IDs:', intern.appliedInternships.map((app: any) => app._id.toString()));
       return NextResponse.json({
         error: 'Application not found'
       }, { status: 404 });
     }
 
-    const application = user.appliedInternships[applicationIndex];
+    const application = intern.appliedInternships[applicationIndex];
     console.log('Current application status:', application.status);
 
     // Check if application is in "selected" status
@@ -80,22 +80,22 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update the application status and add response date
-    user.appliedInternships[applicationIndex].status = response;
-    user.appliedInternships[applicationIndex].respondedDate = new Date();
+    intern.appliedInternships[applicationIndex].status = response;
+    intern.appliedInternships[applicationIndex].respondedDate = new Date();
 
     console.log('Updating application with new status:', response);
 
     // Save the updated user document
-    const saveResult = await user.save();
+    const saveResult = await intern.save();
     console.log('User document saved successfully');
 
     console.log(`✅ Application ${applicationId} status updated to: ${response}`);
 
     // Log success message
     if (response === 'accepted') {
-      console.log(`🎉 User ${username} accepted internship offer for application ${applicationId}`);
+      console.log(`🎉 intern ${username} accepted internship offer for application ${applicationId}`);
     } else {
-      console.log(`❌ User ${username} declined internship offer for application ${applicationId}`);
+      console.log(`❌ intern ${username} declined internship offer for application ${applicationId}`);
     }
 
     return NextResponse.json({
@@ -103,7 +103,7 @@ export async function PUT(request: NextRequest) {
       message: `Application ${response} successfully`,
       applicationId: applicationId,
       newStatus: response,
-      respondedDate: user.appliedInternships[applicationIndex].respondedDate
+      respondedDate: intern.appliedInternships[applicationIndex].respondedDate
     }, { status: 200 });
 
   } catch (error: any) {

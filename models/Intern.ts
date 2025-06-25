@@ -1,3 +1,4 @@
+// models/Intern.ts
 import mongoose, { Schema, models } from "mongoose";
 import * as bcrypt from 'bcryptjs';
 
@@ -60,7 +61,7 @@ const internSchema = new Schema(
     graduationYear: String,
     gpa: String,
 
-    // Goals and Expereince
+    // Goals and Experience
     internshipGoals: String,
     previousExperience: String,
     portfolioLinks: [String],
@@ -76,18 +77,43 @@ const internSchema = new Schema(
       default: "none",
     },
 
-    appliedInternsips: [{
+    // FIXED: Corrected field name from 'appliedInternsips' to 'appliedInternships'
+    appliedInternships: [{
       internshipId: String,
       companyName: String,
       position: String,
       appliedDate: Date,
       status: {
-        type:String,
-        enum: ["pending", "shortlisted", "interview_scheduled", "selected", "rejected"],
+        type: String,
+        enum: ["pending", "shortlisted", "interview_scheduled", "selected", "accepted", "declined", "rejected"],
         default: "pending",
       },
       interviewDate: Date,
       notes: String,
+      respondedDate: Date, // When intern responded to selection
+      applicationData: {
+        coverLetter: String,
+        whyInterestedReason: String,
+        relevantExperience: String,
+        expectedOutcome: String,
+        availableStartDate: String,
+        additionalComments: String,
+      },
+      userProfileSnapshot: {
+        fullName: String,
+        email: String,
+        phone: String,
+        university: String,
+        degree: String,
+        major: String,
+        graduationYear: String,
+        skills: String,
+        resumeFile: String,
+        gpa: String,
+        portfolioLinks: [String],
+        internshipGoals: String,
+        previousExperience: String,
+      }
     }],
     
     // Team Assignment Tracking
@@ -97,13 +123,13 @@ const internSchema = new Schema(
       projectTitle: String,
       assignedDate: Date,
       status: {
-        type:String,
+        type: String,
         enum: ["active", "completed", "inactive"],
         default: "active",
       }
     }],
 
-    // Mentors and Panelists assignements
+    // Mentors and Panelists assignments
     employees: [String],
 
     // Weekly Reports
@@ -125,7 +151,7 @@ const internSchema = new Schema(
     }],
 
     feedback: [{
-      formUserId: String,
+      fromUserId: String,
       fromUserName: String,
       fromUserRole: String,
       type: {
@@ -151,7 +177,7 @@ const internSchema = new Schema(
       default: "not_scheduled",
     },
 
-    // Inter Preferences and Settings
+    // Intern Preferences and Settings
     preferences: {
       theme: {
         type: String,
@@ -176,9 +202,7 @@ const internSchema = new Schema(
       },
     },
 
-
     // Notification system
-
     notifications: [{
       type: {
         type: String,
@@ -207,7 +231,7 @@ const internSchema = new Schema(
       type: Date,
       default: Date.now,
     },
-    updatedat: {
+    updatedAt: {
       type: Date,
       default: Date.now,
     },
@@ -229,4 +253,3 @@ internSchema.pre("updateOne", function () {
 const Intern = models.Intern || mongoose.model("Intern", internSchema);
 
 export default Intern;
-
