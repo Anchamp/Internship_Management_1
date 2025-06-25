@@ -1,6 +1,10 @@
 import mongoose, { Schema, models } from "mongoose";
 
 const assignmentSchema = new Schema({
+    assignmentTeamName: {
+      type: String,
+      required: true,
+    },
     assignmentName: {
       type: String,
       required: true,
@@ -26,6 +30,7 @@ const assignmentSchema = new Schema({
       type: String,
       default: 'none',
     }],
+    mentorFeedback: String,
     organizationName: {
       type: String,
       required: true,
