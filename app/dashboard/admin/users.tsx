@@ -18,9 +18,11 @@ import {
   AlertCircle,
   Loader2,
   Filter,
+  UserPlus,
 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
+import AddUserModal from "./AddUserModal";
 
 // Type definitions for users
 interface UserData {
@@ -53,6 +55,8 @@ export default function OnboardingScreen() {
   const [selectedRole, setSelectedRole] = useState<string>("all");
   const [removeUserModalOpen, setRemoveUserModalOpen] =
     useState<boolean>(false);
+  // Add state for user modal
+  const [addUserModalOpen, setAddUserModalOpen] = useState(false);
 
   // State for fetching real data
   const [users, setUsers] = useState<UserData[]>([]);
@@ -181,6 +185,16 @@ export default function OnboardingScreen() {
   const closeModal = () => {
     setModalOpen(false);
     setSelectedUser(null);
+  };
+
+  // Function to open add user modal
+  const openAddUserModal = () => {
+    setAddUserModalOpen(true);
+  };
+
+  // Function to close add user modal
+  const closeAddUserModal = () => {
+    setAddUserModalOpen(false);
   };
 
   // Generate profile letter avatar
@@ -648,40 +662,53 @@ export default function OnboardingScreen() {
               </h3>
             </div>
 
-            {/* Enhanced dropdown with arrow indicator and proper sizing */}
-            <div className="relative inline-block w-full md:w-auto">
-              <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-lg shadow-sm border border-black hover:border-gray-600 transition-all duration-200">
-                <Filter className="h-4 w-4 text-black" />
-                <select
-                  value={selectedRole}
-                  onChange={(e) => setSelectedRole(e.target.value)}
-                  className="bg-transparent border-none text-black text-sm font-medium focus:outline-none appearance-none pr-8 cursor-pointer w-full"
-                  aria-label="Filter by role"
-                >
-                  <option value="all">All Users ({roleCounts.all})</option>
-                  <option value="admin">Admins ({roleCounts.admin})</option>
-                  <option value="employee">
-                    Employee ({roleCounts.employee})
-                  </option>
-                  <option value="intern">Interns ({roleCounts.intern})</option>
-                </select>
-                {/* Custom arrow indicator */}
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-black">
-                  <svg
-                    width="10"
-                    height="6"
-                    viewBox="0 0 10 6"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
+            <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+              {/* Add New User Button */}
+              <button
+                onClick={openAddUserModal}
+                className="w-full md:w-auto bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2.5 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2"
+              >
+                <UserPlus className="h-4 w-4" />
+                <span>Add New User</span>
+              </button>
+
+              {/* Enhanced dropdown with arrow indicator and proper sizing */}
+              <div className="relative inline-block w-full md:w-auto">
+                <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-lg shadow-sm border border-black hover:border-gray-600 transition-all duration-200">
+                  <Filter className="h-4 w-4 text-black" />
+                  <select
+                    value={selectedRole}
+                    onChange={(e) => setSelectedRole(e.target.value)}
+                    className="bg-transparent border-none text-black text-sm font-medium focus:outline-none appearance-none pr-8 cursor-pointer w-full"
+                    aria-label="Filter by role"
                   >
-                    <path
-                      d="M1 1L5 5L9 1"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                    <option value="all">All Users ({roleCounts.all})</option>
+                    <option value="admin">Admins ({roleCounts.admin})</option>
+                    <option value="employee">
+                      Employee ({roleCounts.employee})
+                    </option>
+                    <option value="intern">
+                      Interns ({roleCounts.intern})
+                    </option>
+                  </select>
+                  {/* Custom arrow indicator */}
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-black">
+                    <svg
+                      width="10"
+                      height="6"
+                      viewBox="0 0 10 6"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M1 1L5 5L9 1"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
                 </div>
               </div>
             </div>
@@ -691,26 +718,36 @@ export default function OnboardingScreen() {
         {/* Users List Section */}
         <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100">
           <div className="max-h-[600px] overflow-y-auto">
-            {filteredUsers.length === 0 ? (
+            {/* Replace ternary with simple conditional rendering */}
+            {filteredUsers.length === 0 && (
               <div className="flex flex-col items-center justify-center h-64 text-gray-500 p-4">
                 <div className="bg-gray-50 p-3 rounded-full mb-2">
                   <User className="h-6 w-6 text-gray-400" />
                 </div>
                 <p>No users found matching the selected filter</p>
               </div>
-            ) : (
+            )}
+
+            {filteredUsers.length > 0 &&
               filteredUsers.map((user) => (
                 <UserCard key={user._id} user={user} />
-              ))
-            )}
+              ))}
           </div>
         </div>
       </div>
 
       {/* User detail modal */}
       {modalOpen && <UserModal />}
+
       {/* Remove user confirmation modal */}
       {removeUserModalOpen && <RemoveUserModal />}
+
+      {/* Add user modal */}
+      <AddUserModal
+        isOpen={addUserModalOpen}
+        onClose={closeAddUserModal}
+        organizationName={organizationName}
+      />
 
       {/* Add custom styles for enhanced dropdown */}
       <style jsx global>{`
