@@ -2,11 +2,14 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import Intern from '@/models/Intern';
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await dbConnect();
     
-    const applicationId = params.id;
+    // Await the params Promise
+    const resolvedParams = await params;
+    const applicationId = resolvedParams.id;
+    
     const { status } = await request.json();
     
     // Validate status
