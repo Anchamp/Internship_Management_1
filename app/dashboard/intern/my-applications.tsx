@@ -64,12 +64,15 @@ interface InternshipDetails {
 
 export default function MyApplications() {
   const [applications, setApplications] = useState<Application[]>([]);
-  const [internshipDetails, setInternshipDetails] = useState<{[key: string]: InternshipDetails}>({});
+  const [internshipDetails, setInternshipDetails] = useState<{
+    [key: string]: InternshipDetails;
+  }>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [selectedApplication, setSelectedApplication] =
+    useState<Application | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isResponding, setIsResponding] = useState(false);
@@ -90,8 +93,8 @@ export default function MyApplications() {
 
       const user = JSON.parse(userData);
       const response = await fetch(`/api/users/${user.username}`);
-      console.log(response)
-      
+      console.log(response);
+
       if (!response.ok) {
         throw new Error("Failed to fetch user data");
       }
@@ -99,9 +102,11 @@ export default function MyApplications() {
       const data = await response.json();
       if (data.user?.appliedInternships) {
         setApplications(data.user.appliedInternships);
-        
+
         // Fetch internship details for each application
-        const internshipIds = data.user.appliedInternships.map((app: Application) => app.internshipId);
+        const internshipIds = data.user.appliedInternships.map(
+          (app: Application) => app.internshipId
+        );
         await fetchInternshipDetails(internshipIds);
       }
     } catch (error: any) {
@@ -114,8 +119,8 @@ export default function MyApplications() {
 
   const fetchInternshipDetails = async (internshipIds: string[]) => {
     try {
-      const detailsMap: {[key: string]: InternshipDetails} = {};
-      
+      const detailsMap: { [key: string]: InternshipDetails } = {};
+
       // Fetch details for each internship
       await Promise.all(
         internshipIds.map(async (id) => {
@@ -130,7 +135,7 @@ export default function MyApplications() {
           }
         })
       );
-      
+
       setInternshipDetails(detailsMap);
     } catch (error) {
       console.error("Error fetching internship details:", error);
@@ -143,13 +148,16 @@ export default function MyApplications() {
     setIsRefreshing(false);
   };
 
-  // Handle intern's response to selection using simplified API endpoint
-  const handleOfferResponse = async (applicationId: string, response: "accepted" | "declined") => {
+  // Handle intern's response to selection using our updated API endpoint
+  const handleOfferResponse = async (
+    applicationId: string,
+    response: "accepted" | "declined"
+  ) => {
     try {
       setIsResponding(true);
-      console.log('=== STARTING OFFER RESPONSE ===');
-      console.log('Application ID:', applicationId);
-      console.log('Response:', response);
+      console.log("=== STARTING OFFER RESPONSE ===");
+      console.log("Application ID:", applicationId);
+      console.log("Response:", response);
 
       const userData = localStorage.getItem("user");
       if (!userData) {
@@ -157,18 +165,18 @@ export default function MyApplications() {
       }
 
       const user = JSON.parse(userData);
-      console.log('Username:', user.username);
+      console.log("Username:", user.username);
 
-      // Using simplified API endpoint to avoid routing issues
+      // Using our dedicated API endpoint that handles organization assignment
       const url = `/api/intern-response`;
-      console.log('API URL:', url);
+      console.log("API URL:", url);
 
-      const requestBody = { 
+      const requestBody = {
         applicationId: applicationId,
         response: response,
-        username: user.username 
+        username: user.username,
       };
-      console.log('Request payload:', requestBody);
+      console.log("Request payload:", requestBody);
 
       const apiResponse = await fetch(url, {
         method: "PUT",
@@ -178,88 +186,111 @@ export default function MyApplications() {
         body: JSON.stringify(requestBody),
       });
 
-      console.log('Response status:', apiResponse.status);
-      console.log('Response headers:', Object.fromEntries(apiResponse.headers.entries()));
+      console.log("Response status:", apiResponse.status);
+      console.log(
+        "Response headers:",
+        Object.fromEntries(apiResponse.headers.entries())
+      );
 
       // Always get text first to handle any response type
       const responseText = await apiResponse.text();
-      console.log('Raw response text:', responseText);
+      console.log("Raw response text:", responseText);
 
       // Try to parse as JSON
       let responseData;
       try {
         responseData = responseText ? JSON.parse(responseText) : {};
       } catch (parseError) {
-        console.error('JSON parse error:', parseError);
-        
+        console.error("JSON parse error:", parseError);
+
         // If it's HTML (like an error page), show a helpful message
-        if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
-          throw new Error('Server returned an error page. The API endpoint may not exist. Please check the server setup.');
+        if (
+          responseText.includes("<!DOCTYPE") ||
+          responseText.includes("<html")
+        ) {
+          throw new Error(
+            "Server returned an error page. The API endpoint may not exist. Please check the server setup."
+          );
         }
-        
-        throw new Error(`Invalid server response: ${responseText.substring(0, 100)}...`);
+
+        throw new Error(
+          `Invalid server response: ${responseText.substring(0, 100)}...`
+        );
       }
 
-      console.log('Parsed response data:', responseData);
+      console.log("Parsed response data:", responseData);
 
       if (!apiResponse.ok) {
-        const errorMessage = responseData.error || responseData.message || `HTTP ${apiResponse.status}`;
+        const errorMessage =
+          responseData.error ||
+          responseData.message ||
+          `HTTP ${apiResponse.status}`;
         throw new Error(errorMessage);
       }
 
-      console.log('✅ Response successful!');
+      console.log("✅ Response successful!");
 
       // Update the application status locally
-      setApplications(prev => 
-        prev.map(app => 
-          app._id === applicationId 
-            ? { ...app, status: response, respondedDate: new Date().toISOString() }
+      setApplications((prev) =>
+        prev.map((app) =>
+          app._id === applicationId
+            ? {
+                ...app,
+                status: response,
+                respondedDate: new Date().toISOString(),
+              }
             : app
         )
       );
 
       // Update selected application if modal is open
       if (selectedApplication && selectedApplication._id === applicationId) {
-        setSelectedApplication(prev => 
-          prev ? { ...prev, status: response, respondedDate: new Date().toISOString() } : null
+        setSelectedApplication((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: response,
+                respondedDate: new Date().toISOString(),
+              }
+            : null
         );
       }
 
       // Show success message
-      const message = response === "accepted" 
-        ? "🎉 Congratulations! You've accepted the internship offer!"
-        : "✅ You've declined the internship offer.";
-      
+      const message =
+        response === "accepted"
+          ? "🎉 Congratulations! You've accepted the internship offer!"
+          : "✅ You've declined the internship offer.";
+
       alert(message);
 
-      // Refresh applications to get latest data from server
-      console.log('Refreshing applications...');
+      // Refresh applications to get latest data from server including updated organization info
+      console.log("Refreshing applications...");
       await fetchApplications();
-
     } catch (error: any) {
       console.error("❌ Error in handleOfferResponse:", error);
       console.error("Error stack:", error.stack);
-      
+
       // Provide helpful error messages
       let userMessage = "Failed to respond to offer. ";
-      
-      if (error.message.includes('endpoint may not exist')) {
+
+      if (error.message.includes("endpoint may not exist")) {
         userMessage += "Please ensure the API endpoint is properly set up.";
-      } else if (error.message.includes('fetch')) {
+      } else if (error.message.includes("fetch")) {
         userMessage += "Network error. Please check your connection.";
       } else {
         userMessage += error.message;
       }
-      
+
       alert(userMessage);
     } finally {
       setIsResponding(false);
-      console.log('=== OFFER RESPONSE COMPLETE ===');
+      console.log("=== OFFER RESPONSE COMPLETE ===");
     }
   };
 
   const formatDate = (dateString: string) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return "N/A";
     try {
       return new Date(dateString).toLocaleDateString("en-US", {
         year: "numeric",
@@ -267,7 +298,7 @@ export default function MyApplications() {
         day: "numeric",
       });
     } catch {
-      return 'Invalid Date';
+      return "Invalid Date";
     }
   };
 
@@ -334,12 +365,14 @@ export default function MyApplications() {
     }
   };
 
-  const filteredApplications = applications.filter(app => {
-    const matchesStatus = selectedStatus === "all" || app.status === selectedStatus;
-    const matchesSearch = !searchQuery || 
+  const filteredApplications = applications.filter((app) => {
+    const matchesStatus =
+      selectedStatus === "all" || app.status === selectedStatus;
+    const matchesSearch =
+      !searchQuery ||
       app.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.companyName.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     return matchesStatus && matchesSearch;
   });
 
@@ -366,7 +399,9 @@ export default function MyApplications() {
     return (
       <div className="bg-red-50 p-6 rounded-lg text-center">
         <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-3" />
-        <h3 className="text-lg font-semibold text-red-700 mb-2">Error Loading Applications</h3>
+        <h3 className="text-lg font-semibold text-red-700 mb-2">
+          Error Loading Applications
+        </h3>
         <p className="text-red-600 mb-4">{error}</p>
         <button
           onClick={fetchApplications}
@@ -389,7 +424,8 @@ export default function MyApplications() {
               My Applications
             </h2>
             <p className="text-gray-600 text-sm mt-1">
-              Track the status of your internship applications and respond to offers
+              Track the status of your internship applications and respond to
+              offers
             </p>
           </div>
           <button
@@ -397,8 +433,10 @@ export default function MyApplications() {
             disabled={isRefreshing}
             className="flex items-center px-4 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`}
+            />
+            {isRefreshing ? "Refreshing..." : "Refresh"}
           </button>
         </div>
 
@@ -438,10 +476,12 @@ export default function MyApplications() {
         <div className="bg-white rounded-lg shadow-md p-12 text-center">
           <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-700 mb-2">
-            {applications.length === 0 ? "No Applications Yet" : "No Matching Applications"}
+            {applications.length === 0
+              ? "No Applications Yet"
+              : "No Matching Applications"}
           </h3>
           <p className="text-gray-500">
-            {applications.length === 0 
+            {applications.length === 0
               ? "Start by browsing and applying for internships that match your interests."
               : "Try adjusting your filters to see more applications."}
           </p>
@@ -450,15 +490,18 @@ export default function MyApplications() {
         <div className="space-y-4">
           {filteredApplications.map((application) => {
             const internship = internshipDetails[application.internshipId];
-            
+
             return (
               <div
                 key={application._id}
                 className={`bg-white rounded-lg shadow-md border-l-4 hover:shadow-lg transition-all duration-200 ${
-                  application.status === 'selected' ? 'border-l-green-500 bg-green-50' :
-                  application.status === 'accepted' ? 'border-l-green-600 bg-green-50' :
-                  application.status === 'rejected' ? 'border-l-red-500' :
-                  'border-l-gray-300'
+                  application.status === "selected"
+                    ? "border-l-green-500 bg-green-50"
+                    : application.status === "accepted"
+                    ? "border-l-green-600 bg-green-50"
+                    : application.status === "rejected"
+                    ? "border-l-red-500"
+                    : "border-l-gray-300"
                 }`}
               >
                 <div className="p-6">
@@ -483,12 +526,13 @@ export default function MyApplications() {
                           <p className="text-cyan-600 font-medium mb-2">
                             {application.companyName}
                           </p>
-                          
+
                           {internship && (
                             <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-3">
                               <div className="flex items-center">
                                 <MapPin className="h-4 w-4 mr-1" />
-                                {internship.location.city}, {internship.location.state}
+                                {internship.location.city},{" "}
+                                {internship.location.state}
                               </div>
                               <div className="flex items-center">
                                 <Calendar className="h-4 w-4 mr-1" />
@@ -497,17 +541,20 @@ export default function MyApplications() {
                               {internship.isPaid && (
                                 <div className="flex items-center">
                                   <DollarSign className="h-4 w-4 mr-1" />
-                                  {internship.stipend || 'Paid'}
+                                  {internship.stipend || "Paid"}
                                 </div>
                               )}
                             </div>
                           )}
-                          
+
                           <div className="flex items-center space-x-4 text-sm text-gray-500">
-                            <span>Applied: {formatDate(application.appliedDate)}</span>
+                            <span>
+                              Applied: {formatDate(application.appliedDate)}
+                            </span>
                             {application.respondedDate && (
                               <span className="text-green-600 font-medium">
-                                Responded: {formatDate(application.respondedDate)}
+                                Responded:{" "}
+                                {formatDate(application.respondedDate)}
                               </span>
                             )}
                           </div>
@@ -517,9 +564,15 @@ export default function MyApplications() {
 
                     <div className="flex flex-col lg:items-end space-y-3 mt-4 lg:mt-0">
                       {/* Status Badge */}
-                      <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(application.status)}`}>
+                      <div
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(
+                          application.status
+                        )}`}
+                      >
                         {getStatusIcon(application.status)}
-                        <span className="ml-1 capitalize">{application.status.replace('_', ' ')}</span>
+                        <span className="ml-1 capitalize">
+                          {application.status.replace("_", " ")}
+                        </span>
                       </div>
 
                       {/* Action Buttons */}
@@ -536,7 +589,9 @@ export default function MyApplications() {
                         {application.status === "selected" && (
                           <div className="flex space-x-2">
                             <button
-                              onClick={() => handleOfferResponse(application._id, "accepted")}
+                              onClick={() =>
+                                handleOfferResponse(application._id, "accepted")
+                              }
                               disabled={isResponding}
                               className="flex-1 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
@@ -545,10 +600,12 @@ export default function MyApplications() {
                               ) : (
                                 <ThumbsUp className="h-4 w-4 mr-1" />
                               )}
-                              {isResponding ? 'Processing...' : 'Accept'}
+                              {isResponding ? "Processing..." : "Accept"}
                             </button>
                             <button
-                              onClick={() => handleOfferResponse(application._id, "declined")}
+                              onClick={() =>
+                                handleOfferResponse(application._id, "declined")
+                              }
                               disabled={isResponding}
                               className="flex-1 px-3 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
@@ -557,7 +614,7 @@ export default function MyApplications() {
                               ) : (
                                 <ThumbsDown className="h-4 w-4 mr-1" />
                               )}
-                              {isResponding ? 'Processing...' : 'Decline'}
+                              {isResponding ? "Processing..." : "Decline"}
                             </button>
                           </div>
                         )}
@@ -566,22 +623,28 @@ export default function MyApplications() {
                   </div>
 
                   {/* Status Description */}
-                  <div className={`mt-4 p-3 rounded-md ${
-                    application.status === 'selected' ? 'bg-green-100 border border-green-200' :
-                    application.status === 'accepted' ? 'bg-green-100 border border-green-200' :
-                    'bg-gray-50'
-                  }`}>
+                  <div
+                    className={`mt-4 p-3 rounded-md ${
+                      application.status === "selected"
+                        ? "bg-green-100 border border-green-200"
+                        : application.status === "accepted"
+                        ? "bg-green-100 border border-green-200"
+                        : "bg-gray-50"
+                    }`}
+                  >
                     <p className="text-sm text-gray-700">
                       {getStatusDescription(application.status)}
                     </p>
                     {application.status === "selected" && (
                       <p className="text-sm text-green-700 font-medium mt-1">
-                        ⏰ Action Required: Please respond to this offer by accepting or declining above.
+                        ⏰ Action Required: Please respond to this offer by
+                        accepting or declining above.
                       </p>
                     )}
                     {application.status === "accepted" && (
                       <p className="text-sm text-green-700 font-medium mt-1">
-                        🎯 Next steps and onboarding information will be shared by the organization soon.
+                        🎯 Next steps and onboarding information will be shared
+                        by the organization soon.
                       </p>
                     )}
                   </div>
@@ -603,7 +666,8 @@ export default function MyApplications() {
                   Application Details
                 </h3>
                 <p className="text-sm text-gray-500 mt-1">
-                  {selectedApplication.position} at {selectedApplication.companyName}
+                  {selectedApplication.position} at{" "}
+                  {selectedApplication.companyName}
                 </p>
               </div>
               <button
@@ -619,31 +683,57 @@ export default function MyApplications() {
               <div className="space-y-6">
                 {/* Application Info */}
                 <div className="bg-gradient-to-r from-cyan-50 to-blue-50 p-4 rounded-lg border border-cyan-100">
-                  <h4 className="font-semibold text-gray-900 mb-3">Application Summary</h4>
+                  <h4 className="font-semibold text-gray-900 mb-3">
+                    Application Summary
+                  </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="font-medium text-gray-700">Position:</span>
-                      <p className="text-gray-900 mt-1">{selectedApplication.position}</p>
+                      <span className="font-medium text-gray-700">
+                        Position:
+                      </span>
+                      <p className="text-gray-900 mt-1">
+                        {selectedApplication.position}
+                      </p>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-700">Company:</span>
-                      <p className="text-gray-900 mt-1">{selectedApplication.companyName}</p>
+                      <span className="font-medium text-gray-700">
+                        Company:
+                      </span>
+                      <p className="text-gray-900 mt-1">
+                        {selectedApplication.companyName}
+                      </p>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-700">Applied Date:</span>
-                      <p className="text-gray-900 mt-1">{formatDate(selectedApplication.appliedDate)}</p>
+                      <span className="font-medium text-gray-700">
+                        Applied Date:
+                      </span>
+                      <p className="text-gray-900 mt-1">
+                        {formatDate(selectedApplication.appliedDate)}
+                      </p>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-700">Current Status:</span>
-                      <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mt-1 ${getStatusColor(selectedApplication.status)}`}>
+                      <span className="font-medium text-gray-700">
+                        Current Status:
+                      </span>
+                      <div
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mt-1 ${getStatusColor(
+                          selectedApplication.status
+                        )}`}
+                      >
                         {getStatusIcon(selectedApplication.status)}
-                        <span className="ml-1 capitalize">{selectedApplication.status.replace('_', ' ')}</span>
+                        <span className="ml-1 capitalize">
+                          {selectedApplication.status.replace("_", " ")}
+                        </span>
                       </div>
                     </div>
                     {selectedApplication.respondedDate && (
                       <div className="md:col-span-2">
-                        <span className="font-medium text-gray-700">Response Date:</span>
-                        <p className="text-green-600 font-medium mt-1">{formatDate(selectedApplication.respondedDate)}</p>
+                        <span className="font-medium text-gray-700">
+                          Response Date:
+                        </span>
+                        <p className="text-green-600 font-medium mt-1">
+                          {formatDate(selectedApplication.respondedDate)}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -651,25 +741,35 @@ export default function MyApplications() {
 
                 {/* Application Details */}
                 <div className="space-y-4">
-                  <h4 className="font-semibold text-gray-900">Application Details</h4>
-                  
+                  <h4 className="font-semibold text-gray-900">
+                    Application Details
+                  </h4>
+
                   <div>
-                    <p className="font-medium text-gray-700 mb-2">Cover Letter</p>
+                    <p className="font-medium text-gray-700 mb-2">
+                      Cover Letter
+                    </p>
                     <div className="text-gray-900 bg-gray-50 p-4 rounded-md border">
-                      {selectedApplication.applicationData.coverLetter || 'No cover letter provided'}
+                      {selectedApplication.applicationData.coverLetter ||
+                        "No cover letter provided"}
                     </div>
                   </div>
 
                   <div>
-                    <p className="font-medium text-gray-700 mb-2">Why are you interested in this internship?</p>
+                    <p className="font-medium text-gray-700 mb-2">
+                      Why are you interested in this internship?
+                    </p>
                     <div className="text-gray-900 bg-gray-50 p-4 rounded-md border">
-                      {selectedApplication.applicationData.whyInterestedReason || 'No response provided'}
+                      {selectedApplication.applicationData
+                        .whyInterestedReason || "No response provided"}
                     </div>
                   </div>
 
                   {selectedApplication.applicationData.relevantExperience && (
                     <div>
-                      <p className="font-medium text-gray-700 mb-2">Relevant Experience</p>
+                      <p className="font-medium text-gray-700 mb-2">
+                        Relevant Experience
+                      </p>
                       <div className="text-gray-900 bg-gray-50 p-4 rounded-md border">
                         {selectedApplication.applicationData.relevantExperience}
                       </div>
@@ -677,22 +777,31 @@ export default function MyApplications() {
                   )}
 
                   <div>
-                    <p className="font-medium text-gray-700 mb-2">Expected Outcome</p>
+                    <p className="font-medium text-gray-700 mb-2">
+                      Expected Outcome
+                    </p>
                     <div className="text-gray-900 bg-gray-50 p-4 rounded-md border">
-                      {selectedApplication.applicationData.expectedOutcome || 'No expected outcome provided'}
+                      {selectedApplication.applicationData.expectedOutcome ||
+                        "No expected outcome provided"}
                     </div>
                   </div>
 
                   <div>
-                    <p className="font-medium text-gray-700 mb-2">Available Start Date</p>
+                    <p className="font-medium text-gray-700 mb-2">
+                      Available Start Date
+                    </p>
                     <div className="text-gray-900 bg-gray-50 p-4 rounded-md border">
-                      {formatDate(selectedApplication.applicationData.availableStartDate)}
+                      {formatDate(
+                        selectedApplication.applicationData.availableStartDate
+                      )}
                     </div>
                   </div>
 
                   {selectedApplication.applicationData.additionalComments && (
                     <div>
-                      <p className="font-medium text-gray-700 mb-2">Additional Comments</p>
+                      <p className="font-medium text-gray-700 mb-2">
+                        Additional Comments
+                      </p>
                       <div className="text-gray-900 bg-gray-50 p-4 rounded-md border">
                         {selectedApplication.applicationData.additionalComments}
                       </div>
@@ -707,9 +816,15 @@ export default function MyApplications() {
               <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-gray-600">Current Status:</span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium flex items-center ${getStatusColor(selectedApplication.status)}`}>
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm font-medium flex items-center ${getStatusColor(
+                      selectedApplication.status
+                    )}`}
+                  >
                     {getStatusIcon(selectedApplication.status)}
-                    <span className="ml-1 capitalize">{selectedApplication.status.replace('_', ' ')}</span>
+                    <span className="ml-1 capitalize">
+                      {selectedApplication.status.replace("_", " ")}
+                    </span>
                   </span>
                 </div>
 
@@ -720,12 +835,17 @@ export default function MyApplications() {
                   >
                     Close
                   </button>
-                  
+
                   {/* Accept/Reject buttons in modal for selected applications */}
                   {selectedApplication.status === "selected" && (
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => handleOfferResponse(selectedApplication._id, "accepted")}
+                        onClick={() =>
+                          handleOfferResponse(
+                            selectedApplication._id,
+                            "accepted"
+                          )
+                        }
                         disabled={isResponding}
                         className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center transition-colors"
                       >
@@ -737,7 +857,12 @@ export default function MyApplications() {
                         {isResponding ? "Processing..." : "Accept Offer"}
                       </button>
                       <button
-                        onClick={() => handleOfferResponse(selectedApplication._id, "declined")}
+                        onClick={() =>
+                          handleOfferResponse(
+                            selectedApplication._id,
+                            "declined"
+                          )
+                        }
                         disabled={isResponding}
                         className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center transition-colors"
                       >

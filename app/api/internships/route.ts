@@ -45,10 +45,18 @@ export async function GET(request: Request) {
     // Get query parameters
     const { searchParams } = new URL(request.url);
     const organizationId = searchParams.get('organizationId');
+    const hideExpired = searchParams.get('hideExpired') === 'true';
 
-    let query = {};
+    let query: any = {};
     if (organizationId) {
       query = { organizationId };
+    }
+
+    // Add filter for expired internships if requested
+    if (hideExpired) {
+      const today = new Date();
+      today.setUTCHours(0, 0, 0, 0);
+      query.applicationDeadline = { $gte: today };
     }
 
     const internships = await Internship.find(query)

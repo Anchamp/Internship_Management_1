@@ -16,10 +16,14 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '12', 10);
     
+    // Get today's date at midnight UTC for consistent comparison
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    
     // Build query for public internship listings
     let query: any = {
       status: status,
-      applicationDeadline: { $gte: new Date() } // Only show internships with future deadlines
+      applicationDeadline: { $gte: today } // Only show internships with future deadlines
     };
     
     // Add search filter (search in title, organization, and department)
@@ -52,6 +56,8 @@ export async function GET(request: Request) {
     
     // Calculate pagination
     const skip = (page - 1) * limit;
+    
+    console.log('Fetching internships with query:', JSON.stringify(query));
     
     // Fetch internships with pagination
     const internships = await Internship.find(query)

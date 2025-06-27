@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import Intern from '@/models/Intern';
+import Internship from '@/models/Internship';
 
 export async function PUT(request: NextRequest) {
   try {
@@ -42,70 +43,107 @@ export async function PUT(request: NextRequest) {
     console.log('Database connected successfully');
 
     // Find the user and the specific application
-    const intern = await Intern.findOne({ username });
-    if (!intern) {
-      console.log('User not found:', username);
-      return NextResponse.json({
-        error: 'User not found'
-      }, { status: 404 });
-    }
-
-    console.log('User found:', intern.username);
-    console.log('User has applied internships count:', intern.appliedInternships?.length || 0);
-
-    // Find the application in user's appliedInternships array
-    const applicationIndex = intern.appliedInternships.findIndex(
-      (app: any) => app._id.toString() === applicationId
+    const internUser = await Intern.findOne(
+      { 
+        username: username,
+        'appliedInternships._id': applicationId
+      },
+      { 'appliedInternships.$': 1 }
     );
-
-    console.log('Application index found:', applicationIndex);
-
-    if (applicationIndex === -1) {
-      console.log('Application not found in user applications');
-      console.log('Available application IDs:', intern.appliedInternships.map((app: any) => app._id.toString()));
+    
+    if (!internUser || !internUser.appliedInternships || internUser.appliedInternships.length === 0) {
       return NextResponse.json({
-        error: 'Application not found'
+        error: 'Application not found or user not authorized'
       }, { status: 404 });
     }
-
-    const application = intern.appliedInternships[applicationIndex];
-    console.log('Current application status:', application.status);
-
-    // Check if application is in "selected" status
-    if (application.status !== 'selected') {
-      console.log('Invalid status for response. Current status:', application.status);
-      return NextResponse.json({
-        error: `Can only respond to applications with "selected" status. Current status: ${application.status}`
-      }, { status: 400 });
-    }
-
-    // Update the application status and add response date
-    intern.appliedInternships[applicationIndex].status = response;
-    intern.appliedInternships[applicationIndex].respondedDate = new Date();
-
-    console.log('Updating application with new status:', response);
-
-    // Save the updated user document
-    const saveResult = await intern.save();
-    console.log('User document saved successfully');
-
-    console.log(`✅ Application ${applicationId} status updated to: ${response}`);
-
-    // Log success message
+    
+    const application = internUser.appliedInternships[0];
+    const internshipId = application.internshipId;
+    
+    // Prepare update object for the application
+    const updateObj: any = {
+      'appliedInternships.$.status': response,
+      'appliedInternships.$.respondedDate': new Date()
+    };
+    
+    // If accepting, get organization info from the internship post
     if (response === 'accepted') {
-      console.log(`🎉 intern ${username} accepted internship offer for application ${applicationId}`);
+      // Find the internship to get organization details
+      const internship = await Internship.findById(internshipId);
+      
+      if (!internship) {
+        return NextResponse.json({
+          error: 'Internship not found'
+        }, { status: 404 });
+      }
+      
+      // Add organization info to the application update
+      updateObj['appliedInternships.$.organizationId'] = internship.organizationId;
+      updateObj['appliedInternships.$.organizationName'] = internship.organizationName;
+      
+      console.log(`Adding organization details: ${internship.organizationName} (${internship.organizationId})`);
+      
+      // Update the application in the database
+      const appUpdateResult = await Intern.updateOne(
+        { 
+          username: username,
+          'appliedInternships._id': applicationId
+        },
+        { $set: updateObj }
+      );
+      
+      if (appUpdateResult.matchedCount === 0) {
+        return NextResponse.json({
+          error: 'Failed to update application'
+        }, { status: 500 });
+      }
+      
+      // IMPORTANT: Also update the root-level fields for the intern
+      const rootUpdateResult = await Intern.updateOne(
+        { username: username },
+        { 
+          $set: {
+            organizationId: internship.organizationId,
+            organizationName: internship.organizationName
+          }
+        }
+      );
+      
+      if (rootUpdateResult.matchedCount === 0) {
+        console.log('Warning: Failed to update root organization fields');
+      } else {
+        console.log(`Updated root organization fields for intern ${username}`);
+      }
+      
+      return NextResponse.json({
+        message: `Internship offer ${response}`,
+        status: response,
+        organizationInfo: {
+          organizationId: internship.organizationId,
+          organizationName: internship.organizationName
+        }
+      }, { status: 200 });
     } else {
-      console.log(`❌ intern ${username} declined internship offer for application ${applicationId}`);
+      // For decline, just update the application status
+      const result = await Intern.updateOne(
+        { 
+          username: username,
+          'appliedInternships._id': applicationId
+        },
+        { $set: updateObj }
+      );
+      
+      if (result.matchedCount === 0) {
+        return NextResponse.json({
+          error: 'Failed to update application'
+        }, { status: 500 });
+      }
+      
+      return NextResponse.json({
+        message: `Internship offer declined`,
+        status: response
+      }, { status: 200 });
     }
-
-    return NextResponse.json({
-      success: true,
-      message: `Application ${response} successfully`,
-      applicationId: applicationId,
-      newStatus: response,
-      respondedDate: intern.appliedInternships[applicationIndex].respondedDate
-    }, { status: 200 });
-
   } catch (error: any) {
     console.error('❌ Error processing intern response:', error);
     console.error('Error stack:', error.stack);
