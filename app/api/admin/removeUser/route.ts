@@ -70,10 +70,12 @@ export async function POST(request: Request) {
     }
     
     // Get the updated user to confirm the change
+    let updatedUser;
+
     if (userToRemove) {
-      const updatedUser = await userCollection.findOne({ _id: objectId });
+      updatedUser = await userCollection.findOne({ _id: objectId });
     } else {
-      const updatedUser = await internCollection.findOne({ _id: objectId });
+      updatedUser = await internCollection.findOne({ _id: objectId });
     }
 
     console.log(`Removing user: ${updatedUser.username} organizationName: ${updatedUser.organizationName}`);

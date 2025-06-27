@@ -334,8 +334,8 @@ export default function AppliedInternScreen() {
       internship.department
         .toLowerCase()
         .includes(internshipsSearchQuery.toLowerCase()) ||
-      internship.location
-        ?.toLowerCase()
+      formatLocation(internship.location)
+        .toLowerCase()
         .includes(internshipsSearchQuery.toLowerCase())
   );
 

@@ -308,27 +308,6 @@ export default function ForgotPassword() {
       }
     } else if (name === "confirmPassword") {
       setConfirmPassword(value);
-    } else if (name === "phone") {
-      // Special handling for phone number validation
-      const phoneValue = value.replace(/\D/g, "");
-
-      // Validate phone number length
-      if (phoneValue.length > 0 && phoneValue.length !== 10) {
-        setPhoneError("Phone number must be 10 digits");
-      } else {
-        setPhoneError("");
-      }
-
-      setUserData((prev) => ({
-        ...prev,
-        phone: phoneValue,
-      }));
-    } else {
-      // Handle other fields
-      setUserData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
     }
   };
 

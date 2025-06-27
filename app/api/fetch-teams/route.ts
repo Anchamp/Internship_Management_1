@@ -4,6 +4,11 @@ import Team from '@/models/Team';
 import User from '@/models/User';
 import Intern from '@/models/Intern';
 
+interface UsernameDoc {
+  username: string;
+  _id: unknown;
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -58,27 +63,22 @@ export async function GET(request: Request) {
         const mentorIds = team.mentors;
         const internIds = team.interns;
         const panelistIds = team.panelists;
-
-        team.mentors = []
-        team.interns = []
-        team.panelists = []
-
         for (const mentorId of mentorIds) {
-          const mentorUsername = await User.findById(mentorId, 'username').lean();
+          const mentorUsername = await User.findById(mentorId, 'username').lean() as UsernameDoc | null;
           if (mentorUsername) {
             team.mentors.push(mentorUsername.username);
           }
         }
 
         for (const internId of internIds) {
-          const internUsername = await Intern.findById(internId, 'username').lean();
+          const internUsername = await Intern.findById(internId, 'username').lean() as UsernameDoc | null;
           if (internUsername) {
             team.interns.push(internUsername.username);
           }
         }
 
         for (const panelistId of panelistIds) {
-          const panelistUsername = await User.findById(panelistId, 'username').lean();
+          const panelistUsername = await User.findById(panelistId, 'username').lean() as UsernameDoc | null;
           if (panelistUsername) {
             team.panelists.push(panelistUsername.username);
           }
@@ -108,21 +108,21 @@ export async function GET(request: Request) {
         team.panelists = []
 
         for (const mentorId of mentorIds) {
-          const mentorUsername = await User.findById(mentorId, 'username').lean();
+          const mentorUsername = await User.findById(mentorId, 'username').lean() as UsernameDoc | null;
           if (mentorUsername) {
             team.mentors.push(mentorUsername.username);
           }
         }
 
         for (const internId of internIds) {
-          const internUsername = await Intern.findById(internId, 'username').lean();
+          const internUsername = await Intern.findById(internId, 'username').lean() as UsernameDoc | null;
           if (internUsername) {
             team.interns.push(internUsername.username);
           }
         }
 
         for (const panelistId of panelistIds) {
-          const panelistUsername = await User.findById(panelistId, 'username').lean();
+          const panelistUsername = await User.findById(panelistId, 'username').lean() as UsernameDoc | null;
           if (panelistUsername) {
             team.panelists.push(panelistUsername.username);
           }
