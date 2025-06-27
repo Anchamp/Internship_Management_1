@@ -1,6 +1,5 @@
-// Create this file: /api/users/[id]/update-intern-profile/route.js
-
-// Create this file: /app/api/users/[id]/update-intern-profile/route.js
+// FILE: app/api/users/[id]/update-intern-profile/route.js
+// REPLACE THE ENTIRE FILE WITH THIS CODE
 
 import { NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
@@ -75,8 +74,9 @@ export async function PUT(request) {
       idDocumentFile: profileData.idDocumentFile || '',
       transcriptFile: profileData.transcriptFile || '',
       
-      // Application Status
-      applicationStatus: profileData.applicationStatus || currentUser.applicationStatus || 'none',
+      // CRITICAL FIX: Use "pending" instead of "none"
+      // Valid enum values: ["pending", "approved", "rejected", "active", "completed"]
+      applicationStatus: profileData.applicationStatus || currentUser.applicationStatus || 'pending',
       
       // User Preferences
       preferences: profileData.preferences || currentUser.preferences || {
@@ -109,12 +109,14 @@ export async function PUT(request) {
     
     // Remove sensitive information before returning
     const { password, ...userWithoutPassword } = updatedUser;
-      return NextResponse.json({
+    
+    return NextResponse.json({
       success: true,
       message: 'Intern profile updated successfully',
       user: userWithoutPassword,
       isFirstSubmission: isFirstSubmission
     });
+    
   } catch (error) {
     console.error('Intern profile update error:', error);
     return NextResponse.json({ 
@@ -123,4 +125,3 @@ export async function PUT(request) {
     }, { status: 500 });
   }
 }
-

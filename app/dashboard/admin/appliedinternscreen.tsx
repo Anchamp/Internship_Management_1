@@ -756,8 +756,16 @@ export default function AppliedInternScreen() {
                       >
                         Select
                       </button>
-                    </>
+                      <button
+                        onClick={() => handleStatusUpdate(selectedApplication._id, "rejected")}
+                        disabled={isUpdatingStatus}
+                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium disabled:opacity-50"
+                      >
+                       Reject
+                      </button>
+                    </>  
                   )}
+                  
                   
                   {selectedApplication.status === "interview_scheduled" && (
                     <button

@@ -1,4 +1,4 @@
-// models/Intern.ts
+// models/Intern.ts - FIXED VERSION
 import mongoose, { Schema, models } from "mongoose";
 import * as bcrypt from 'bcryptjs';
 
@@ -71,13 +71,14 @@ const internSchema = new Schema(
     idDocumentFile: String,
     transcriptFiles: [String],
   
+    // FIXED: Complete applicationStatus enum with "none" included
     applicationStatus: {
       type: String,
       enum: ["none", "pending", "approved", "rejected", "active", "completed"],
       default: "none",
     },
 
-    // FIXED: Corrected field name from 'appliedInternsips' to 'appliedInternships'
+    // Applied internships array
     appliedInternships: [{
       internshipId: String,
       companyName: String,
@@ -90,7 +91,7 @@ const internSchema = new Schema(
       },
       interviewDate: Date,
       notes: String,
-      respondedDate: Date, // When intern responded to selection
+      respondedDate: Date,
       applicationData: {
         coverLetter: String,
         whyInterestedReason: String,
