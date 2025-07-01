@@ -25,6 +25,7 @@ import InternDashboardScreen from "./dashboardscreen";
 import InternProfileSettings from "./profile-settings";
 import FindApplyInternships from "./find-apply-internships";
 import MyApplications from "./my-applications";
+import MyTeams from "./my-teams";
 
 export default function InternDashboard() {
   const router = useRouter();
@@ -537,18 +538,7 @@ export default function InternDashboard() {
           )}
           {activeTab === "internships" && <FindApplyInternships />}
           {activeTab === "my-applications" && <MyApplications />}
-          {activeTab === "my-teams" && (
-            <div className="flex items-center justify-center min-h-[400px] bg-white rounded-lg shadow-sm border">
-              <div className="text-center">
-                <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">My Teams</h3>
-                <p className="text-gray-500 mb-4">Team collaboration features coming soon</p>
-                <div className="bg-gray-100 px-4 py-2 rounded-md text-sm text-gray-600">
-                  Coming Soon
-                </div>
-              </div>
-            </div>
-          )}
+          {activeTab === "my-teams" && <MyTeams />}
           {activeTab === "project-details" && (
             <div className="flex items-center justify-center min-h-[400px] bg-white rounded-lg shadow-sm border">
               <div className="text-center">

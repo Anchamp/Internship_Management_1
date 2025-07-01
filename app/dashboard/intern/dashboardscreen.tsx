@@ -1,5 +1,4 @@
 // FILE: app/dashboard/intern/dashboardscreen.tsx
-// REPLACE THE ENTIRE FILE WITH THIS CODE
 
 "use client";
 

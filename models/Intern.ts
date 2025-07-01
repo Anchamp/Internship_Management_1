@@ -72,11 +72,7 @@ const internSchema = new Schema(
     transcriptFiles: [String],
   
     // FIXED: Complete applicationStatus enum with "none" included
-    applicationStatus: {
-      type: String,
-      enum: ["none", "pending", "approved", "rejected", "active", "completed"],
-      default: "none",
-    },
+   
 
     // Applied internships array
     appliedInternships: [{
