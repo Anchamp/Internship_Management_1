@@ -21,10 +21,11 @@ import {
 } from "lucide-react";
 
 export default function CreatePostScreen() {
-  const [formData, setFormData] = useState({
+  // Define the initial state to use for resetting the form
+  const initialFormData = {
     title: "",
-    category: "", // Add category field to the state
-    duration: "", // Replace startDate and endDate with duration
+    category: "",
+    duration: "",
     mode: "onsite", // Default: onsite
     location: {
       city: "",
@@ -41,8 +42,9 @@ export default function CreatePostScreen() {
     isPaid: true, // Default: paid
     applicationDeadline: "",
     postingDate: new Date().toISOString().split("T")[0], // Today's date as default
-  });
+  };
 
+  const [formData, setFormData] = useState(initialFormData);
   const [newSkill, setNewSkill] = useState("");
   const [newResponsibility, setNewResponsibility] = useState("");
   const [isSaving, setIsSaving] = useState(false); // Loading state
@@ -223,6 +225,17 @@ export default function CreatePostScreen() {
 
       // Show success message
       alert("Internship posted successfully");
+
+      // Reset form after successful submission
+      // Reset form to initial values while keeping the posting date as today's date
+      setFormData({
+        ...initialFormData,
+        postingDate: new Date().toISOString().split("T")[0],
+      });
+
+      // Also reset the new skill and responsibility inputs
+      setNewSkill("");
+      setNewResponsibility("");
     } catch (error: any) {
       console.error("Error:", error);
       alert(`Failed to create internship posting: ${error.message}`);

@@ -65,52 +65,53 @@ export default function OnboardingScreen() {
   const [error, setError] = useState("");
   const [organizationName, setOrganizationName] = useState("");
 
-  useEffect(() => {
-    const fetchEmployees = async () => {
-      try {
-        setIsLoading(true);
-        setError("");
+  // Extract fetching logic into a reusable function
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+      setError("");
 
-        // Get admin username from localStorage
-        const storedUser = localStorage.getItem("user");
-        if (!storedUser) {
-          setError("User session not found");
-          return;
-        }
-
-        const { username } = JSON.parse(storedUser);
-
-        const response = await fetch(`/api/fetch-users?username=${username}`);
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to fetch users");
-        }
-
-        const data = await response.json();
-
-        // Combine all users into a single array
-        const allUsers = [
-          ...(data.admins || []),
-          ...(data.employees || []),
-          ...(data.interns || []),
-        ];
-
-        // Update state with the fetched data
-        setUsers(allUsers);
-        setOrganizationName(data.organizationName || "Your Organization");
-      } catch (error: any) {
-        console.error("Error fetching users:", error);
-        setError(error.message || "An error occurred");
-        toast.error("Failed to load users", {
-          description: "Please try refreshing the page",
-        });
-      } finally {
-        setIsLoading(false);
+      // Get admin username from localStorage
+      const storedUser = localStorage.getItem("user");
+      if (!storedUser) {
+        setError("User session not found");
+        return;
       }
-    };
 
-    fetchEmployees();
+      const { username } = JSON.parse(storedUser);
+
+      const response = await fetch(`/api/fetch-users?username=${username}`);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to fetch users");
+      }
+
+      const data = await response.json();
+
+      // Combine all users into a single array
+      const allUsers = [
+        ...(data.admins || []),
+        ...(data.employees || []),
+        ...(data.interns || []),
+      ];
+
+      // Update state with the fetched data
+      setUsers(allUsers);
+      setOrganizationName(data.organizationName || "Your Organization");
+    } catch (error: any) {
+      console.error("Error fetching users:", error);
+      setError(error.message || "An error occurred");
+      toast.error("Failed to load users", {
+        description: "Please try refreshing the page",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
   }, []);
 
   // Filter users whenever selected role changes
@@ -134,7 +135,13 @@ export default function OnboardingScreen() {
 
       const { username } = JSON.parse(storedUser);
 
-      // Call API to remove the user
+      // Get the current user's role to handle interns and employees differently
+      const currentUser = users.find((user) => user._id === userId);
+      if (!currentUser) {
+        throw new Error("User not found");
+      }
+
+      // Call API to remove the user or reset intern/employee fields
       const response = await fetch("/api/admin/removeUser", {
         method: "POST",
         headers: {
@@ -143,6 +150,27 @@ export default function OnboardingScreen() {
         body: JSON.stringify({
           userId,
           adminUsername: username,
+          isIntern: currentUser.role === "intern",
+          isEmployee: currentUser.role === "employee",
+          // Include reset fields based on the user role
+          resetFields:
+            currentUser.role === "intern"
+              ? {
+                  organizationName: "none",
+                  organizationId: null,
+                  teams: [],
+                  weeklyReports: [],
+                  feedback: [],
+                }
+              : currentUser.role === "employee"
+              ? {
+                  organizationName: "none",
+                  organizationId: "none",
+                  teams: [],
+                  profileSubmissionCount: -1,
+                  verificationStatus: "pending", // Add this line to reset verification status
+                }
+              : undefined,
         }),
       });
 
@@ -154,13 +182,32 @@ export default function OnboardingScreen() {
 
       console.log("User Removal successful:", data);
 
-      // Show success message
-      toast.success("User Removed successfully", {
-        description: "User has been removed from the organization successfully",
-      });
+      // Show customized success message based on user role
+      if (currentUser.role === "intern") {
+        toast.success("Intern removed from organization", {
+          description:
+            "Intern has been removed from the organization but remains in the system",
+        });
 
-      // Remove user from the list
-      setUsers((prev) => prev.filter((user) => user._id !== userId));
+        // Refresh the user list from the API instead of manually updating the state
+        await fetchUsers();
+      } else if (currentUser.role === "employee") {
+        toast.success("Employee removed from organization", {
+          description:
+            "Employee has been removed from the organization but remains in the system",
+        });
+
+        // Refresh the user list from the API instead of manually updating the state
+        await fetchUsers();
+      } else {
+        toast.success("User removed successfully", {
+          description:
+            "User has been removed from the organization successfully",
+        });
+
+        // Remove other users from the list
+        setUsers((prev) => prev.filter((user) => user._id !== userId));
+      }
 
       // If modal is open for this user, close it
       if (modalOpen && selectedUser?._id === userId) {
