@@ -1,32 +1,36 @@
 import mongoose, { Schema, models } from "mongoose";
 
-const teamSchema = new Schema(
-  {
-    teamName: {
+const assignmentSchema = new Schema({
+    assignmentTeamName: {
+      type: String,
+      required: true,
+    },
+    assignmentName: {
       type: String,
       required: true,
       trim: true,
     },
-    mentors: [{
+    assignmentFrom: {
       type: String,
       required: true,
       trim: true,
-    }],
-    interns: [{
+    },
+    deadline: Date,
+    status: {
       type: String,
+      enum: ['pending', 'active', 'review', 'completed'],
       required: true,
-      trim: true,
-    }],
-    panelists: [{
-      type: String,
-      required: true,
-      trim: true,
-    }],
+      default: 'pending',
+    },
     description: {
       type: String,
       required: true,
-      trim: true,
     },
+    assignedTo: [{
+      type: String,
+      default: 'none',
+    }],
+    mentorFeedback: String,
     organizationName: {
       type: String,
       required: true,
@@ -37,12 +41,6 @@ const teamSchema = new Schema(
       required: true,
       trim: true,
     },
-    status: {
-      type: String,
-      enum: ["active", "underReview", "completed"],
-      default: "active",
-    },
-    assignments: [String],
     createdAt: {
       type: Date,
       default: Date.now,
@@ -55,10 +53,11 @@ const teamSchema = new Schema(
   {strict: false}
 );
 
-teamSchema.pre("updateOne", function () {
+assignmentSchema.pre("updateOne", function () {
   this.set({ updatedAt: new Date() });
 });
 
-const Team = models.Team || mongoose.model("Team", teamSchema);
+const Assignment = models.Assignment || mongoose.model("Assignment", assignmentSchema);
 
-export default Team;
+export default Assignment;
+

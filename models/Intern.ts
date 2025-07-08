@@ -174,6 +174,9 @@ const internSchema = new Schema(
       default: "not_scheduled",
     },
 
+
+    // Assignments 
+    assignments: [String],
     // Intern Preferences and Settings
     preferences: {
       theme: {
