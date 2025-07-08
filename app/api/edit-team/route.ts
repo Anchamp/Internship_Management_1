@@ -43,8 +43,8 @@ export async function POST(request: Request) {
     if (!adminUser) {
       return NextResponse.json({ error: 'Only admins can edit teams' }, { status: 403 });
     }
-    const organizationId = adminUser.organizationId;
-    const organizationName = adminUser.organizationName;
+    const organizationId = Array.isArray(adminUser) ? adminUser[0]?.organizationId : adminUser.organizationId;
+    const organizationName = Array.isArray(adminUser) ? adminUser[0]?.organizationName : adminUser.organizationName;
 
     // Get the existing team
     const existingTeam = await Team.findOne({ teamName: editTeamName, organizationId });

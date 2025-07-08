@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
+import Notification from '@/models/Notification';
 
 export async function PUT(request) {
   try {
@@ -83,8 +84,8 @@ export async function PUT(request) {
     if (isFirstSubmission && currentUser.role !== 'admin') {
       updateFields.verificationStatus = 'pending';
       
-      // If user is mentor or panelist, create a verification notification for the admin
-      if (['mentor', 'panelist'].includes(currentUser.role) && currentUser.organizationId) {
+      // If user is mentor, panelist, or employee, create a verification notification for the admin
+      if (['mentor', 'panelist', 'employee'].includes(currentUser.role) && currentUser.organizationId) {
         // Find the admin with the matching organizationId
         const adminUser = await collection.findOne({
           role: 'admin',
@@ -92,21 +93,18 @@ export async function PUT(request) {
         });
         
         if (adminUser) {
-          // Create a notification for the admin
-          const notification = {
+          // Create a notification for the admin using the Notification model with a message field
+          await Notification.create({
             userId: adminUser._id.toString(),
             type: 'verification_request',
             role: currentUser.role,
             requestorId: currentUser._id.toString(),
             requestorName: profileData.fullName || currentUser.username,
             organizationId: currentUser.organizationId,
+            message: `${profileData.fullName || currentUser.username} (${currentUser.role}) has submitted their profile for verification.`,
             createdAt: new Date(),
             read: false
-          };
-          
-          // Store notification in database
-          const notificationsCollection = db.collection('notifications');
-          await notificationsCollection.insertOne(notification);
+          });
           
           console.log(`Created verification notification for admin: ${adminUser.username}`);
         } else {

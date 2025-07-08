@@ -10,6 +10,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const organizationId = searchParams.get('organizationId');
     const organizationName = searchParams.get('organizationName');
+    const hideExpired = searchParams.get('hideExpired') === 'true';
     
     // Require either organizationId or organizationName
     if (!organizationId && !organizationName) {
@@ -25,6 +26,13 @@ export async function GET(request: Request) {
       query = { organizationId };
     } else if (organizationName) {
       query = { organizationName };
+    }
+    
+    // Add deadline filter if requested
+    if (hideExpired) {
+      const today = new Date();
+      today.setUTCHours(0, 0, 0, 0);
+      query = { ...query, applicationDeadline: { $gte: today } };
     }
     
     // Add optional status filter

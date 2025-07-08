@@ -49,12 +49,15 @@ export async function POST(request: Request) {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    let user;
     if (userAsEmployee) {
+      user = userAsEmployee;
       await User.updateOne(
         { _id: user._id },
         { $set: { password: hashedPassword } }
       );
     } else {
+      user = userAsIntern;
       await Intern.updateOne(
         { _id: user._id},
         { $set: { password: hashedPassword } }

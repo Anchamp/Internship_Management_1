@@ -15,13 +15,15 @@ import {
   ClipboardList,
   MessageSquare,
   UsersIcon,
+  Bell,
 } from "lucide-react";
 import AdminDashboardScreen from "./dashboardscreen";
 import AdminProfile from "./profile";
 import OnboardingScreen from "./onboarding";
 import UsersScreen from "./users";
 import TeamBuilding from "./teamBuilding";
-import InternshipPosting from "./internshipposting"; // Import the InternshipPosting component
+import InternshipPosting from "./internshipposting";
+import NotificationModal from "./notificationmodal"; // Import the new notification modal
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -31,6 +33,7 @@ export default function AdminDashboard() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [logOutModalOpen, setLogOutModalOpen] = useState(false);
+  const [notificationModalOpen, setNotificationModalOpen] = useState(false); // Add state for notification modal
 
   useEffect(() => {
     const handleResize = () => {
@@ -79,7 +82,6 @@ export default function AdminDashboard() {
               );
             }
           } else {
-
             setUsername(user.username || "Admin");
             setOrganizationName(user.organizationName || "Your Organization");
           }
@@ -126,6 +128,11 @@ export default function AdminDashboard() {
   const openLogOutModal = () => setLogOutModalOpen(true);
   const closeLogOutModal = () => setLogOutModalOpen(false);
 
+  const openNotificationModal = () => setNotificationModalOpen(true);
+  const closeNotificationModal = () => {
+    setNotificationModalOpen(false);
+  };
+
   const LogOutModal = () => {
     return (
       <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
@@ -137,13 +144,13 @@ export default function AdminDashboard() {
           </div>
           <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
             <div className="w-full flex items-center justify-around">
-              <button 
+              <button
                 className="cursor-pointer text-black bg-white border p-3 rounded-sm"
                 onClick={closeLogOutModal}
               >
                 Cancel
-              </button> 
-              <button 
+              </button>
+              <button
                 className="cursor-pointer text-white bg-red-500 p-3 rounded-sm"
                 onClick={handleLogout}
               >
@@ -153,8 +160,8 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
-    )
-  }
+    );
+  };
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -402,11 +409,29 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Responsive welcome message */}
-            <div className="bg-gradient-to-r from-cyan-600 to-blue-600 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-md shadow-md ml-auto">
-              <p className="text-sm sm:text-base font-semibold text-white tracking-wide whitespace-nowrap">
-                Welcome back, {username}
-              </p>
+            <div className="flex items-center ml-auto gap-3">
+              {/* Responsive welcome message */}
+              <div className="bg-gradient-to-r from-cyan-600 to-blue-600 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-md shadow-md">
+                <p className="text-sm sm:text-base font-semibold text-white tracking-wide whitespace-nowrap">
+                  Welcome back, {username}
+                </p>
+              </div>
+
+              {/* Notification icon with dropdown positioning */}
+              <div className="relative">
+                <button
+                  onClick={openNotificationModal}
+                  className="relative p-2 rounded-full hover:bg-gray-100 text-gray-700"
+                >
+                  <Bell className="h-5 w-5" />
+                </button>
+                {notificationModalOpen && (
+                  <NotificationModal
+                    isOpen={notificationModalOpen}
+                    onClose={closeNotificationModal}
+                  />
+                )}
+              </div>
             </div>
           </div>
         </header>
@@ -417,12 +442,12 @@ export default function AdminDashboard() {
           {activeTab === "onboarding" && <OnboardingScreen />}
           {activeTab === "users" && <UsersScreen />}
           {activeTab === "teambuilding" && <TeamBuilding />}
-          {activeTab === "internships" && <InternshipPosting />}{" "}
+          {activeTab === "internships" && <InternshipPosting />}
           {/* Properly render the InternshipPosting component */}
           {activeTab === "organization" && (
             <div className="p-4 bg-white rounded-md shadow">
               <p className="text-lg font-medium">
-               Oraganization section coming soon
+                Oraganization section coming soon
               </p>
               <p className="text-sm text-gray-500 mt-2">
                 Manage your Organization details here.

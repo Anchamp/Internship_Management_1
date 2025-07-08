@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { X, Loader2, Building, AlertCircle } from "lucide-react";
-import AsyncSelect from 'react-select/async';
 
 interface TeamData {
   _id: string;
@@ -46,7 +45,7 @@ const CustomUserSelector = ({
       if (input.trim()) {
         fetch(`/api/admin/get-users-by-role?username=${username}&role=${role}`)
           .then(res => res.json())
-          .then(data => setOptions(data.users.map(u => u.username)))
+          .then(data => setOptions(data.users.map((u: { username: string }) => u.username)))
           .catch(() => setOptions([]));
       } else {
         setOptions([]);
@@ -394,6 +393,7 @@ const TeamBuilding = () => {
   const [editPanelists, setEditPanelists] = useState<string[]>([]);
   const [editDescription, setEditDescription] = useState("");
   const [editTeamModalOpen, setEditTeamModalOpen] = useState(false);
+  const [currentEditingTeam, setCurrentEditingTeam] = useState<TeamData | null>(null);
 
   const fetchTeams = async () => {
     try {
@@ -457,9 +457,9 @@ const TeamBuilding = () => {
 
   const resetFormValues = () => {
     setNewTeamName("");
-    setNewMentors("");
-    setNewInterns("");
-    setNewPanelists("");
+    setNewMentors([]);
+    setNewInterns([]);
+    setNewPanelists([]);
     setNewDescription("");
   };
 
@@ -474,15 +474,17 @@ const TeamBuilding = () => {
 
   const openModal = () => setModalOpen(true);
   const closeModal = () => setModalOpen(false);
-  const openDeleteTeamModal = (team: teamData) => setDeleteTeamModalOpen(true);
+  const openDeleteTeamModal = () => setDeleteTeamModalOpen(true);
   const closeDeleteTeamModal = () => { 
     setDeleteTeamModalOpen(false);
     setDeleteTeamName("");
-  }
+  };
+  
   const openEditTeamModal = (team: TeamData) => {
     setEditTeamModalOpen(true);
+    setCurrentEditingTeam(team);
     resetEditFormValues(team);
-  }
+  };
   const closeEditTeamModal = () => setEditTeamModalOpen(false);
 
   const getStatusColor = (status: string) => {
@@ -673,9 +675,9 @@ const TeamBuilding = () => {
 
   return (
     <>
-      {editTeamModalOpen && 
+      {editTeamModalOpen && currentEditingTeam && 
         <EditTeamModal 
-          team={editTeamName} 
+          team={currentEditingTeam} 
           closeModal={closeEditTeamModal}
           resetFormValues={resetEditFormValues}
           editTeamName={editTeamName}
@@ -688,7 +690,7 @@ const TeamBuilding = () => {
           setEditPanelists={setEditPanelists}
           editDescription={editDescription}
           setEditDescription={setEditDescription}
-          handleSubmit={(e) => handleEditSubmit(e, editTeamName)}
+          handleSubmit={(e: React.FormEvent) => handleEditSubmit(e, currentEditingTeam)}
         />
       }
       <div className="grid grid-cols-1 gap-6">

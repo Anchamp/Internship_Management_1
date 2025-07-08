@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
     await dbConnect();
 
-    const adminUser = await User.findOne({ username: adminUsername, role: 'admin' }).lean();
+    const adminUser = await User.findOne({ username: adminUsername, role: 'admin' }).lean() as { organizationName?: string };
     if (!adminUser) {
       return NextResponse.json({ error: 'Admin not found' }, { status: 404 });
     }
