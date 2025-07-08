@@ -1,3 +1,5 @@
+// FILE: app/dashboard/intern/dashboardscreen.tsx
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -101,25 +103,33 @@ export default function InternDashboardScreen({
     );
   }
 
-  // Calculate progress metrics
-  const getApplicationProgress = () => {
-    if (!userData) return 0;
-    if (userData.applicationStatus === "completed") return 100;
-    if (userData.applicationStatus === "active") return 75;
-    if (userData.applicationStatus === "approved") return 50;
-    if (userData.applicationStatus === "pending") return 25;
-    return profileComplete ? 15 : 0;
-  };
-
+  // Helper functions
   const getTotalTeams = () => userData?.assignedTeams?.length || 0;
   const getPendingReports = () => {
     return userData?.weeklyReports?.filter(report => report.status === "pending").length || 0;
   };
   const getApplicationsSubmitted = () => userData?.appliedInternships?.length || 0;
 
+  // CRITICAL FIX: Check if user has applied to any internships (replaces "none" checks)
+  const hasAppliedToInternships = () => {
+    return userData?.appliedInternships && userData.appliedInternships.length > 0;
+  };
+
+  // Calculate progress metrics - FIXED: No more "none" references
+  const getApplicationProgress = () => {
+    if (!userData) return 0;
+    if (userData.applicationStatus === "completed") return 100;
+    if (userData.applicationStatus === "active") return 75;
+    if (userData.applicationStatus === "approved") return 50;
+    if (userData.applicationStatus === "pending") return 25;
+    // Use profileComplete status instead of checking for "none"
+    return profileComplete ? 15 : 0;
+  };
+
+  // FIXED: No more "none" references
   const getNextMilestone = () => {
     if (!profileComplete) return "Complete your profile";
-    if (userData?.applicationStatus === "none") return "Apply for internship";
+    if (!hasAppliedToInternships()) return "Apply for internship";
     if (userData?.applicationStatus === "pending") return "Wait for approval";
     if (userData?.applicationStatus === "approved") return "Get team assignment";
     if (userData?.applicationStatus === "active") return "Submit weekly reports";
@@ -133,149 +143,92 @@ export default function InternDashboardScreen({
         <div className="flex flex-col md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold mb-2">
-              Welcome back, {userData?.fullName || username}! 👋
+              Welcome back, {userData?.fullName || username}!
             </h1>
             <p className="text-cyan-100 mb-4">
-              {currentTime.toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
+              {currentTime.toLocaleDateString("en-US", {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
               })}
             </p>
             <div className="flex items-center space-x-4">
               <div className="flex items-center">
-                <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
-                <span className="text-sm">Status: {userData?.verificationStatus || 'Pending'}</span>
-              </div>
-              <div className="flex items-center">
-                <BarChart className="h-4 w-4 mr-2" />
-                <span className="text-sm">Progress: {getApplicationProgress()}%</span>
+                <Target className="h-5 w-5 mr-2" />
+                <span className="text-sm">Next: {getNextMilestone()}</span>
               </div>
             </div>
           </div>
           <div className="mt-4 md:mt-0">
-            <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4 text-center">
-              <h3 className="font-semibold mb-1">Next Step</h3>
-              <p className="text-sm text-cyan-100">{getNextMilestone()}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Profile Completion Alert */}
-      {!profileComplete && (
-        <div className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-md shadow-sm">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <AlertCircle className="h-5 w-5 text-amber-400" />
-            </div>
-            <div className="ml-3 flex-1">
-              <h3 className="text-sm font-medium text-amber-800">
-                Complete Your Profile to Get Started
-              </h3>
-              <div className="mt-2 text-sm text-amber-700">
-                <p>
-                  Please complete your profile to unlock all features and start your internship journey.
-                  Missing information may delay your application process.
-                </p>
-                <button
-                  onClick={() => onNavigate("profile-settings")}
-                  className="mt-2 inline-flex items-center px-3 py-1 bg-amber-200 text-amber-800 rounded-md text-sm font-medium hover:bg-amber-300 transition-colors"
-                >
-                  Complete Profile
-                  <ArrowRight className="h-4 w-4 ml-1" />
-                </button>
+            <div className="bg-white/20 backdrop-blur rounded-lg p-4">
+              <div className="text-sm opacity-90 mb-1">Progress</div>
+              <div className="text-2xl font-bold">{getApplicationProgress()}%</div>
+              <div className="w-32 bg-white/30 rounded-full h-2 mt-2">
+                <div
+                  className="bg-white rounded-full h-2 transition-all duration-300"
+                  style={{ width: `${getApplicationProgress()}%` }}
+                ></div>
               </div>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Quick Stats Dashboard */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-cyan-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Applications Submitted</p>
-              <h3 className="text-2xl font-bold text-gray-900">{getApplicationsSubmitted()}</h3>
-            </div>
-            <div className="bg-cyan-100 p-2 rounded-full">
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-cyan-100 rounded-lg">
               <FileText className="h-6 w-6 text-cyan-600" />
             </div>
-          </div>
-          <div className="mt-2">
-            <button
-              onClick={() => onNavigate("my-applications")}
-              className="text-xs text-cyan-600 hover:text-cyan-800 font-medium"
-            >
-              View Applications →
-            </button>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Applications</p>
+              <p className="text-2xl font-bold text-gray-900">{getApplicationsSubmitted()}</p>
+            </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Teams Joined</p>
-              <h3 className="text-2xl font-bold text-gray-900">{getTotalTeams()}</h3>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <Users className="h-6 w-6 text-green-600" />
             </div>
-            <div className="bg-blue-100 p-2 rounded-full">
-              <Users className="h-6 w-6 text-blue-600" />
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Teams</p>
+              <p className="text-2xl font-bold text-gray-900">{getTotalTeams()}</p>
             </div>
-          </div>
-          <div className="mt-2">
-            <button
-              onClick={() => onNavigate("my-teams")}
-              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-            >
-              View Teams →
-            </button>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-amber-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Reports Due</p>
-              <h3 className="text-2xl font-bold text-gray-900">{getPendingReports()}</h3>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-yellow-100 rounded-lg">
+              <Clock className="h-6 w-6 text-yellow-600" />
             </div>
-            <div className="bg-amber-100 p-2 rounded-full">
-              <Clock className="h-6 w-6 text-amber-600" />
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Pending Reports</p>
+              <p className="text-2xl font-bold text-gray-900">{getPendingReports()}</p>
             </div>
-          </div>
-          <div className="mt-2">
-            <button
-              onClick={() => onNavigate("weekly-reports")}
-              className="text-xs text-amber-600 hover:text-amber-800 font-medium"
-            >
-              Submit Reports →
-            </button>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Progress</p>
-              <h3 className="text-2xl font-bold text-gray-900">{getApplicationProgress()}%</h3>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <Award className="h-6 w-6 text-purple-600" />
             </div>
-            <div className="bg-green-100 p-2 rounded-full">
-              <TrendingUp className="h-6 w-6 text-green-600" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-green-500 h-2 rounded-full transition-all duration-500" 
-                style={{ width: `${getApplicationProgress()}%` }}
-              ></div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Status</p>
+              <p className="text-sm font-bold text-gray-900 capitalize">
+                {userData?.applicationStatus || "Not Applied"}
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Progress Tracker */}
+      {/* Progress Tracker - FIXED: No more "none" references */}
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-xl font-semibold mb-4 flex items-center">
           <BarChart className="h-5 w-5 mr-2 text-cyan-600" />
@@ -294,8 +247,9 @@ export default function InternDashboardScreen({
               step: 2, 
               title: "Application", 
               description: "Submit internship request",
-              completed: userData?.applicationStatus !== "none",
-              current: profileComplete && userData?.applicationStatus === "none"
+              // FIXED: Check if user has applied to internships instead of checking for "none"
+              completed: hasAppliedToInternships(),
+              current: profileComplete && !hasAppliedToInternships()
             },
             { 
               step: 3, 
@@ -339,7 +293,7 @@ export default function InternDashboardScreen({
                 )}
               </div>
               <h3 className={`font-medium text-sm mb-1 ${
-                stage.current ? "text-cyan-600" : stage.completed ? "text-green-600" : "text-gray-400"
+                stage.current ? "text-cyan-600" : stage.completed ? "text-green-600" : "text-gray-500"
               }`}>
                 {stage.title}
               </h3>
@@ -349,580 +303,202 @@ export default function InternDashboardScreen({
         </div>
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Left Column - Profile & Academic Info */}
-        <div className="space-y-6">
-            {/* Academic Information */}
-<div className="bg-white rounded-lg shadow p-4">
-  <h2 className="text-base font-semibold mb-3 flex items-center">
-    <GraduationCap className="h-4 w-4 mr-2 text-cyan-600" />
-    Academic Information
-  </h2>
-  {userData && profileComplete ? (
-    <div className="space-y-3">
-      <div>
-        <p className="text-xs text-gray-700 font-medium">Name</p>
-        <p className="font-medium text-sm text-gray-900">{userData.fullName || "Not provided"}</p>
-      </div>
-      <div>
-        <p className="text-xs text-gray-700 font-medium">University</p>
-        <p className="font-medium text-sm text-gray-900">{userData.university || "Not provided"}</p>
-      </div>
-      <div>
-        <p className="text-xs text-gray-700 font-medium">Degree</p>
-        <p className="font-medium text-sm text-gray-900">
-          {userData.degree} in {userData.major || "Not specified"}
-        </p>
-      </div>
-      <div>
-        <p className="text-xs text-gray-700 font-medium">Expected Graduation</p>
-        <p className="font-medium text-sm text-gray-900">{userData.graduationYear || "Not provided"}</p>
-      </div>
-      {userData.gpa && (
-        <div>
-          <p className="text-xs text-gray-700 font-medium">CGPA</p>
-          <p className="font-medium text-sm text-gray-900">{userData.gpa}</p>
-        </div>
-      )}
-    </div>
-  ) : (
-    <div className="text-center py-4">
-      <User className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-      <p className="text-sm text-gray-600">Complete your profile to see information here</p>
-      <button
-        onClick={() => onNavigate("profile-settings")}
-        className="mt-2 text-cyan-600 hover:text-cyan-800 text-sm font-medium"
-      >
-        Complete Profile →
-      </button>
-    </div>
-  )}
-</div>
-
-          {/* Skills & Technologies */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <h2 className="text-base font-semibold mb-3 flex items-center">
-              <Award className="h-4 w-4 mr-2 text-cyan-600" />
-              Skills & Technologies
-            </h2>
-            {userData?.skills ? (
-              <div className="flex flex-wrap gap-2">
-                {userData.skills
-                  .split(",")
-                  .map((skill: string, index: number) => (
-                    <span
-                      key={index}
-                      className="bg-cyan-50 text-cyan-700 px-2 py-1 rounded-md text-xs font-medium"
-                    >
-                      {skill.trim()}
-                    </span>
-                  ))}
-              </div>
-            ) : (
-              <div className="text-center py-4">
-                <Award className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">No skills added yet</p>
-                <button
-                  onClick={() => onNavigate("profile-settings")}
-                  className="mt-2 text-cyan-600 hover:text-cyan-800 text-sm font-medium"
-                >
-                  Add Skills →
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Document Status */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <h2 className="text-base font-semibold mb-3 flex items-center">
-              <FileText className="h-4 w-4 mr-2 text-cyan-600" />
-              Document Status
-            </h2>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center pb-2 border-b">
-                <span className="text-sm">Resume/CV</span>
-                <span
-                  className={`text-xs px-2 py-1 rounded-full ${
-                    userData?.resumeFile
-                      ? "bg-green-100 text-green-700"
-                      : "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  {userData?.resumeFile ? "Uploaded" : "Pending"}
-                </span>
-              </div>
-              <div className="flex justify-between items-center pb-2 border-b">
-                <span className="text-sm">ID Document</span>
-                <span
-                  className={`text-xs px-2 py-1 rounded-full ${
-                    userData?.idDocumentFile
-                      ? "bg-green-100 text-green-700"
-                      : "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  {userData?.idDocumentFile ? "Uploaded" : "Pending"}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Transcript</span>
-                <span
-                  className={`text-xs px-2 py-1 rounded-full ${
-                    userData?.transcriptFile
-                      ? "bg-green-100 text-green-700"
-                      : "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  {userData?.transcriptFile ? "Uploaded" : "Optional"}
-                </span>
+      {/* Action Cards - FIXED: Updated logic */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Profile Completion Card */}
+        {!profileComplete && (
+          <div className="bg-gradient-to-br from-orange-50 to-red-50 border border-orange-200 rounded-lg p-6">
+            <div className="flex items-center mb-4">
+              <User className="h-8 w-8 text-orange-600 mr-3" />
+              <div>
+                <h3 className="font-semibold text-gray-900">Complete Your Profile</h3>
+                <p className="text-sm text-gray-600">Required to apply for internships</p>
               </div>
             </div>
+            <button
+              onClick={() => onNavigate("profile-settings")}
+              className="w-full bg-orange-600 text-white py-2 px-4 rounded-md hover:bg-orange-700 transition-colors flex items-center justify-center"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Complete Profile
+            </button>
           </div>
-        </div>
+        )}
 
-        {/* Middle Column - Goals & Activities */}
-        <div className="space-y-6">
-          {/* Internship Goals */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <h2 className="text-base font-semibold mb-3 flex items-center">
-              <Target className="h-4 w-4 mr-2 text-cyan-600" />
-              Internship Goals
-            </h2>
-            {userData?.internshipGoals ? (
-              <p className="text-sm text-gray-700 line-clamp-4">{userData.internshipGoals}</p>
-            ) : (
-              <div className="text-center py-4">
-                <Target className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">Add your internship goals in your profile</p>
-                <button
-                  onClick={() => onNavigate("profile-settings")}
-                  className="mt-2 text-cyan-600 hover:text-cyan-800 text-sm font-medium"
-                >
-                  Add Goals →
-                </button>
+        {/* Browse Internships Card - FIXED: Use hasAppliedToInternships() */}
+        {profileComplete && !hasAppliedToInternships() && (
+          <div className="bg-gradient-to-br from-cyan-50 to-blue-50 border border-cyan-200 rounded-lg p-6">
+            <div className="flex items-center mb-4">
+              <Search className="h-8 w-8 text-cyan-600 mr-3" />
+              <div>
+                <h3 className="font-semibold text-gray-900">Browse Internships</h3>
+                <p className="text-sm text-gray-600">Find your perfect internship match</p>
               </div>
-            )}
-          </div>
-
-          {/* Recent Activities */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <h2 className="text-base font-semibold mb-3 flex items-center">
-              <Activity className="h-4 w-4 mr-2 text-cyan-600" />
-              Recent Activities
-            </h2>
-            <div className="space-y-3">
-              {profileComplete ? (
-                <>
-                  <div className="border-l-4 border-cyan-500 pl-3 py-2">
-                    <p className="font-medium text-sm">Profile Completed</p>
-                    <p className="text-xs text-gray-500">Ready for review</p>
-                  </div>
-                  {userData?.applicationStatus !== "none" && (
-                    <div className="border-l-4 border-blue-500 pl-3 py-2">
-                      <p className="font-medium text-sm">Application Submitted</p>
-                      <p className="text-xs text-gray-500">Under review</p>
-                    </div>
-                  )}
-                  <div className="border-l-4 border-gray-300 pl-3 py-2">
-                    <p className="font-medium text-sm">Account Created</p>
-                    <p className="text-xs text-gray-500">Welcome to InternHub!</p>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-4">
-                  <Upload className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">Complete your profile to start your journey</p>
-                  <button
-                    onClick={() => onNavigate("profile-settings")}
-                    className="mt-2 text-cyan-600 hover:text-cyan-800 text-sm font-medium"
-                  >
-                    Get Started →
-                  </button>
-                </div>
-              )}
             </div>
+            <button
+              onClick={() => onNavigate("browse-internships")}
+              className="w-full bg-cyan-600 text-white py-2 px-4 rounded-md hover:bg-cyan-700 transition-colors flex items-center justify-center"
+            >
+              <Search className="h-4 w-4 mr-2" />
+              Browse Opportunities
+            </button>
           </div>
+        )}
 
-          {/* Quick Actions */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <h2 className="text-base font-semibold mb-3 flex items-center">
-              <Lightbulb className="h-4 w-4 mr-2 text-cyan-600" />
-              Quick Actions
-            </h2>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => onNavigate("find-internships")}
-                className="p-3 bg-cyan-50 hover:bg-cyan-100 rounded-lg transition-colors text-center"
-              >
-                <Search className="h-5 w-5 mx-auto mb-1 text-cyan-600" />
-                <span className="text-xs font-medium">Find Internships</span>
-              </button>
-              <button
-                onClick={() => onNavigate("internship-request")}
-                className="p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-center"
-              >
-                <Plus className="h-5 w-5 mx-auto mb-1 text-blue-600" />
-                <span className="text-xs font-medium">Apply Now</span>
-              </button>
-              <button
-                onClick={() => onNavigate("my-teams")}
-                className="p-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors text-center"
-              >
-                <Users className="h-5 w-5 mx-auto mb-1 text-green-600" />
-                <span className="text-xs font-medium">My Teams</span>
-              </button>
-              <button
-                onClick={() => onNavigate("weekly-reports")}
-                className="p-3 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors text-center"
-              >
-                <FileText className="h-5 w-5 mx-auto mb-1 text-amber-600" />
-                <span className="text-xs font-medium">Reports</span>
-              </button>
+        {/* My Applications Card - FIXED: Use hasAppliedToInternships() */}
+        {hasAppliedToInternships() && (
+          <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
+            <div className="flex items-center mb-4">
+              <FileText className="h-8 w-8 text-green-600 mr-3" />
+              <div>
+                <h3 className="font-semibold text-gray-900">My Applications</h3>
+                <p className="text-sm text-gray-600">{getApplicationsSubmitted()} applications submitted</p>
+              </div>
             </div>
+            <button
+              onClick={() => onNavigate("my-applications")}
+              className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors flex items-center justify-center"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              View Applications
+            </button>
           </div>
-        </div>
+        )}
 
-        {/* Right Column - Notifications & Calendar */}
-        <div className="space-y-6">
-          {/* Notifications */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <h2 className="text-base font-semibold mb-3 flex items-center">
-              <Bell className="h-4 w-4 mr-2 text-cyan-600" />
-              Notifications
-            </h2>
-            <div className="space-y-3">
-              {userData?.notifications && userData.notifications.length > 0 ? (
-                userData.notifications.slice(0, 3).map((notification: any, index: number) => (
-                  <div key={index} className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm font-medium">{notification.title}</p>
-                    <p className="text-xs text-gray-500 mt-1">{notification.message}</p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      {new Date(notification.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-4">
-                  <Bell className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">No new notifications</p>
-                </div>
-              )}
+        {/* Weekly Reports Card */}
+        {userData?.applicationStatus === "active" && (
+          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-6">
+            <div className="flex items-center mb-4">
+              <BookOpen className="h-8 w-8 text-purple-600 mr-3" />
+              <div>
+                <h3 className="font-semibold text-gray-900">Weekly Reports</h3>
+                <p className="text-sm text-gray-600">
+                  {getPendingReports() > 0 ? `${getPendingReports()} pending` : "All up to date"}
+                </p>
+              </div>
             </div>
+            <button
+              onClick={() => onNavigate("weekly-reports")}
+              className="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 transition-colors flex items-center justify-center"
+            >
+              <BookOpen className="h-4 w-4 mr-2" />
+              Manage Reports
+            </button>
           </div>
+        )}
 
-          {/* Upcoming Tasks */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <h2 className="text-base font-semibold mb-3 flex items-center">
-              <Calendar className="h-4 w-4 mr-2 text-cyan-600" />
-              Upcoming Tasks
-            </h2>
-            <div className="space-y-3">
-              {!profileComplete && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-amber-800">Complete Profile</p>
-                      <p className="text-xs text-amber-600">High Priority</p>
-                    </div>
-                    <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                  </div>
-                </div>
-              )}
-              {getPendingReports() > 0 && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-red-800">Weekly Report Due</p>
-                      <p className="text-xs text-red-600">{getPendingReports()} pending</p>
-                    </div>
-                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  </div>
-                </div>
-              )}
-              {userData?.applicationStatus === "none" && profileComplete && (
-                <div className="p-3 bg-cyan-50 border border-cyan-200 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-cyan-800">Apply for Internship</p>
-                      <p className="text-xs text-cyan-600">Start your journey</p>
-                    </div>
-                    <div className="w-2 h-2 bg-cyan-500 rounded-full"></div>
-                  </div>
-                </div>
-              )}
-              {userData?.applicationStatus === "none" && profileComplete && getApplicationsSubmitted() === 0 && (
-                <div className="text-center py-4">
-                  <Calendar className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">No upcoming tasks</p>
-                </div>
-              )}
+        {/* Team Assignment Card */}
+        {getTotalTeams() > 0 && (
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+            <div className="flex items-center mb-4">
+              <Users className="h-8 w-8 text-blue-600 mr-3" />
+              <div>
+                <h3 className="font-semibold text-gray-900">Team Assignment</h3>
+                <p className="text-sm text-gray-600">Assigned to {getTotalTeams()} team(s)</p>
+              </div>
             </div>
+            <button
+              onClick={() => onNavigate("team-management")}
+              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center"
+            >
+              <Users className="h-4 w-4 mr-2" />
+              View Teams
+            </button>
           </div>
+        )}
 
-          {/* Learning Resources */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <h2 className="text-base font-semibold mb-3 flex items-center">
-              <BookOpen className="h-4 w-4 mr-2 text-cyan-600" />
-              Learning Resources
-            </h2>
-            <div className="space-y-2">
-              <a
-                href="#"
-                className="flex items-center p-2 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <Play className="h-4 w-4 text-cyan-600 mr-2" />
-                <span className="text-sm">Getting Started Guide</span>
-                <ChevronRight className="h-4 w-4 text-gray-400 ml-auto" />
-              </a>
-              <a
-                href="#"
-                className="flex items-center p-2 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <BookOpen className="h-4 w-4 text-blue-600 mr-2" />
-                <span className="text-sm">Internship Best Practices</span>
-                <ChevronRight className="h-4 w-4 text-gray-400 ml-auto" />
-              </a>
-              <a
-                href="#"
-                className="flex items-center p-2 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <Presentation className="h-4 w-4 text-green-600 mr-2" />
-                <span className="text-sm">Demo Preparation Tips</span>
-                <ChevronRight className="h-4 w-4 text-gray-400 ml-auto" />
-              </a>
+        {/* Demo Preparation Card */}
+        {userData?.applicationStatus === "active" && (
+          <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-6">
+            <div className="flex items-center mb-4">
+              <Presentation className="h-8 w-8 text-yellow-600 mr-3" />
+              <div>
+                <h3 className="font-semibold text-gray-900">Demo Preparation</h3>
+                <p className="text-sm text-gray-600">Prepare your final presentation</p>
+              </div>
             </div>
+            <button
+              onClick={() => onNavigate("demo-preparation")}
+              className="w-full bg-yellow-600 text-white py-2 px-4 rounded-md hover:bg-yellow-700 transition-colors flex items-center justify-center"
+            >
+              <Presentation className="h-4 w-4 mr-2" />
+              Prepare Demo
+            </button>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Getting Started Guide - Only show if profile is incomplete */}
-      {!profileComplete && (
-        <div className="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-lg shadow p-6 border border-cyan-200">
-          <h2 className="text-lg font-semibold mb-4 text-cyan-900">
-            🚀 Getting Started with Your Internship Journey
+      {/* Recent Activity */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold flex items-center">
+            <Activity className="h-5 w-5 mr-2 text-cyan-600" />
+            Recent Activity
           </h2>
-          <p className="text-sm text-cyan-800 mb-6">
-            Follow these steps to complete your setup and start your internship application process.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className={`rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-3 shadow-lg ${
-                profileComplete ? "bg-green-500 text-white" : "bg-white text-cyan-600 border-2 border-cyan-300"
-              }`}>
-                {profileComplete ? (
-                  <CheckCircle className="h-8 w-8" />
-                ) : (
-                  <span className="text-xl font-bold">1</span>
-                )}
-              </div>
-              <h3 className="font-semibold text-sm mb-2 text-gray-800">Complete Profile</h3>
-              <p className="text-xs text-gray-600 mb-3">
-                Add all required information including documents
-              </p>
-              {!profileComplete && (
-                <button
-                  onClick={() => onNavigate("profile-settings")}
-                  className="text-xs bg-cyan-500 text-white px-3 py-1 rounded-full hover:bg-cyan-600 transition-colors"
-                >
-                  Start Now
-                </button>
-              )}
-            </div>
-
-            <div className="text-center">
-              <div className={`rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-3 shadow-lg ${
-                userData?.applicationStatus !== "none" ? "bg-green-500 text-white" : 
-                profileComplete ? "bg-white text-blue-600 border-2 border-blue-300" : "bg-gray-200 text-gray-400"
-              }`}>
-                {userData?.applicationStatus !== "none" ? (
-                  <CheckCircle className="h-8 w-8" />
-                ) : (
-                  <span className="text-xl font-bold">2</span>
-                )}
-              </div>
-              <h3 className={`font-semibold text-sm mb-2 ${
-                profileComplete && userData?.applicationStatus === "none" ? "text-gray-800" : "text-gray-400"
-              }`}>
-                Submit Application
-              </h3>
-              <p className={`text-xs mb-3 ${
-                profileComplete && userData?.applicationStatus === "none" ? "text-gray-600" : "text-gray-400"
-              }`}>
-                Apply for internship positions
-              </p>
-              {profileComplete && userData?.applicationStatus === "none" && (
-                <button
-                  onClick={() => onNavigate("internship-request")}
-                  className="text-xs bg-blue-500 text-white px-3 py-1 rounded-full hover:bg-blue-600 transition-colors"
-                >
-                  Apply Now
-                </button>
-              )}
-            </div>
-
-            <div className="text-center">
-              <div className={`rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-3 shadow-lg ${
-                userData?.applicationStatus === "approved" || userData?.applicationStatus === "active" ? "bg-green-500 text-white" :
-                userData?.applicationStatus === "pending" ? "bg-amber-400 text-white animate-pulse" : "bg-gray-200 text-gray-400"
-              }`}>
-                {userData?.applicationStatus === "approved" || userData?.applicationStatus === "active" ? (
-                  <CheckCircle className="h-8 w-8" />
-                ) : userData?.applicationStatus === "pending" ? (
-                  <Clock className="h-8 w-8" />
-                ) : (
-                  <span className="text-xl font-bold">3</span>
-                )}
-              </div>
-              <h3 className={`font-semibold text-sm mb-2 ${
-                userData?.applicationStatus === "pending" ? "text-gray-800" : "text-gray-400"
-              }`}>
-                Get Approved
-              </h3>
-              <p className={`text-xs mb-3 ${
-                userData?.applicationStatus === "pending" ? "text-gray-600" : "text-gray-400"
-              }`}>
-                Wait for admin approval
-              </p>
-              {userData?.applicationStatus === "pending" && (
-                <div className="text-xs bg-amber-100 text-amber-800 px-3 py-1 rounded-full">
-                  In Review
-                </div>
-              )}
-            </div>
-
-            <div className="text-center">
-              <div className={`rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-3 shadow-lg ${
-                userData?.applicationStatus === "active" ? "bg-green-500 text-white" :
-                getTotalTeams() > 0 ? "bg-purple-500 text-white" : "bg-gray-200 text-gray-400"
-              }`}>
-                {userData?.applicationStatus === "active" ? (
-                  <CheckCircle className="h-8 w-8" />
-                ) : (
-                  <span className="text-xl font-bold">4</span>
-                )}
-              </div>
-              <h3 className={`font-semibold text-sm mb-2 ${
-                userData?.applicationStatus === "active" ? "text-gray-800" : "text-gray-400"
-              }`}>
-                Start Internship
-              </h3>
-              <p className={`text-xs mb-3 ${
-                userData?.applicationStatus === "active" ? "text-gray-600" : "text-gray-400"
-              }`}>
-                Begin your learning journey
-              </p>
-              {userData?.applicationStatus === "active" && (
-                <div className="text-xs bg-green-100 text-green-800 px-3 py-1 rounded-full">
-                  Active
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="mt-6">
-            <div className="flex justify-between text-xs text-gray-600 mb-2">
-              <span>Progress</span>
-              <span>{getApplicationProgress()}% Complete</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-3">
-              <div 
-                className="bg-gradient-to-r from-cyan-500 to-blue-500 h-3 rounded-full transition-all duration-700 ease-out" 
-                style={{ width: `${getApplicationProgress()}%` }}
-              ></div>
-            </div>
-          </div>
+          <button className="text-cyan-600 hover:text-cyan-700 text-sm font-medium">
+            View All
+          </button>
         </div>
-      )}
 
-      {/* Success Message for Active Interns */}
-      {userData?.applicationStatus === "active" && (
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg shadow p-6 border border-green-200">
-          <div className="flex items-center mb-4">
-            <div className="bg-green-500 rounded-full p-2 mr-4">
-              <CheckCircle className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-green-900">
-                🎉 Congratulations! Your Internship is Active
-              </h2>
-              <p className="text-sm text-green-700">
-                You've successfully completed the application process and are now part of a project team.
-              </p>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white p-4 rounded-lg border border-green-200">
-              <h3 className="font-semibold text-sm mb-2 text-gray-800">Your Next Steps</h3>
-              <ul className="text-xs text-gray-600 space-y-1">
-                <li>• Check your team assignments</li>
-                <li>• Submit weekly progress reports</li>
-                <li>• Participate in team meetings</li>
-                <li>• Prepare for demo presentations</li>
-              </ul>
-            </div>
-            
-            <div className="bg-white p-4 rounded-lg border border-green-200">
-              <h3 className="font-semibold text-sm mb-2 text-gray-800">Quick Access</h3>
-              <div className="space-y-2">
-                <button
-                  onClick={() => onNavigate("my-teams")}
-                  className="w-full text-left text-xs bg-green-50 hover:bg-green-100 p-2 rounded transition-colors"
-                >
-                  View My Teams →
-                </button>
-                <button
-                  onClick={() => onNavigate("weekly-reports")}
-                  className="w-full text-left text-xs bg-green-50 hover:bg-green-100 p-2 rounded transition-colors"
-                >
-                  Submit Report →
-                </button>
+        <div className="space-y-4">
+          {userData?.notifications && userData.notifications.length > 0 ? (
+            userData.notifications.slice(0, 3).map((notification, index) => (
+              <div key={index} className="flex items-center p-3 bg-gray-50 rounded-lg">
+                <div className="p-2 bg-cyan-100 rounded-lg mr-3">
+                  <Bell className="h-4 w-4 text-cyan-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900">{notification.title}</p>
+                  <p className="text-xs text-gray-500">{notification.message}</p>
+                </div>
+                <div className="text-xs text-gray-400">
+                  {new Date(notification.createdAt).toLocaleDateString()}
+                </div>
               </div>
+            ))
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <MessageSquare className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+              <p>No recent activity</p>
+              <p className="text-sm">Complete your profile and apply for internships to get started!</p>
             </div>
-            
-            <div className="bg-white p-4 rounded-lg border border-green-200">
-              <h3 className="font-semibold text-sm mb-2 text-gray-800">Support</h3>
-              <p className="text-xs text-gray-600 mb-2">
-                Need help? Contact your mentor or use our resources.
-              </p>
-              <button
-                onClick={() => onNavigate("team-chat")}
-                className="text-xs bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 transition-colors"
-              >
-                Contact Team
-              </button>
-            </div>
-          </div>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* Tips and Insights */}
+      {/* Tips and Resources */}
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-xl font-semibold mb-4 flex items-center">
-          <Lightbulb className="h-5 w-5 mr-2 text-yellow-500" />
-          💡 Tips for Success
+          <Lightbulb className="h-5 w-5 mr-2 text-cyan-600" />
+          Tips & Resources
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <h3 className="font-semibold text-sm mb-2 text-blue-900">Stay Organized</h3>
-            <p className="text-xs text-blue-700">
-              Keep track of deadlines, submit reports on time, and maintain clear communication with your team.
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="p-4 bg-cyan-50 rounded-lg">
+            <h3 className="font-medium text-gray-900 mb-2">📝 Profile Tips</h3>
+            <p className="text-sm text-gray-600">
+              Complete all sections of your profile to increase your chances of getting selected.
+              Upload a professional resume and highlight your relevant skills.
             </p>
           </div>
-          
-          <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-            <h3 className="font-semibold text-sm mb-2 text-purple-900">Learn Actively</h3>
-            <p className="text-xs text-purple-700">
-              Ask questions, seek feedback, and take initiative in your learning process.
+          <div className="p-4 bg-green-50 rounded-lg">
+            <h3 className="font-medium text-gray-900 mb-2">🎯 Application Strategy</h3>
+            <p className="text-sm text-gray-600">
+              Apply to internships that match your skills and career goals. Customize your
+              application for each opportunity.
             </p>
           </div>
-          
-          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-            <h3 className="font-semibold text-sm mb-2 text-green-900">Network & Collaborate</h3>
-            <p className="text-xs text-green-700">
-              Build relationships with your team members, mentors, and other interns.
+          <div className="p-4 bg-purple-50 rounded-lg">
+            <h3 className="font-medium text-gray-900 mb-2">📚 Learning Resources</h3>
+            <p className="text-sm text-gray-600">
+              Take advantage of online courses and tutorials to improve your skills during
+              the internship application process.
+            </p>
+          </div>
+          <div className="p-4 bg-orange-50 rounded-lg">
+            <h3 className="font-medium text-gray-900 mb-2">🤝 Networking</h3>
+            <p className="text-sm text-gray-600">
+              Connect with mentors and fellow interns. Building professional relationships
+              is key to career success.
             </p>
           </div>
         </div>

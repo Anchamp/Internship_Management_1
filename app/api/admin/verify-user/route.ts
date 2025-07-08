@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
+import Notification from '@/models/Notification';
 import { ObjectId } from 'mongodb';
 
 export async function POST(request: Request) {
@@ -77,9 +78,8 @@ export async function POST(request: Request) {
     const updatedUser = await userCollection.findOne({ _id: objectId });
     console.log(`Verification status after update: ${updatedUser.verificationStatus}`);
     
-    // Create a notification for the user
-    const notificationsCollection = db.collection('notifications');
-    await notificationsCollection.insertOne({
+    // Create a notification for the user using the Notification model
+    await Notification.create({
       userId: userToVerify._id.toString(),
       type: 'verification_response',
       status: action === 'approve' ? 'verified' : 'rejected',

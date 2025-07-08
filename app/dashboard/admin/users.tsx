@@ -18,9 +18,11 @@ import {
   AlertCircle,
   Loader2,
   Filter,
+  UserPlus,
 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
+import AddUserModal from "./AddUserModal";
 
 // Type definitions for users
 interface UserData {
@@ -53,6 +55,8 @@ export default function OnboardingScreen() {
   const [selectedRole, setSelectedRole] = useState<string>("all");
   const [removeUserModalOpen, setRemoveUserModalOpen] =
     useState<boolean>(false);
+  // Add state for user modal
+  const [addUserModalOpen, setAddUserModalOpen] = useState(false);
 
   // State for fetching real data
   const [users, setUsers] = useState<UserData[]>([]);
@@ -61,52 +65,53 @@ export default function OnboardingScreen() {
   const [error, setError] = useState("");
   const [organizationName, setOrganizationName] = useState("");
 
-  useEffect(() => {
-    const fetchEmployees = async () => {
-      try {
-        setIsLoading(true);
-        setError("");
+  // Extract fetching logic into a reusable function
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+      setError("");
 
-        // Get admin username from localStorage
-        const storedUser = localStorage.getItem("user");
-        if (!storedUser) {
-          setError("User session not found");
-          return;
-        }
-
-        const { username } = JSON.parse(storedUser);
-
-        const response = await fetch(`/api/fetch-users?username=${username}`);
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to fetch users");
-        }
-
-        const data = await response.json();
-
-        // Combine all users into a single array
-        const allUsers = [
-          ...(data.admins || []),
-          ...(data.employees || []),
-          ...(data.interns || []),
-        ];
-
-        // Update state with the fetched data
-        setUsers(allUsers);
-        setOrganizationName(data.organizationName || "Your Organization");
-      } catch (error: any) {
-        console.error("Error fetching users:", error);
-        setError(error.message || "An error occurred");
-        toast.error("Failed to load users", {
-          description: "Please try refreshing the page",
-        });
-      } finally {
-        setIsLoading(false);
+      // Get admin username from localStorage
+      const storedUser = localStorage.getItem("user");
+      if (!storedUser) {
+        setError("User session not found");
+        return;
       }
-    };
 
-    fetchEmployees();
+      const { username } = JSON.parse(storedUser);
+
+      const response = await fetch(`/api/fetch-users?username=${username}`);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to fetch users");
+      }
+
+      const data = await response.json();
+
+      // Combine all users into a single array
+      const allUsers = [
+        ...(data.admins || []),
+        ...(data.employees || []),
+        ...(data.interns || []),
+      ];
+
+      // Update state with the fetched data
+      setUsers(allUsers);
+      setOrganizationName(data.organizationName || "Your Organization");
+    } catch (error: any) {
+      console.error("Error fetching users:", error);
+      setError(error.message || "An error occurred");
+      toast.error("Failed to load users", {
+        description: "Please try refreshing the page",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
   }, []);
 
   // Filter users whenever selected role changes
@@ -130,7 +135,13 @@ export default function OnboardingScreen() {
 
       const { username } = JSON.parse(storedUser);
 
-      // Call API to remove the user
+      // Get the current user's role to handle interns and employees differently
+      const currentUser = users.find((user) => user._id === userId);
+      if (!currentUser) {
+        throw new Error("User not found");
+      }
+
+      // Call API to remove the user or reset intern/employee fields
       const response = await fetch("/api/admin/removeUser", {
         method: "POST",
         headers: {
@@ -139,6 +150,27 @@ export default function OnboardingScreen() {
         body: JSON.stringify({
           userId,
           adminUsername: username,
+          isIntern: currentUser.role === "intern",
+          isEmployee: currentUser.role === "employee",
+          // Include reset fields based on the user role
+          resetFields:
+            currentUser.role === "intern"
+              ? {
+                  organizationName: "none",
+                  organizationId: null,
+                  teams: [],
+                  weeklyReports: [],
+                  feedback: [],
+                }
+              : currentUser.role === "employee"
+              ? {
+                  organizationName: "none",
+                  organizationId: "none",
+                  teams: [],
+                  profileSubmissionCount: -1,
+                  verificationStatus: "pending", // Add this line to reset verification status
+                }
+              : undefined,
         }),
       });
 
@@ -150,13 +182,32 @@ export default function OnboardingScreen() {
 
       console.log("User Removal successful:", data);
 
-      // Show success message
-      toast.success("User Removed successfully", {
-        description: "User has been removed from the organization successfully",
-      });
+      // Show customized success message based on user role
+      if (currentUser.role === "intern") {
+        toast.success("Intern removed from organization", {
+          description:
+            "Intern has been removed from the organization but remains in the system",
+        });
 
-      // Remove user from the list
-      setUsers((prev) => prev.filter((user) => user._id !== userId));
+        // Refresh the user list from the API instead of manually updating the state
+        await fetchUsers();
+      } else if (currentUser.role === "employee") {
+        toast.success("Employee removed from organization", {
+          description:
+            "Employee has been removed from the organization but remains in the system",
+        });
+
+        // Refresh the user list from the API instead of manually updating the state
+        await fetchUsers();
+      } else {
+        toast.success("User removed successfully", {
+          description:
+            "User has been removed from the organization successfully",
+        });
+
+        // Remove other users from the list
+        setUsers((prev) => prev.filter((user) => user._id !== userId));
+      }
 
       // If modal is open for this user, close it
       if (modalOpen && selectedUser?._id === userId) {
@@ -181,6 +232,16 @@ export default function OnboardingScreen() {
   const closeModal = () => {
     setModalOpen(false);
     setSelectedUser(null);
+  };
+
+  // Function to open add user modal
+  const openAddUserModal = () => {
+    setAddUserModalOpen(true);
+  };
+
+  // Function to close add user modal
+  const closeAddUserModal = () => {
+    setAddUserModalOpen(false);
   };
 
   // Generate profile letter avatar
@@ -648,40 +709,53 @@ export default function OnboardingScreen() {
               </h3>
             </div>
 
-            {/* Enhanced dropdown with arrow indicator and proper sizing */}
-            <div className="relative inline-block w-full md:w-auto">
-              <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-lg shadow-sm border border-black hover:border-gray-600 transition-all duration-200">
-                <Filter className="h-4 w-4 text-black" />
-                <select
-                  value={selectedRole}
-                  onChange={(e) => setSelectedRole(e.target.value)}
-                  className="bg-transparent border-none text-black text-sm font-medium focus:outline-none appearance-none pr-8 cursor-pointer w-full"
-                  aria-label="Filter by role"
-                >
-                  <option value="all">All Users ({roleCounts.all})</option>
-                  <option value="admin">Admins ({roleCounts.admin})</option>
-                  <option value="employee">
-                    Employee ({roleCounts.employee})
-                  </option>
-                  <option value="intern">Interns ({roleCounts.intern})</option>
-                </select>
-                {/* Custom arrow indicator */}
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-black">
-                  <svg
-                    width="10"
-                    height="6"
-                    viewBox="0 0 10 6"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
+            <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+              {/* Add New User Button */}
+              <button
+                onClick={openAddUserModal}
+                className="w-full md:w-auto bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2.5 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2"
+              >
+                <UserPlus className="h-4 w-4" />
+                <span>Add New User</span>
+              </button>
+
+              {/* Enhanced dropdown with arrow indicator and proper sizing */}
+              <div className="relative inline-block w-full md:w-auto">
+                <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-lg shadow-sm border border-black hover:border-gray-600 transition-all duration-200">
+                  <Filter className="h-4 w-4 text-black" />
+                  <select
+                    value={selectedRole}
+                    onChange={(e) => setSelectedRole(e.target.value)}
+                    className="bg-transparent border-none text-black text-sm font-medium focus:outline-none appearance-none pr-8 cursor-pointer w-full"
+                    aria-label="Filter by role"
                   >
-                    <path
-                      d="M1 1L5 5L9 1"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                    <option value="all">All Users ({roleCounts.all})</option>
+                    <option value="admin">Admins ({roleCounts.admin})</option>
+                    <option value="employee">
+                      Employee ({roleCounts.employee})
+                    </option>
+                    <option value="intern">
+                      Interns ({roleCounts.intern})
+                    </option>
+                  </select>
+                  {/* Custom arrow indicator */}
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-black">
+                    <svg
+                      width="10"
+                      height="6"
+                      viewBox="0 0 10 6"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M1 1L5 5L9 1"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
                 </div>
               </div>
             </div>
@@ -691,26 +765,36 @@ export default function OnboardingScreen() {
         {/* Users List Section */}
         <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100">
           <div className="max-h-[600px] overflow-y-auto">
-            {filteredUsers.length === 0 ? (
+            {/* Replace ternary with simple conditional rendering */}
+            {filteredUsers.length === 0 && (
               <div className="flex flex-col items-center justify-center h-64 text-gray-500 p-4">
                 <div className="bg-gray-50 p-3 rounded-full mb-2">
                   <User className="h-6 w-6 text-gray-400" />
                 </div>
                 <p>No users found matching the selected filter</p>
               </div>
-            ) : (
+            )}
+
+            {filteredUsers.length > 0 &&
               filteredUsers.map((user) => (
                 <UserCard key={user._id} user={user} />
-              ))
-            )}
+              ))}
           </div>
         </div>
       </div>
 
       {/* User detail modal */}
       {modalOpen && <UserModal />}
+
       {/* Remove user confirmation modal */}
       {removeUserModalOpen && <RemoveUserModal />}
+
+      {/* Add user modal */}
+      <AddUserModal
+        isOpen={addUserModalOpen}
+        onClose={closeAddUserModal}
+        organizationName={organizationName}
+      />
 
       {/* Add custom styles for enhanced dropdown */}
       <style jsx global>{`

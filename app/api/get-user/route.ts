@@ -17,8 +17,8 @@ export async function GET(request: Request) {
 
     await dbConnect();
 
-    const user = await User.findById(id, {username: 1}).lean();
-    const intern = await Intern.findById(id, {username: 1}).lean();
+    const user = await User.findById(id, {username: 1}).lean() as { username?: string } | null;
+    const intern = await Intern.findById(id, {username: 1}).lean() as { username?: string } | null;
 
     if (!user && !intern) {
       return NextResponse.json({
@@ -27,15 +27,20 @@ export async function GET(request: Request) {
       });
     }
 
-    if (user) {
+    if (user && user.username) {
       return NextResponse.json({
         success: true,
         username: user.username
       });
-    } else {
+    } else if (intern && intern.username) {
       return NextResponse.json({
         success: true,
         username: intern.username
+      });
+    } else {
+      return NextResponse.json({
+        error: 'Username not found',
+        status: 404
       });
     }
 

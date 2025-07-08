@@ -56,7 +56,9 @@ interface FindInternshipsProps {
   onApplyClick: (internship: InternshipPost) => void;
 }
 
-export default function FindInternships({ onApplyClick }: FindInternshipsProps) {
+export default function FindInternships({
+  onApplyClick,
+}: FindInternshipsProps) {
   const [internships, setInternships] = useState<InternshipPost[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +66,8 @@ export default function FindInternships({ onApplyClick }: FindInternshipsProps) 
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedMode, setSelectedMode] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<string>("newest");
-  const [selectedInternship, setSelectedInternship] = useState<InternshipPost | null>(null);
+  const [selectedInternship, setSelectedInternship] =
+    useState<InternshipPost | null>(null);
   const [showModal, setShowModal] = useState<boolean>(false);
   const [categories, setCategories] = useState<string[]>([]);
   const [savedInternships, setSavedInternships] = useState<string[]>([]);
@@ -112,7 +115,9 @@ export default function FindInternships({ onApplyClick }: FindInternshipsProps) 
       if (response.ok) {
         const data = await response.json();
         if (data.user?.appliedInternships) {
-          const appliedIds = data.user.appliedInternships.map((app: any) => app.internshipId);
+          const appliedIds = data.user.appliedInternships.map(
+            (app: any) => app.internshipId
+          );
           setAppliedInternships(appliedIds);
         }
       }
@@ -127,7 +132,7 @@ export default function FindInternships({ onApplyClick }: FindInternshipsProps) 
       setError(null);
 
       let url = new URL(`${window.location.origin}/api/internships/public`);
-      
+
       if (searchQuery) {
         url.searchParams.append("search", searchQuery);
       }
@@ -137,11 +142,14 @@ export default function FindInternships({ onApplyClick }: FindInternshipsProps) 
       if (selectedMode !== "all") {
         url.searchParams.append("mode", selectedMode);
       }
-      
+
       url.searchParams.append("sort", sortOrder);
       url.searchParams.append("page", currentPage.toString());
       url.searchParams.append("limit", "12");
       url.searchParams.append("status", "published");
+      // This API already filters out expired internships by default
+
+      console.log("Fetching internships from URL:", url.toString());
 
       const response = await fetch(url.toString());
       if (!response.ok) {
@@ -150,6 +158,7 @@ export default function FindInternships({ onApplyClick }: FindInternshipsProps) 
       }
 
       const data = await response.json();
+      console.log(`Received ${data.internships?.length || 0} internships`);
       setInternships(data.internships || []);
       setTotalPages(data.pagination?.pages || 1);
     } catch (err: any) {
@@ -192,9 +201,9 @@ export default function FindInternships({ onApplyClick }: FindInternshipsProps) 
   };
 
   const toggleSaveInternship = (internshipId: string) => {
-    setSavedInternships(prev => 
-      prev.includes(internshipId) 
-        ? prev.filter(id => id !== internshipId)
+    setSavedInternships((prev) =>
+      prev.includes(internshipId)
+        ? prev.filter((id) => id !== internshipId)
         : [...prev, internshipId]
     );
   };
@@ -301,7 +310,8 @@ export default function FindInternships({ onApplyClick }: FindInternshipsProps) 
       {/* Results Summary */}
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold text-gray-900">
-          {internships.length} Internship{internships.length !== 1 ? 's' : ''} Available
+          {internships.length} Internship{internships.length !== 1 ? "s" : ""}{" "}
+          Available
         </h2>
         {totalPages > 1 && (
           <span className="text-sm text-gray-500">
@@ -326,15 +336,19 @@ export default function FindInternships({ onApplyClick }: FindInternshipsProps) 
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {internships.map((internship) => {
-            const daysLeft = getDaysUntilDeadline(internship.applicationDeadline);
-            const isExpired = isInternshipExpired(internship.applicationDeadline);
+            const daysLeft = getDaysUntilDeadline(
+              internship.applicationDeadline
+            );
+            const isExpired = isInternshipExpired(
+              internship.applicationDeadline
+            );
             const hasAppliedToThis = hasApplied(internship._id);
-            
+
             return (
               <div
                 key={internship._id}
                 className={`bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden ${
-                  isExpired ? 'opacity-75' : ''
+                  isExpired ? "opacity-75" : ""
                 }`}
               >
                 {/* Card Header */}
@@ -390,28 +404,34 @@ export default function FindInternships({ onApplyClick }: FindInternshipsProps) 
                     <div className="flex items-center">
                       <MapPin className="h-4 w-4 mr-2" />
                       <span className="truncate">
-                        {internship.mode === "remote" 
-                          ? "Remote" 
-                          : internship.location.city 
-                            ? `${internship.location.city}, ${internship.location.country}`
-                            : "Location TBD"}
+                        {internship.mode === "remote"
+                          ? "Remote"
+                          : internship.location.city
+                          ? `${internship.location.city}, ${internship.location.country}`
+                          : "Location TBD"}
                       </span>
                     </div>
                     <div className="flex items-center">
                       <Calendar className="h-4 w-4 mr-2" />
-                      <span>{formatDate(internship.startDate)} - {formatDate(internship.endDate)}</span>
+                      <span>
+                        {formatDate(internship.startDate)} -{" "}
+                        {formatDate(internship.endDate)}
+                      </span>
                     </div>
                     <div className="flex items-center">
                       <DollarSign className="h-4 w-4 mr-2" />
                       <span>
-                        {internship.isPaid 
-                          ? internship.stipend || "Paid" 
+                        {internship.isPaid
+                          ? internship.stipend || "Paid"
                           : "Unpaid"}
                       </span>
                     </div>
                     <div className="flex items-center">
                       <Users className="h-4 w-4 mr-2" />
-                      <span>{internship.openings} opening{internship.openings !== 1 ? 's' : ''}</span>
+                      <span>
+                        {internship.openings} opening
+                        {internship.openings !== 1 ? "s" : ""}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -422,7 +442,9 @@ export default function FindInternships({ onApplyClick }: FindInternshipsProps) 
                     <div className="flex items-center">
                       <Clock className="h-4 w-4 text-amber-600 mr-2" />
                       <span className="text-sm text-amber-800">
-                        {daysLeft > 0 ? `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left` : 'Last day to apply!'}
+                        {daysLeft > 0
+                          ? `${daysLeft} day${daysLeft !== 1 ? "s" : ""} left`
+                          : "Last day to apply!"}
                       </span>
                     </div>
                   </div>
@@ -472,7 +494,7 @@ export default function FindInternships({ onApplyClick }: FindInternshipsProps) 
         <div className="flex justify-center mt-8">
           <div className="flex space-x-1">
             <button
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
               className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -484,15 +506,17 @@ export default function FindInternships({ onApplyClick }: FindInternshipsProps) 
                 onClick={() => setCurrentPage(page)}
                 className={`px-3 py-2 border rounded-md text-sm font-medium ${
                   currentPage === page
-                    ? 'bg-cyan-600 text-white border-cyan-600'
-                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                    ? "bg-cyan-600 text-white border-cyan-600"
+                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
                 }`}
               >
                 {page}
               </button>
             ))}
             <button
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
               disabled={currentPage === totalPages}
               className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -547,7 +571,7 @@ export default function FindInternships({ onApplyClick }: FindInternshipsProps) 
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex flex-wrap gap-3 mb-4">
                     <span className="px-3 py-1 bg-cyan-100 text-cyan-800 rounded-full text-sm font-medium">
                       {selectedInternship.category}
@@ -563,13 +587,20 @@ export default function FindInternships({ onApplyClick }: FindInternshipsProps) 
 
                 <div className="mt-4 md:mt-0 flex flex-col items-start md:items-end space-y-2">
                   <div className="text-right">
-                    <p className="text-sm text-gray-600">Application Deadline</p>
+                    <p className="text-sm text-gray-600">
+                      Application Deadline
+                    </p>
                     <p className="font-semibold text-gray-900">
                       {formatDate(selectedInternship.applicationDeadline)}
                     </p>
-                    {!isInternshipExpired(selectedInternship.applicationDeadline) && (
+                    {!isInternshipExpired(
+                      selectedInternship.applicationDeadline
+                    ) && (
                       <p className="text-sm text-amber-600">
-                        {getDaysUntilDeadline(selectedInternship.applicationDeadline)} days left
+                        {getDaysUntilDeadline(
+                          selectedInternship.applicationDeadline
+                        )}{" "}
+                        days left
                       </p>
                     )}
                   </div>
@@ -589,20 +620,26 @@ export default function FindInternships({ onApplyClick }: FindInternshipsProps) 
                       <div className="flex items-center">
                         <Calendar className="h-5 w-5 text-cyan-600 mr-3" />
                         <div>
-                          <p className="text-sm font-medium text-gray-700">Duration</p>
+                          <p className="text-sm font-medium text-gray-700">
+                            Duration
+                          </p>
                           <p className="text-gray-900">
-                            {formatDate(selectedInternship.startDate)} - {formatDate(selectedInternship.endDate)}
+                            {formatDate(selectedInternship.startDate)} -{" "}
+                            {formatDate(selectedInternship.endDate)}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center">
                         <MapPin className="h-5 w-5 text-cyan-600 mr-3" />
                         <div>
-                          <p className="text-sm font-medium text-gray-700">Location</p>
+                          <p className="text-sm font-medium text-gray-700">
+                            Location
+                          </p>
                           <p className="text-gray-900">
                             {selectedInternship.mode === "remote"
                               ? "Remote"
-                              : selectedInternship.location.city && selectedInternship.location.country
+                              : selectedInternship.location.city &&
+                                selectedInternship.location.country
                               ? `${selectedInternship.location.city}, ${selectedInternship.location.country}`
                               : "Location TBD"}
                           </p>
@@ -611,17 +648,24 @@ export default function FindInternships({ onApplyClick }: FindInternshipsProps) 
                       <div className="flex items-center">
                         <Users className="h-5 w-5 text-cyan-600 mr-3" />
                         <div>
-                          <p className="text-sm font-medium text-gray-700">Openings</p>
-                          <p className="text-gray-900">{selectedInternship.openings} positions</p>
+                          <p className="text-sm font-medium text-gray-700">
+                            Openings
+                          </p>
+                          <p className="text-gray-900">
+                            {selectedInternship.openings} positions
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center">
                         <DollarSign className="h-5 w-5 text-cyan-600 mr-3" />
                         <div>
-                          <p className="text-sm font-medium text-gray-700">Compensation</p>
+                          <p className="text-sm font-medium text-gray-700">
+                            Compensation
+                          </p>
                           <p className="text-gray-900">
                             {selectedInternship.isPaid
-                              ? selectedInternship.stipend || "Paid (amount not specified)"
+                              ? selectedInternship.stipend ||
+                                "Paid (amount not specified)"
                               : "Unpaid"}
                           </p>
                         </div>
@@ -635,7 +679,8 @@ export default function FindInternships({ onApplyClick }: FindInternshipsProps) 
                       Required Skills
                     </h4>
                     <div className="flex flex-wrap gap-2">
-                      {selectedInternship.skills && selectedInternship.skills.length > 0 ? (
+                      {selectedInternship.skills &&
+                      selectedInternship.skills.length > 0 ? (
                         selectedInternship.skills.map((skill, index) => (
                           <span
                             key={index}
@@ -645,7 +690,9 @@ export default function FindInternships({ onApplyClick }: FindInternshipsProps) 
                           </span>
                         ))
                       ) : (
-                        <p className="text-gray-500 italic">No specific skills listed</p>
+                        <p className="text-gray-500 italic">
+                          No specific skills listed
+                        </p>
                       )}
                     </div>
                   </div>
@@ -658,7 +705,9 @@ export default function FindInternships({ onApplyClick }: FindInternshipsProps) 
                     <h4 className="font-semibold text-gray-900 mb-3 pb-1 border-b">
                       Eligibility Criteria
                     </h4>
-                    <p className="text-gray-900">{selectedInternship.eligibility}</p>
+                    <p className="text-gray-900">
+                      {selectedInternship.eligibility}
+                    </p>
                   </div>
 
                   {/* Responsibilities */}
@@ -666,16 +715,21 @@ export default function FindInternships({ onApplyClick }: FindInternshipsProps) 
                     <h4 className="font-semibold text-gray-900 mb-3 pb-1 border-b">
                       Roles & Responsibilities
                     </h4>
-                    {selectedInternship.responsibilities && selectedInternship.responsibilities.length > 0 ? (
+                    {selectedInternship.responsibilities &&
+                    selectedInternship.responsibilities.length > 0 ? (
                       <ul className="space-y-2 list-disc pl-5">
-                        {selectedInternship.responsibilities.map((responsibility, index) => (
-                          <li key={index} className="text-gray-900">
-                            {responsibility}
-                          </li>
-                        ))}
+                        {selectedInternship.responsibilities.map(
+                          (responsibility, index) => (
+                            <li key={index} className="text-gray-900">
+                              {responsibility}
+                            </li>
+                          )
+                        )}
                       </ul>
                     ) : (
-                      <p className="text-gray-500 italic">No specific responsibilities listed</p>
+                      <p className="text-gray-500 italic">
+                        No specific responsibilities listed
+                      </p>
                     )}
                   </div>
 
@@ -686,9 +740,12 @@ export default function FindInternships({ onApplyClick }: FindInternshipsProps) 
                     </h4>
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-gray-700 font-medium">Applications:</span>
+                        <span className="text-gray-700 font-medium">
+                          Applications:
+                        </span>
                         <span className="font-bold text-gray-900">
-                          {selectedInternship.applications?.length || 0} / {selectedInternship.openings}
+                          {selectedInternship.applications?.length || 0} /{" "}
+                          {selectedInternship.openings}
                         </span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2.5">
@@ -696,7 +753,9 @@ export default function FindInternships({ onApplyClick }: FindInternshipsProps) 
                           className="bg-cyan-600 h-2.5 rounded-full"
                           style={{
                             width: `${Math.min(
-                              ((selectedInternship.applications?.length || 0) / selectedInternship.openings) * 100,
+                              ((selectedInternship.applications?.length || 0) /
+                                selectedInternship.openings) *
+                                100,
                               100
                             )}%`,
                           }}
@@ -727,7 +786,9 @@ export default function FindInternships({ onApplyClick }: FindInternshipsProps) 
                   >
                     Already Applied ✓
                   </button>
-                ) : isInternshipExpired(selectedInternship.applicationDeadline) ? (
+                ) : isInternshipExpired(
+                    selectedInternship.applicationDeadline
+                  ) ? (
                   <button
                     disabled
                     className="flex-1 px-4 py-2 bg-gray-300 text-gray-500 rounded-md font-medium cursor-not-allowed"

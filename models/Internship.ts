@@ -91,7 +91,7 @@ const internshipSchema = new Schema(
     },
     applications: [{
       type: Schema.Types.ObjectId,
-      ref: 'User'
+      ref: 'Intern'
     }],
     createdAt: {
       type: Date,

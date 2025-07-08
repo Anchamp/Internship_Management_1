@@ -27,8 +27,8 @@ export async function GET(request: Request) {
       });
     }
 
-    const organizationName = user.organizationName;
-    const userRole = user.role;
+    const organizationName = (user as { organizationName?: string }).organizationName;
+    const userRole = (user as { role?: string }).role;
 
     if (!organizationName) {
       return NextResponse.json({
@@ -45,11 +45,21 @@ export async function GET(request: Request) {
     }
 
     if (userRole === 'admin') {
-      const team = await Team.findOne({teamName: teamName, organizationName: organizationName }).lean();
+      const team = await Team.findOne({teamName: teamName, organizationName: organizationName }).lean() as unknown as {
+        mentors: string[];
+        interns: string[];
+        panelists: string[];
+      };
 
-      const mentorIds = team.mentors;
-      const internIds = team.interns;
-      const panelistIds = team.panelists;
+      if (!team) {
+        return NextResponse.json({
+          error: 'Team not found',
+          status: 404
+        });
+      }
+      const mentorIds = ((team as unknown) as { mentors: string[]; interns: string[]; panelists: string[] }).mentors;
+      const internIds = (team as unknown as { mentors: string[]; interns: string[]; panelists: string[] }).interns;
+      const panelistIds = ((team as unknown) as { mentors: string[]; interns: string[]; panelists: string[] }).panelists;
 
       team.mentors = [];
       team.interns = [];
@@ -58,33 +68,54 @@ export async function GET(request: Request) {
       for (const mentorId of mentorIds) {
         const mentor = await User.findById(mentorId).select('username').lean();
         if (mentor) {
-          team.mentors.push(mentor.username);
+          team.mentors.push(((mentor as unknown) as { username: string }).username);
         }
       }
 
       for (const internId of internIds) {
         const intern = await Intern.findById(internId).select('username').lean();
         if (intern) {
-          team.interns.push(intern.username);
+          team.interns.push(((intern as unknown) as { username: string }).username);
         }
       }
 
       for (const panelistId of panelistIds) {
         const panelist = await User.findById(panelistId).select('username').lean();
         if (panelist) {
-          team.panelists.push(panelist.username);
+          team.panelists.push(((panelist as unknown) as { username: string }).username);
         }
       }
 
       return NextResponse.json({
         success: true,
-        team,
         organizationName
       });
     } else {
-      const team = await Team.findOne({ teamName: teamName, organizationName: organizationName }).lean();
+      const team = await Team.findOne({ teamName: teamName, organizationName: organizationName }).lean() as unknown as {
+        mentors: string[];
+        interns: string[];
+        panelists: string[];
+      };
+      
+      if (!team) {
+        return NextResponse.json({
+          error: 'Team not found',
+          status: 404
+        });
+      }
+      
       const allUsers = [...team.mentors, ...team.interns, ...team.panelists];
       const existingUser = await User.findOne({ username: username, organizationName: organizationName }).lean();
+
+      if (!existingUser) {
+        return NextResponse.json({
+          error: 'User not found',
+          status: 404
+        });
+      }
+
+      // Ensure we have _id as a property
+      const userId = (existingUser as any)._id;
 
       const mentorIds = team.mentors;
       const internIds = team.interns;
@@ -97,25 +128,25 @@ export async function GET(request: Request) {
       for (const mentorId of mentorIds) {
         const mentor = await User.findById(mentorId).select('username').lean();
         if (mentor) {
-          team.mentors.push(mentor.username);
+          team.mentors.push(((mentor as unknown) as { username: string }).username);
         }
       }
 
       for (const internId of internIds) {
         const intern = await Intern.findById(internId).select('username').lean();
         if (intern) {
-          team.interns.push(intern.username);
+          team.interns.push(((intern as unknown) as { username: string }).username);
         }
       }
 
       for (const panelistId of panelistIds) {
         const panelist = await User.findById(panelistId).select('username').lean();
         if (panelist) {
-          team.panelists.push(panelist.username);
+          team.panelists.push(((panelist as unknown) as { username: string }).username);
         }
       }
 
-      if (allUsers.includes(existingUser._id.toString())) {
+      if (allUsers.includes(userId.toString())) {
         return NextResponse.json({
           success: true,
           team,

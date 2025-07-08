@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Clock, Calendar, Users } from "lucide-react";
+import { AlertCircle, Clock, Calendar, Users, Building } from "lucide-react";
+import ApplyOrganizationModal from "./applyorganization";
 
 interface DashboardScreenProps {
   organization: string;
@@ -16,6 +17,7 @@ export default function DashboardScreen({
     useState<number>(0);
   const [verificationStatus, setVerificationStatus] =
     useState<string>("pending");
+  const [showApplyModal, setShowApplyModal] = useState<boolean>(false);
 
   // Fetch profile submission count from the database
   useEffect(() => {
@@ -46,7 +48,7 @@ export default function DashboardScreen({
   return (
     <>
       {/* Organization verification message - different based on submission count */}
-      {organization === "none" && (
+      {organization === "none" && profileSubmissionCount !== -1 && (
         <div className="mb-4 bg-amber-50 border-l-4 border-amber-400 p-4 rounded-md shadow-sm">
           <div className="flex">
             <div className="flex-shrink-0">
@@ -64,7 +66,9 @@ export default function DashboardScreen({
                     <>
                       Please submit your profile details by visiting the{" "}
                       <button
-                        onClick={() => router.push("/dashboard/employee/profile")}
+                        onClick={() =>
+                          router.push("/dashboard/employee/profile")
+                        }
                         className="font-medium underline"
                       >
                         My Profile
@@ -84,6 +88,36 @@ export default function DashboardScreen({
                   )}
                 </p>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Apply to Organization Banner when profileSubmissionCount is -1 */}
+      {profileSubmissionCount === -1 && (
+        <div className="mb-4 bg-cyan-50 border-l-4 border-cyan-500 p-4 rounded-md shadow-sm">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <Building className="h-5 w-5 text-cyan-500" />
+            </div>
+            <div className="ml-3 flex-grow">
+              <h3 className="text-sm font-medium text-cyan-800">
+                You've been removed from your organization
+              </h3>
+              <div className="mt-2 text-sm text-cyan-700">
+                <p>
+                  You can now apply to join a different organization. Click the
+                  button below to view and select available organizations.
+                </p>
+              </div>
+            </div>
+            <div>
+              <button
+                onClick={() => setShowApplyModal(true)}
+                className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-md shadow-sm text-sm hover:opacity-90 transition-colors"
+              >
+                Apply to Organization
+              </button>
             </div>
           </div>
         </div>
@@ -196,6 +230,12 @@ export default function DashboardScreen({
           </div>
         </div>
       </div>
+
+      {/* Apply Organization Modal */}
+      <ApplyOrganizationModal
+        isOpen={showApplyModal}
+        onClose={() => setShowApplyModal(false)}
+      />
     </>
   );
 }

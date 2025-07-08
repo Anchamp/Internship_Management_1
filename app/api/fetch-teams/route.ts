@@ -65,10 +65,12 @@ export async function GET(request: Request) {
 
         for (const mentorId of mentorIds) {
           const mentorUsername = await User.findById(mentorId, 'username').lean();
+          console.log("Mentor Username:", mentorUsername);
           if (mentorUsername) {
             team.mentors.push(mentorUsername.username);
           }
         }
+
 
         for (const internId of internIds) {
           const internUsername = await Intern.findById(internId, 'username').lean();
