@@ -18,7 +18,8 @@ import {
 } from "lucide-react";
 import DashboardScreen from "./dashboardscreen";
 import EmployeeProfile from "./profile";
-import NotificationModal from "./notificationmodal"; // Import the notification modal
+import NotificationModal from "./notificationmodal";
+import UsersScreen from "./users"; // Import the new users component
 
 export default function EmployeeDashboard() {
   const router = useRouter();
@@ -218,6 +219,23 @@ export default function EmployeeDashboard() {
               href="#"
               onClick={(e) => {
                 e.preventDefault();
+                handleNavigation("users");
+              }}
+              className={`flex items-center ${
+                isSidebarCollapsed ? "justify-center" : "space-x-3"
+              } p-2 rounded-md ${
+                activeTab === "users"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-gray-50 text-gray-700"
+              } font-medium text-sm`}
+            >
+              <Users className="h-4 w-4" />
+              {!isSidebarCollapsed && <span>Organization</span>}
+            </a>
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
                 handleNavigation("interns");
               }}
               className={`flex items-center ${
@@ -408,9 +426,12 @@ export default function EmployeeDashboard() {
             <DashboardScreen organization={organization} />
           )}
           {activeTab === "profile" && <EmployeeProfile inDashboard={true} />}
+          {activeTab === "users" && <UsersScreen />}
           {activeTab === "interns" && (
             <div className="p-4 bg-white rounded-md shadow">
-              <p className="text-lg font-medium">Interns section coming soon</p>
+              <p className="text-lg font-medium">
+                My Interns section coming soon
+              </p>
             </div>
           )}
           {activeTab === "assignments" && (
