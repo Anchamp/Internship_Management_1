@@ -287,6 +287,22 @@ export default function NotificationModal({
             </div>
           </div>
         );
+      case "departure_notification":
+        return (
+          <div className="flex flex-col">
+            <div className="mb-1.5">
+              <p className="font-semibold text-black text-sm">
+                Organization Departure
+              </p>
+            </div>
+            <div className="flex flex-col">
+              <p className="text-xs text-black mt-1">
+                {notification.message ||
+                  `${notification.requestorName} has left the organization.`}
+              </p>
+            </div>
+          </div>
+        );
       case "verification_response":
         return (
           <div className="flex flex-col">

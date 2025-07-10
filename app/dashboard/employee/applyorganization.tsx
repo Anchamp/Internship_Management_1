@@ -78,7 +78,7 @@ export default function ApplyOrganizationModal({
     );
   }, [organizations, orgSearchQuery]);
 
-  // Update the handleApply function to make the API call
+  // Update the handleApply function to make the API call and create notification
   const handleApply = async () => {
     if (!selectedOrganization) return;
 
@@ -91,7 +91,16 @@ export default function ApplyOrganizationModal({
         throw new Error("User session not found");
       }
 
-      const { username } = JSON.parse(storedUser);
+      const userData = JSON.parse(storedUser);
+      const { username, _id: requestorId, fullName } = userData;
+
+      // Find the selected organization details
+      const selectedOrg = organizations.find(
+        (org) => org.id === selectedOrganization
+      );
+      if (!selectedOrg) {
+        throw new Error("Selected organization not found");
+      }
 
       // Call API to apply for the organization
       const response = await fetch("/api/employee/apply-organization", {
@@ -109,6 +118,33 @@ export default function ApplyOrganizationModal({
 
       if (!response.ok) {
         throw new Error(data.error || "Failed to apply for organization");
+      }
+
+      // Create notification for admin
+      const notificationResponse = await fetch("/api/notifications", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "verification_request",
+          role: "employee",
+          requestorId: requestorId,
+          requestorName: fullName || username,
+          organizationId: selectedOrganization,
+          message: `${fullName || username} has requested to join ${
+            selectedOrg.name
+          }`,
+          read: false,
+          // Note: We're not specifying userId as the API will determine admin user(s) for this organization
+          forOrganizationAdmins: true, // Flag to send to all admins of the organization
+        }),
+      });
+
+      if (!notificationResponse.ok) {
+        console.error(
+          "Failed to create notification, but application was submitted"
+        );
       }
 
       // Show success message

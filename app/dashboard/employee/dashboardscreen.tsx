@@ -102,12 +102,12 @@ export default function DashboardScreen({
             </div>
             <div className="ml-3 flex-grow">
               <h3 className="text-sm font-medium text-cyan-800">
-                You've been removed from your organization
+                You are not currently part of any organization
               </h3>
               <div className="mt-2 text-sm text-cyan-700">
                 <p>
-                  You can now apply to join a different organization. Click the
-                  button below to view and select available organizations.
+                  You can now apply to join an organization. Click the button
+                  below to view and select available organizations.
                 </p>
               </div>
             </div>
