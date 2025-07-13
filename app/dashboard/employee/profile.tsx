@@ -22,6 +22,7 @@ import {
   Trash2,
   AlertCircle,
   Check,
+  Info,
 } from "lucide-react";
 
 interface EmployeeProfileProps {
@@ -79,6 +80,7 @@ export default function EmployeeProfile({
     useState<string>("pending");
   const [loadError, setLoadError] = useState<string>("");
   const [phoneError, setPhoneError] = useState(""); // Added for phone validation
+  const [formValid, setFormValid] = useState(false); // New state for form validation
 
   const [userData, setUserData] = useState({
     username: "",
@@ -98,8 +100,34 @@ export default function EmployeeProfile({
     teams: [] as string[],
   });
 
-  const [newTeam, setNewTeam] = useState("");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  // Validate form whenever userData changes
+  useEffect(() => {
+    validateForm();
+  }, [userData]);
+
+  // Function to validate required fields
+  const validateForm = () => {
+    const requiredFields = {
+      fullName: userData.fullName.trim(),
+      phone: userData.phone.trim(),
+      address: userData.address.trim(),
+      position: userData.position.trim(),
+      experience: userData.experience.trim(),
+      skills: userData.skills.trim(),
+      dob: userData.dob,
+    };
+
+    // Check if all required fields have values and phone is valid
+    const allFieldsFilled = Object.values(requiredFields).every(
+      (value) => value !== ""
+    );
+    const isPhoneValid =
+      userData.phone.length === 0 || userData.phone.length === 10;
+
+    setFormValid(allFieldsFilled && isPhoneValid && !phoneError);
+  };
 
   // Load user data directly from MongoDB
   useEffect(() => {
@@ -216,12 +244,17 @@ export default function EmployeeProfile({
     }
   };
 
+  // Required field label component
+  const RequiredLabel = ({ text }: { text: string }) => (
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      {text} <span className="text-red-500">*</span>
+    </label>
+  );
+
   // Create the phone number field component with country code
   const PhoneNumberField = () => (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Phone Number
-      </label>
+      <RequiredLabel text="Phone Number" />
       <div className="flex">
         <select
           name="countryCode"
@@ -254,6 +287,7 @@ export default function EmployeeProfile({
             }`}
             placeholder="10-digit number"
             maxLength={10}
+            required
           />
         </div>
       </div>
@@ -280,23 +314,6 @@ export default function EmployeeProfile({
       };
       reader.readAsDataURL(file);
     }
-  };
-
-  const addTeam = () => {
-    if (newTeam.trim() && !userData.teams.includes(newTeam.trim())) {
-      setUserData((prev) => ({
-        ...prev,
-        teams: [...prev.teams, newTeam.trim()],
-      }));
-      setNewTeam("");
-    }
-  };
-
-  const removeTeam = (teamToRemove: string) => {
-    setUserData((prev) => ({
-      ...prev,
-      teams: prev.teams.filter((team) => team !== teamToRemove),
-    }));
   };
 
   // Modified handleSubmit function to update MongoDB only
@@ -467,9 +484,7 @@ export default function EmployeeProfile({
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name
-              </label>
+              <RequiredLabel text="Full Name" />
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <User className="h-4 w-4 text-gray-400" />
@@ -481,6 +496,7 @@ export default function EmployeeProfile({
                   onChange={handleChange}
                   className="pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
                   placeholder="Enter your full name"
+                  required
                 />
               </div>
             </div>
@@ -506,9 +522,7 @@ export default function EmployeeProfile({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date of Birth
-              </label>
+              <RequiredLabel text="Date of Birth" />
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Calendar className="h-4 w-4 text-gray-400" />
@@ -519,17 +533,57 @@ export default function EmployeeProfile({
                   value={userData.dob}
                   onChange={handleChange}
                   className="pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
+                  required
                 />
               </div>
             </div>
 
-            {/* Replace phone input with PhoneNumberField */}
-            <PhoneNumberField />
+            {/* Phone number with Required label */}
+            <div>
+              <RequiredLabel text="Phone Number" />
+              <div className="flex">
+                <select
+                  name="countryCode"
+                  value={userData.countryCode}
+                  onChange={handleChange}
+                  className="p-2 border rounded-l-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
+                >
+                  <option value="+1">+1 (USA)</option>
+                  <option value="+44">+44 (UK)</option>
+                  <option value="+91">+91 (India)</option>
+                  <option value="+61">+61 (Australia)</option>
+                  <option value="+86">+86 (China)</option>
+                  <option value="+49">+49 (Germany)</option>
+                  <option value="+33">+33 (France)</option>
+                  <option value="+81">+81 (Japan)</option>
+                  <option value="+7">+7 (Russia)</option>
+                  <option value="+55">+55 (Brazil)</option>
+                </select>
+                <div className="relative flex-grow">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Phone className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    name="phone"
+                    value={userData.phone}
+                    onChange={handleChange}
+                    className={`pl-10 w-full p-2 border rounded-r-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black ${
+                      phoneError ? "border-red-500" : ""
+                    }`}
+                    placeholder="10-digit number"
+                    maxLength={10}
+                    required
+                  />
+                </div>
+              </div>
+              {phoneError && (
+                <p className="text-sm text-red-500 mt-1">{phoneError}</p>
+              )}
+            </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Address
-              </label>
+              <RequiredLabel text="Address" />
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <MapPin className="h-4 w-4 text-gray-400" />
@@ -541,6 +595,7 @@ export default function EmployeeProfile({
                   onChange={handleChange}
                   className="pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
                   placeholder="Enter your address"
+                  required
                 />
               </div>
             </div>
@@ -572,9 +627,7 @@ export default function EmployeeProfile({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Position/Title
-              </label>
+              <RequiredLabel text="Position/Title" />
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Briefcase className="h-4 w-4 text-gray-400" />
@@ -586,14 +639,13 @@ export default function EmployeeProfile({
                   onChange={handleChange}
                   className="pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
                   placeholder="Enter your position"
+                  required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Years of Experience
-              </label>
+              <RequiredLabel text="Years of Experience" />
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Clock className="h-4 w-4 text-gray-400" />
@@ -605,6 +657,7 @@ export default function EmployeeProfile({
                   onChange={handleChange}
                   className="pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
                   placeholder="Enter years of experience"
+                  required
                 />
               </div>
             </div>
@@ -630,62 +683,36 @@ export default function EmployeeProfile({
           </div>
         </div>
 
-        {/* Teams */}
+        {/* Teams - Modified to only display teams */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Teams
           </label>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {userData.teams.map((team, index) => (
-              <div
-                key={index}
-                className="bg-cyan-100 text-cyan-800 px-3 py-1 rounded-full flex items-center"
-              >
-                <span>{team}</span>
-                <button
-                  type="button"
-                  onClick={() => removeTeam(team)}
-                  className="ml-2 text-cyan-600 hover:text-cyan-800"
+          {userData.teams && userData.teams.length > 0 ? (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {userData.teams.map((team, index) => (
+                <div
+                  key={index}
+                  className="bg-cyan-100 text-cyan-800 px-3 py-1 rounded-full flex items-center"
                 >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Users className="h-4 w-4 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                value={newTeam}
-                onChange={(e) => setNewTeam(e.target.value)}
-                className="pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
-                placeholder="Add a team"
-                onKeyPress={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addTeam();
-                  }
-                }}
-              />
+                  <span>{team}</span>
+                </div>
+              ))}
             </div>
-            <button
-              type="button"
-              onClick={addTeam}
-              className="px-4 py-2 bg-cyan-500 text-white rounded-md hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-            >
-              Add
-            </button>
-          </div>
+          ) : (
+            <div className="bg-gray-100 text-gray-500 p-3 rounded-md flex items-center">
+              <Info className="h-4 w-4 mr-2" />
+              <span className="text-sm">
+                You are not assigned to any teams yet. Teams will be assigned by
+                the administrator.
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Skills */}
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Skills & Expertise
-          </label>
+          <RequiredLabel text="Skills & Expertise" />
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <FileText className="h-4 w-4 text-gray-400" />
@@ -697,6 +724,7 @@ export default function EmployeeProfile({
               onChange={handleChange}
               className="pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
               placeholder="E.g., JavaScript, React, UX Design (comma separated)"
+              required
             />
           </div>
         </div>
@@ -716,11 +744,21 @@ export default function EmployeeProfile({
           ></textarea>
         </div>
 
+        {/* Required fields notice */}
+        <div className="mb-6 text-sm text-gray-600">
+          <p>
+            Fields marked with <span className="text-red-500">*</span> are
+            required
+          </p>
+        </div>
+
         <div className="mt-6 flex justify-end">
           <button
             type="submit"
-            disabled={isSaving}
-            className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-medium rounded-md shadow-sm hover:from-cyan-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
+            disabled={isSaving || !formValid}
+            className={`inline-flex items-center px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-medium rounded-md shadow-sm hover:from-cyan-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 ${
+              !formValid || isSaving ? "opacity-60 cursor-not-allowed" : ""
+            }`}
           >
             {isSaving ? (
               <>
@@ -745,6 +783,18 @@ export default function EmployeeProfile({
             profile, an administrator will review your information for
             verification. Once approved, you will be onboarded to the
             organization and gain access to all mentorship features.
+          </p>
+        </div>
+      )}
+
+      {/* Form validation warning */}
+      {!formValid && (
+        <div className="mt-4 bg-red-50 p-4 rounded-md border border-red-200">
+          <p className="text-red-800 text-sm flex items-center">
+            <AlertCircle className="h-4 w-4 mr-2" />
+            Please complete all required fields marked with{" "}
+            <span className="text-red-500 mx-1">*</span>
+            to save your profile.
           </p>
         </div>
       )}

@@ -423,7 +423,10 @@ export default function EmployeeDashboard() {
 
         <main className="p-3 sm:p-4">
           {activeTab === "dashboard" && (
-            <DashboardScreen organization={organization} />
+            <DashboardScreen
+              organization={organization}
+              onNavigate={handleNavigation} // Pass the navigation function
+            />
           )}
           {activeTab === "profile" && <EmployeeProfile inDashboard={true} />}
           {activeTab === "users" && <UsersScreen />}

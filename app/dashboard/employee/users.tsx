@@ -123,11 +123,10 @@ export default function UsersScreen() {
         throw new Error("User not found in database");
       }
 
-      // Now fetch the organization users with the latest data
-      let apiUrl = `/api/employee/organization-users?username=${username}`;
-      if (user.organizationId) {
-        apiUrl += `&organizationId=${user.organizationId}`;
-      }
+      // Now fetch the organization users based on organization name
+      const apiUrl = `/api/employee/organization-users?username=${username}&organizationName=${encodeURIComponent(
+        user.organizationName || ""
+      )}`;
 
       const response = await fetch(apiUrl);
       const data = await response.json();
@@ -261,6 +260,7 @@ export default function UsersScreen() {
         body: JSON.stringify({
           userId, // Send ID if available
           username, // Always send username as fallback
+          organizationName: currentOrgName, // Add organization name for verification
         }),
       });
 
