@@ -723,7 +723,7 @@ export default function EmployeeProfile({
               value={userData.skills}
               onChange={handleChange}
               className="pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
-              placeholder="E.g., JavaScript, React, UX Design (comma separated)"
+              placeholder="E.g., Technical, Leadership, Communication, Design (comma separated)"
               required
             />
           </div>
