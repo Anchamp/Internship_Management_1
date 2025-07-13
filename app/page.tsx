@@ -20,6 +20,14 @@ import {
   Loader2,
 } from "lucide-react";
 
+interface Testimonial {
+  _id: string;
+  name: string;
+  designation: string;
+  rating: number;
+  description: string;
+}
+
 export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -30,10 +38,146 @@ export default function Home() {
   const [authError, setAuthError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  // New state variables for feedback functionality
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  const [feedbackSuccess, setFeedbackSuccess] = useState(false);
+
+  // Form state
+  const [feedbackName, setFeedbackName] = useState("");
+  const [feedbackDesignation, setFeedbackDesignation] = useState("");
+  const [feedbackRating, setFeedbackRating] = useState(5);
+  const [feedbackDescription, setFeedbackDescription] = useState("");
+  const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
+
   // Tilt effect state
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [isHovering, setIsHovering] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+
+  // Add carousel state
+  const [currentTestimonialIndex, setCurrentTestimonialIndex] = useState(0);
+  const testimonialRef = useRef<HTMLDivElement>(null);
+
+  // Function to get initials from name
+  const getInitials = (name: string) => {
+    const names = name.split(" ");
+    if (names.length > 1) {
+      return `${names[0][0]}${names[1][0]}`.toUpperCase();
+    }
+    return names[0][0].toUpperCase();
+  };
+
+  // Fetch testimonials
+  const fetchTestimonials = async () => {
+    try {
+      const res = await fetch("/api/feedback");
+      if (!res.ok) throw new Error("Failed to fetch testimonials");
+      const data = await res.json();
+      setTestimonials(data);
+    } catch (error) {
+      console.error("Error fetching testimonials:", error);
+      // Set some default testimonials as fallback
+      setTestimonials([
+        {
+          _id: "1",
+          name: "Robert Smith",
+          designation: "Internship Coordinator",
+          rating: 5,
+          description:
+            "We used to manage our internship program with spreadsheets and emails. InternshipHub has reduced our administrative work by 70% and improved communication across the board.",
+        },
+        {
+          _id: "2",
+          name: "Jennifer Patel",
+          designation: "HR Director",
+          rating: 5,
+          description:
+            "The demo management features alone have saved us countless hours. Our guides and panelists love the streamlined scheduling and feedback process.",
+        },
+        {
+          _id: "3",
+          name: "Thomas Miller",
+          designation: "Engineering Manager",
+          rating: 5,
+          description:
+            "As a project guide, I can now easily track all my interns' progress in one place. The weekly updates feature ensures everyone stays accountable and on track.",
+        },
+      ]);
+    }
+  };
+
+  // Handle feedback submission
+  const handleFeedbackSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Reset errors
+    setFormErrors({});
+
+    // Client-side validation
+    const errors: { [key: string]: string } = {};
+    if (feedbackDescription.trim().length < 10) {
+      errors.description = "Feedback should be at least 10 characters long";
+    }
+
+    // If there are errors, show them and don't submit
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    setIsSubmittingFeedback(true);
+
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: feedbackName,
+          designation: feedbackDesignation,
+          rating: feedbackRating,
+          description: feedbackDescription,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        // Handle server validation errors
+        if (data.errors) {
+          const serverErrors: { [key: string]: string } = {};
+          Object.keys(data.errors).forEach((key) => {
+            serverErrors[key] = data.errors[key].message;
+          });
+          setFormErrors(serverErrors);
+          throw new Error("Validation failed");
+        }
+        throw new Error(data.message || "Failed to submit feedback");
+      }
+
+      // Reset form and show success message
+      setFeedbackName("");
+      setFeedbackDesignation("");
+      setFeedbackRating(5);
+      setFeedbackDescription("");
+      setFeedbackSuccess(true);
+
+      // Refresh testimonials
+      fetchTestimonials();
+
+      // Close modal after short delay
+      setTimeout(() => {
+        setShowFeedbackModal(false);
+        setFeedbackSuccess(false);
+      }, 2000);
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      // Error already handled with setFormErrors above
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
 
   // Show sign-in popup after 5 seconds on every visit
   useEffect(() => {
@@ -44,6 +188,9 @@ export default function Home() {
       setShowSignInPopup(true);
     }, 5000);
 
+    // Fetch testimonials on page load
+    fetchTestimonials();
+
     // Clear timeout on unmount
     return () => clearTimeout(timer);
   }, []);
@@ -51,6 +198,12 @@ export default function Home() {
   // Close popup function
   const closePopup = () => {
     setShowSignInPopup(false);
+  };
+
+  // Close feedback modal
+  const closeFeedbackModal = () => {
+    setShowFeedbackModal(false);
+    setFeedbackSuccess(false);
   };
 
   // Handle sign in submission
@@ -138,6 +291,32 @@ export default function Home() {
     // Reset tilt when mouse leaves
     setTilt({ x: 0, y: 0 });
   };
+
+  // Handle testimonial navigation
+  const nextTestimonial = () => {
+    if (testimonials.length <= 3) return;
+    setCurrentTestimonialIndex((prev) =>
+      prev === testimonials.length - 3 ? 0 : prev + 1
+    );
+  };
+
+  const prevTestimonial = () => {
+    if (testimonials.length <= 3) return;
+    setCurrentTestimonialIndex((prev) =>
+      prev === 0 ? testimonials.length - 3 : prev - 1
+    );
+  };
+
+  // Auto-scroll testimonials every 2 seconds
+  useEffect(() => {
+    if (testimonials.length <= 3) return;
+
+    const interval = setInterval(() => {
+      nextTestimonial();
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [testimonials.length, currentTestimonialIndex]);
 
   if (!mounted) return null;
 
@@ -290,6 +469,154 @@ export default function Home() {
                   Privacy Policy
                 </Link>
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Feedback Form Modal */}
+      {showFeedbackModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full m-4 transform transition-all animate-fadeIn overflow-hidden">
+            <div className="p-6 border-b border-cyan-100">
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center space-x-2">
+                  <div className="h-7 w-7 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md shadow-cyan-500/20">
+                    <MessageSquare className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="font-bold text-base bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-cyan-700">
+                    Feedback Form
+                  </span>
+                </div>
+                <button
+                  onClick={closeFeedbackModal}
+                  className="p-1 rounded-full hover:bg-gray-100 text-gray-500"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {feedbackSuccess ? (
+                <div className="bg-green-50 border border-green-200 text-green-700 text-sm p-4 rounded-lg mb-4 flex items-center">
+                  <CheckCircle className="h-5 w-5 mr-2" />
+                  Thank you for your feedback! It has been submitted
+                  successfully.
+                </div>
+              ) : (
+                <form onSubmit={handleFeedbackSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="name"
+                      className="text-sm font-medium text-gray-700 block"
+                    >
+                      Full Name
+                    </label>
+                    <input
+                      id="name"
+                      type="text"
+                      placeholder="John Doe"
+                      required
+                      value={feedbackName}
+                      onChange={(e) => setFeedbackName(e.target.value)}
+                      disabled={isSubmittingFeedback}
+                      className="w-full p-2 pl-3 border-2 border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="designation"
+                      className="text-sm font-medium text-gray-700 block"
+                    >
+                      Designation
+                    </label>
+                    <input
+                      id="designation"
+                      type="text"
+                      placeholder="Engineering Manager"
+                      required
+                      value={feedbackDesignation}
+                      onChange={(e) => setFeedbackDesignation(e.target.value)}
+                      disabled={isSubmittingFeedback}
+                      className="w-full p-2 pl-3 border-2 border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="rating"
+                      className="text-sm font-medium text-gray-700 block"
+                    >
+                      Rating (1-5)
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setFeedbackRating(star)}
+                          className={`text-2xl focus:outline-none ${
+                            star <= feedbackRating
+                              ? "text-yellow-400"
+                              : "text-gray-300"
+                          }`}
+                        >
+                          ★
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="description"
+                      className="text-sm font-medium text-gray-700 block"
+                    >
+                      Your Feedback <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      id="description"
+                      placeholder="Tell us about your experience... (minimum 10 characters)"
+                      required
+                      value={feedbackDescription}
+                      onChange={(e) => setFeedbackDescription(e.target.value)}
+                      disabled={isSubmittingFeedback}
+                      rows={4}
+                      className={`w-full p-2 pl-3 border-2 ${
+                        formErrors.description
+                          ? "border-red-300 focus:border-red-500 focus:ring-red-500"
+                          : "border-gray-300 focus:ring-cyan-500 focus:border-cyan-500"
+                      } rounded-md focus:ring-2`}
+                    />
+                    {formErrors.description && (
+                      <p className="text-sm text-red-600 mt-1">
+                        {formErrors.description}
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmittingFeedback}
+                    className={`w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-medium py-2 px-4 rounded-md shadow-md hover:shadow-lg transition-all ${
+                      isSubmittingFeedback
+                        ? "opacity-80 cursor-not-allowed"
+                        : ""
+                    }`}
+                  >
+                    {isSubmittingFeedback ? (
+                      <span className="flex items-center justify-center">
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Submitting...
+                      </span>
+                    ) : (
+                      "Submit Feedback"
+                    )}
+                  </button>
+                </form>
+              )}
             </div>
           </div>
         </div>
@@ -890,106 +1217,150 @@ export default function Home() {
             <p className="text-xl text-gray-600 max-w-2xl mx-auto mt-6">
               Join organizations that have transformed their internship programs
             </p>
+            <button
+              onClick={() => setShowFeedbackModal(true)}
+              className="mt-6 inline-flex items-center bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white px-5 py-2 rounded-lg font-medium transition-all shadow-md hover:shadow-lg"
+            >
+              <span className="flex items-center">
+                Share Your Feedback
+                <MessageSquare className="ml-2 h-4 w-4" />
+              </span>
+            </button>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Testimonial 1 */}
-            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200 hover:border-cyan-300 transition-all group hover:transform hover:translate-y-[-5px] duration-300">
-              <div className="flex items-center mb-6">
-                <div className="w-12 h-12 bg-gradient-to-br from-cyan-100 to-blue-100 rounded-full flex items-center justify-center text-cyan-700 font-bold">
-                  RS
+          <div className="relative">
+            {testimonials.length > 3 && (
+              <>
+                <button
+                  onClick={prevTestimonial}
+                  className="absolute left-0 top-1/2 transform -translate-y-1/2 z-20 bg-white rounded-full p-2 shadow-lg hover:shadow-xl border border-gray-200 hover:border-cyan-300 transition-all focus:outline-none"
+                  aria-label="Previous testimonial"
+                >
+                  <div className="h-8 w-8 flex items-center justify-center text-gray-700 hover:text-cyan-600">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      className="w-5 h-5"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 19l-7-7 7-7"
+                      />
+                    </svg>
+                  </div>
+                </button>
+                <button
+                  onClick={nextTestimonial}
+                  className="absolute right-0 top-1/2 transform -translate-y-1/2 z-20 bg-white rounded-full p-2 shadow-lg hover:shadow-xl border border-gray-200 hover:border-cyan-300 transition-all focus:outline-none"
+                  aria-label="Next testimonial"
+                >
+                  <div className="h-8 w-8 flex items-center justify-center text-gray-700 hover:text-cyan-600">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      className="w-5 h-5"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </div>
+                </button>
+              </>
+            )}
+
+            <div ref={testimonialRef} className="overflow-hidden mx-6">
+              {testimonials.length > 0 ? (
+                <div
+                  className="flex transition-transform duration-700 ease-in-out"
+                  style={{
+                    transform: `translateX(-${
+                      currentTestimonialIndex * 33.33
+                    }%)`,
+                  }}
+                >
+                  {testimonials.map((testimonial) => (
+                    <div
+                      key={testimonial._id}
+                      className="flex-shrink-0 w-full md:w-1/3 px-2 sm:px-3"
+                    >
+                      <div className="bg-white p-5 sm:p-6 rounded-xl shadow-lg border border-gray-200 hover:border-cyan-300 transition-all group hover:transform hover:translate-y-[-5px] duration-300 h-full">
+                        <div className="flex items-center mb-4">
+                          <div className="w-12 h-12 bg-gradient-to-br from-cyan-100 to-blue-100 rounded-full flex items-center justify-center text-cyan-700 font-bold text-base">
+                            {getInitials(testimonial.name)}
+                          </div>
+                          <div className="ml-3">
+                            <h4 className="font-bold text-base text-gray-900">
+                              {testimonial.name}
+                            </h4>
+                            <p className="text-xs text-gray-600">
+                              {testimonial.designation}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mb-3">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <span
+                              key={star}
+                              className={`${
+                                star <= testimonial.rating
+                                  ? "text-yellow-400"
+                                  : "text-gray-300"
+                              } inline-block mr-1 text-xl`}
+                            >
+                              ★
+                            </span>
+                          ))}
+                        </div>
+                        <p className="text-gray-600 text-sm leading-relaxed line-clamp-4 sm:line-clamp-6">
+                          &quot;{testimonial.description}&quot;
+                        </p>
+
+                        <div className="absolute bottom-0 left-0 right-0 h-1 rounded-b-xl overflow-hidden">
+                          <div className="w-full h-full bg-gradient-to-r from-cyan-500 to-blue-600 scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300"></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="ml-4">
-                  <h4 className="font-bold text-gray-900">Robert Smith</h4>
-                  <p className="text-sm text-gray-600">
-                    Internship Coordinator
+              ) : (
+                <div className="text-center py-10">
+                  <p className="text-gray-500">
+                    No testimonials available yet. Be the first to share your
+                    feedback!
                   </p>
                 </div>
-              </div>
-              <div className="mb-4">
-                {[1, 2, 3, 4, 5].map((_, index) => (
-                  <span
-                    key={index}
-                    className="text-yellow-400 inline-block mr-1"
-                  >
-                    ★
-                  </span>
-                ))}
-              </div>
-              <p className="text-gray-600">
-                &quot;We used to manage our internship program with spreadsheets
-                and emails. InternshipHub has reduced our administrative work by
-                70% and improved communication across the board.&quot;
-              </p>
-
-              <div className="absolute bottom-0 left-0 right-0 h-1 rounded-b-xl overflow-hidden">
-                <div className="w-full h-full bg-gradient-to-r from-cyan-500 to-blue-600 scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300"></div>
-              </div>
+              )}
             </div>
 
-            {/* Testimonial 2 */}
-            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200 hover:border-cyan-300 transition-all group hover:transform hover:translate-y-[-5px] duration-300">
-              <div className="flex items-center mb-6">
-                <div className="w-12 h-12 bg-gradient-to-br from-cyan-100 to-blue-100 rounded-full flex items-center justify-center text-cyan-700 font-bold">
-                  JP
-                </div>
-                <div className="ml-4">
-                  <h4 className="font-bold text-gray-900">Jennifer Patel</h4>
-                  <p className="text-sm text-gray-600">HR Director</p>
-                </div>
+            {/* Pagination dots for mobile view */}
+            {testimonials.length > 3 && (
+              <div className="flex justify-center mt-6 space-x-2">
+                {Array.from({ length: testimonials.length - 2 }).map(
+                  (_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentTestimonialIndex(index)}
+                      className={`w-2 h-2 rounded-full transition-colors ${
+                        currentTestimonialIndex === index
+                          ? "bg-cyan-500"
+                          : "bg-gray-300"
+                      }`}
+                      aria-label={`Go to testimonial ${index + 1}`}
+                    />
+                  )
+                )}
               </div>
-              <div className="mb-4">
-                {[1, 2, 3, 4, 5].map((_, index) => (
-                  <span
-                    key={index}
-                    className="text-yellow-400 inline-block mr-1"
-                  >
-                    ★
-                  </span>
-                ))}
-              </div>
-              <p className="text-gray-600">
-                &quot;The demo management features alone have saved us countless
-                hours. Our guides and panelists love the streamlined scheduling
-                and feedback process.&quot;
-              </p>
-
-              <div className="absolute bottom-0 left-0 right-0 h-1 rounded-b-xl overflow-hidden">
-                <div className="w-full h-full bg-gradient-to-r from-cyan-500 to-blue-600 scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300"></div>
-              </div>
-            </div>
-
-            {/* Testimonial 3 */}
-            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200 hover:border-cyan-300 transition-all group hover:transform hover:translate-y-[-5px] duration-300">
-              <div className="flex items-center mb-6">
-                <div className="w-12 h-12 bg-gradient-to-br from-cyan-100 to-blue-100 rounded-full flex items-center justify-center text-cyan-700 font-bold">
-                  TM
-                </div>
-                <div className="ml-4">
-                  <h4 className="font-bold text-gray-900">Thomas Miller</h4>
-                  <p className="text-sm text-gray-600">Engineering Manager</p>
-                </div>
-              </div>
-              <div className="mb-4">
-                {[1, 2, 3, 4, 5].map((_, index) => (
-                  <span
-                    key={index}
-                    className="text-yellow-400 inline-block mr-1"
-                  >
-                    ★
-                  </span>
-                ))}
-              </div>
-              <p className="text-gray-600">
-                &quot;As a project guide, I can now easily track all my interns'
-                progress in one place. The weekly updates feature ensures
-                everyone stays accountable and on track.&quot;
-              </p>
-
-              <div className="absolute bottom-0 left-0 right-0 h-1 rounded-b-xl overflow-hidden">
-                <div className="w-full h-full bg-gradient-to-r from-cyan-500 to-blue-600 scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300"></div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </section>
