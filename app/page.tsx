@@ -19,6 +19,7 @@ import {
   EyeOff,
   Loader2,
 } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 interface Testimonial {
   _id: string;
@@ -179,13 +180,76 @@ export default function Home() {
     }
   };
 
+  // Check if user has stored credentials and sign in automatically
+  const checkStoredCredentials = async () => {
+    try {
+      // Check for stored token and user data
+      const token = localStorage.getItem("token");
+      const userStr = localStorage.getItem("user");
+
+      if (token && userStr) {
+        // User data exists, attempt to auto-login
+        setIsSigningIn(true);
+        console.log("Found stored credentials, attempting auto-login");
+
+        // Parse user data
+        const userData = JSON.parse(userStr);
+
+        // Display success message
+        toast("Welcome back!", {
+          description: `Signing in as ${userData.username}...`,
+          duration: 2000,
+        });
+
+        // Short timeout to show the message before redirecting
+        setTimeout(() => {
+          // Redirect based on role
+          switch (userData.role) {
+            case "intern":
+              window.location.href = "/dashboard/intern";
+              break;
+            case "employee":
+              window.location.href = "/dashboard/employee";
+              break;
+            case "mentor":
+              window.location.href = "/dashboard/mentor";
+              break;
+            case "panelist":
+              window.location.href = "/dashboard/panelist";
+              break;
+            case "admin":
+              window.location.href = "/dashboard/admin";
+              break;
+            default:
+              window.location.href = "/home"; // Fallback route
+          }
+        }, 1000);
+
+        return true; // Successfully auto-logged in
+      }
+      return false; // No stored credentials
+    } catch (err) {
+      console.error("Error checking stored credentials:", err);
+      // Clear potentially corrupt data
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      return false;
+    }
+  };
+
   // Show sign-in popup after 5 seconds on every visit
   useEffect(() => {
     setMounted(true);
 
     // Set timeout to show the popup after 5 seconds
-    const timer = setTimeout(() => {
-      setShowSignInPopup(true);
+    const timer = setTimeout(async () => {
+      // Check if we have stored credentials before showing popup
+      const isAutoSignedIn = await checkStoredCredentials();
+
+      // Only show popup if auto sign-in failed
+      if (!isAutoSignedIn) {
+        setShowSignInPopup(true);
+      }
     }, 5000);
 
     // Fetch testimonials on page load

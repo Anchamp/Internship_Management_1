@@ -34,12 +34,56 @@ export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const router = useRouter();
 
   // Run once when component mounts on client
   useEffect(() => {
     setIsMounted(true);
-  }, []);
+
+    // Check for existing login token when component mounts
+    const checkExistingCredentials = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const userStr = localStorage.getItem("user");
+
+        if (token && userStr) {
+          const user = JSON.parse(userStr);
+          console.log("Found existing session for:", user.username);
+
+          // Auto redirect based on role
+          setIsLoading(true);
+          toast.success(`Welcome back, ${user.username}!`);
+
+          setTimeout(() => {
+            switch (user.role) {
+              case "intern":
+                router.push("/dashboard/intern");
+                break;
+              case "employee":
+                router.push("/dashboard/employee");
+                break;
+              case "admin":
+                router.push("/dashboard/admin");
+                break;
+              default:
+                router.push("/home");
+            }
+          }, 1000);
+
+          return true;
+        }
+        return false;
+      } catch (err) {
+        console.error("Error checking stored credentials:", err);
+        return false;
+      }
+    };
+
+    if (isMounted) {
+      checkExistingCredentials();
+    }
+  }, [isMounted, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,9 +103,11 @@ export default function SignIn() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to sign in");
 
-      // Store token in both localStorage and cookies
+      // Store token in both localStorage and cookies with duration based on rememberMe
       localStorage.setItem("token", data.token);
-      Cookies.set("token", data.token, { expires: 1 }); // Expires in 1 day
+      Cookies.set("token", data.token, {
+        expires: rememberMe ? 30 : 1, // 30 days if remember me is checked, otherwise 1 day
+      });
 
       // Store user info in localStorage including the role
       const userData = {
@@ -256,6 +302,8 @@ export default function SignIn() {
                     type="checkbox"
                     id="remember"
                     className="rounded border-black text-black focus:ring-black/20"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
                   />
                   <label
                     htmlFor="remember"
