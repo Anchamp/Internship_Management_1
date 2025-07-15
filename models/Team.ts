@@ -1,64 +1,62 @@
-import mongoose, { Schema, models } from "mongoose";
+import mongoose, { Schema, models, Document } from "mongoose";
+
+export interface TeamDocument extends Document {
+  name: string;
+  description: string;
+  members: mongoose.Types.ObjectId[];
+  lead: mongoose.Types.ObjectId;
+  projects: mongoose.Types.ObjectId[];
+  organization: mongoose.Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 const teamSchema = new Schema(
   {
-    teamName: {
+    name: {
       type: String,
-      required: true,
+      required: [true, "Team name is required"],
       trim: true,
     },
-    mentors: [{
-      type: String,
-      required: true,
-      trim: true,
-    }],
-    interns: [{
-      type: String,
-      required: true,
-      trim: true,
-    }],
-    panelists: [{
-      type: String,
-      required: true,
-      trim: true,
-    }],
     description: {
       type: String,
-      required: true,
-      trim: true,
+      required: [true, "Team description is required"],
     },
-    organizationName: {
-      type: String,
-      required: true,
-      trim: true,
+    members: [{
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    }],
+    lead: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: [true, "Team lead is required"],
     },
-    organizationId: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    status: {
-      type: String,
-      enum: ["active", "underReview", "completed"],
-      default: "active",
-    },
-    assignments: [String],
-    createdAt: {
-      type: Date,
-      default: Date.now,
-    },
-    updatedAt: {
-      type: Date,
-      default: Date.now,
+    projects: [{
+      type: Schema.Types.ObjectId,
+      ref: "Project",
+    }],
+    organization: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: [true, "Organization is required"],
     },
   },
-  {strict: false}
+  {
+    timestamps: true,
+    strict: false,
+  }
 );
 
+// Pre-save hook to update the updatedAt timestamp
 teamSchema.pre("updateOne", function () {
   this.set({ updatedAt: new Date() });
 });
 
-const Team = models.Team || mongoose.model("Team", teamSchema);
+const Team = models.Team || mongoose.model<TeamDocument>("Team", teamSchema);
 
 export default Team;
+teamSchema.pre("updateOne", function () {
+  this.set({ updatedAt: new Date() });
+});
+
+
