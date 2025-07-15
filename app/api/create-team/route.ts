@@ -68,8 +68,6 @@ export async function POST(request: Request) {
       await user.save();
     }
 
-    console.log(internUsers);
-
     for (const intern of internUsers) {
       intern.teams.push(newTeam._id);
       await intern.save();
