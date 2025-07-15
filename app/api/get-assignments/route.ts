@@ -49,10 +49,19 @@ export async function GET(request: Request) {
       });
     }
 
+    // get assignment for each id in team.assignments
+    let assigments = []
+    for (const assignmentId of team.assignments) {
+      const assignment = await Assignment.findById(assignmentId).lean();
+      if (assignment) {
+        assigments.push(assignment);
+      }
+    }
+
     if (user.role === 'admin') {
       return NextResponse.json({
         success: true,
-        assignments: team.assignments,
+        assignments: assigments,
       });
     }
 
@@ -66,7 +75,7 @@ export async function GET(request: Request) {
       }
       return NextResponse.json({
         success: true,
-        assignments: team.assignments,
+        assignments: assigments,
       });
     }
 
@@ -79,7 +88,7 @@ export async function GET(request: Request) {
       }
       return NextResponse.json({
         success: true,
-        assignments: team.assignments,
+        assignments: assigments,
       });
     }
   } catch (error: any) {
