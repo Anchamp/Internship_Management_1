@@ -1,10 +1,74 @@
 "use client";
 
-import { BarChart, Calendar, User, Users, Shield } from "lucide-react";
+import {
+  BarChart,
+  Calendar,
+  User,
+  Users,
+  Shield,
+  AlertCircle,
+} from "lucide-react";
 
-export default function AdminDashboardScreen() {
+interface AdminDashboardScreenProps {
+  profileSubmissionCount: number;
+  onNavigateToProfile?: () => void; // Add this callback prop
+}
+
+export default function AdminDashboardScreen({
+  profileSubmissionCount = 0,
+  onNavigateToProfile,
+}: AdminDashboardScreenProps) {
   return (
     <>
+      {/* Profile Completion Warning */}
+      {profileSubmissionCount === 0 && (
+        <div className="mb-6 bg-amber-50 border-l-4 border-amber-500 p-4 rounded-md shadow-sm">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-amber-800">
+                Profile Incomplete
+              </h3>
+              <div className="mt-2 text-sm text-amber-700">
+                <p>
+                  Please complete your profile before accessing all dashboard
+                  features. Many functions are locked until your profile is set
+                  up.
+                </p>
+              </div>
+              <div className="mt-4">
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    // Use the callback if provided
+                    if (onNavigateToProfile) {
+                      onNavigateToProfile();
+                    }
+                  }}
+                  className="flex items-center text-sm font-medium bg-amber-100 hover:bg-amber-200 text-amber-800 px-4 py-2 rounded-md transition-colors"
+                >
+                  Complete your profile now
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 ml-1"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Dashboard Content */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
         <div className="bg-white rounded-md shadow p-3">

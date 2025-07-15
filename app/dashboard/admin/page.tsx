@@ -16,6 +16,7 @@ import {
   MessageSquare,
   UsersIcon,
   Bell,
+  Lock,
 } from "lucide-react";
 import AdminDashboardScreen from "./dashboardscreen";
 import AdminProfile from "./profile";
@@ -33,7 +34,8 @@ export default function AdminDashboard() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [logOutModalOpen, setLogOutModalOpen] = useState(false);
-  const [notificationModalOpen, setNotificationModalOpen] = useState(false); // Add state for notification modal
+  const [notificationModalOpen, setNotificationModalOpen] = useState(false);
+  const [profileSubmissionCount, setProfileSubmissionCount] = useState(0);
 
   useEffect(() => {
     const handleResize = () => {
@@ -80,6 +82,9 @@ export default function AdminDashboard() {
               setOrganizationName(
                 data.user.organizationName || "Your Organization"
               );
+
+              // Track profile submission count
+              setProfileSubmissionCount(data.user.profileSubmissionCount || 0);
             }
           } else {
             setUsername(user.username || "Admin");
@@ -100,7 +105,7 @@ export default function AdminDashboard() {
     };
 
     checkAuth();
-  }, [router]);
+  }, [router, activeTab]);
 
   const handleLogout = () => {
     localStorage.removeItem("user");
@@ -114,7 +119,22 @@ export default function AdminDashboard() {
   };
 
   const handleNavigation = (tab: string) => {
+    // Only allow navigation to unlocked tabs
+    if (
+      profileSubmissionCount === 0 &&
+      !["dashboard", "profile", "settings"].includes(tab)
+    ) {
+      return;
+    }
     setActiveTab(tab);
+
+    // For accessibility, focus on the selected tab if it exists
+    setTimeout(() => {
+      const element = document.querySelector(`[data-tab="${tab}"]`);
+      if (element) {
+        (element as HTMLElement).focus();
+      }
+    }, 100);
   };
 
   if (isLoading) {
@@ -163,6 +183,30 @@ export default function AdminDashboard() {
     );
   };
 
+  // Check if a menu item should be locked
+  const isMenuItemLocked = (menuItem: string) => {
+    return (
+      profileSubmissionCount === 0 &&
+      !["dashboard", "profile", "settings"].includes(menuItem)
+    );
+  };
+
+  // Get class for menu items
+  const getMenuItemClass = (menuItem: string) => {
+    const isLocked = isMenuItemLocked(menuItem);
+    const isActive = activeTab === menuItem;
+
+    return `flex items-center ${
+      isSidebarCollapsed ? "justify-center" : "space-x-3"
+    } p-2 rounded-md ${
+      isActive
+        ? "bg-cyan-50 text-cyan-600"
+        : isLocked
+        ? "text-gray-400 cursor-not-allowed"
+        : "hover:bg-gray-50 text-gray-700 cursor-pointer"
+    } font-medium text-sm ${isLocked ? "opacity-70" : ""}`;
+  };
+
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar - with reduced sizes */}
@@ -191,19 +235,15 @@ export default function AdminDashboard() {
 
         <div className="p-3 flex flex-col justify-between h-[calc(100%-58px)]">
           <nav className="space-y-1">
+            {/* Dashboard link */}
             <a
               href="#"
               onClick={(e) => {
                 e.preventDefault();
                 handleNavigation("dashboard");
               }}
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md ${
-                activeTab === "dashboard"
-                  ? "bg-cyan-50 text-cyan-600"
-                  : "hover:bg-gray-50 text-gray-700"
-              } font-medium text-sm`}
+              className={getMenuItemClass("dashboard")}
+              data-tab="dashboard"
             >
               <Home className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Dashboard</span>}
@@ -214,16 +254,13 @@ export default function AdminDashboard() {
                 e.preventDefault();
                 handleNavigation("users");
               }}
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md ${
-                activeTab === "users"
-                  ? "bg-cyan-50 text-cyan-600"
-                  : "hover:bg-gray-50 text-gray-700"
-              } font-medium text-sm`}
+              className={getMenuItemClass("users")}
             >
               <Users className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Users</span>}
+              {!isSidebarCollapsed && isMenuItemLocked("users") && (
+                <Lock className="h-3 w-3 ml-auto text-gray-400" />
+              )}
             </a>
             <a
               href="#"
@@ -231,16 +268,13 @@ export default function AdminDashboard() {
                 e.preventDefault();
                 handleNavigation("onboarding");
               }}
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md ${
-                activeTab === "onboarding"
-                  ? "bg-cyan-50 text-cyan-600"
-                  : "hover:bg-gray-50 text-gray-700"
-              } font-medium text-sm`}
+              className={getMenuItemClass("onboarding")}
             >
               <UserPlus className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Onboarding</span>}
+              {!isSidebarCollapsed && isMenuItemLocked("onboarding") && (
+                <Lock className="h-3 w-3 ml-auto text-gray-400" />
+              )}
             </a>
             <a
               href="#"
@@ -248,16 +282,13 @@ export default function AdminDashboard() {
                 e.preventDefault();
                 handleNavigation("organization");
               }}
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md ${
-                activeTab === "organization"
-                  ? "bg-cyan-50 text-cyan-600"
-                  : "hover:bg-gray-50 text-gray-700"
-              } font-medium text-sm`}
+              className={getMenuItemClass("organization")}
             >
               <Building className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Organization</span>}
+              {!isSidebarCollapsed && isMenuItemLocked("organization") && (
+                <Lock className="h-3 w-3 ml-auto text-gray-400" />
+              )}
             </a>
             <a
               href="#"
@@ -265,16 +296,13 @@ export default function AdminDashboard() {
                 e.preventDefault();
                 handleNavigation("teambuilding");
               }}
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md ${
-                activeTab === "teambuilding"
-                  ? "bg-cyan-50 text-cyan-600"
-                  : "hover:bg-gray-50 text-gray-700"
-              } font-medium text-sm`}
+              className={getMenuItemClass("teambuilding")}
             >
               <UsersIcon className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Team Building</span>}
+              {!isSidebarCollapsed && isMenuItemLocked("teambuilding") && (
+                <Lock className="h-3 w-3 ml-auto text-gray-400" />
+              )}
             </a>
             <a
               href="#"
@@ -282,16 +310,13 @@ export default function AdminDashboard() {
                 e.preventDefault();
                 handleNavigation("feedback");
               }}
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md ${
-                activeTab === "feedback"
-                  ? "bg-cyan-50 text-cyan-600"
-                  : "hover:bg-gray-50 text-gray-700"
-              } font-medium text-sm`}
+              className={getMenuItemClass("feedback")}
             >
               <MessageSquare className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Feedback</span>}
+              {!isSidebarCollapsed && isMenuItemLocked("feedback") && (
+                <Lock className="h-3 w-3 ml-auto text-gray-400" />
+              )}
             </a>
             <a
               href="#"
@@ -299,16 +324,13 @@ export default function AdminDashboard() {
                 e.preventDefault();
                 handleNavigation("internships");
               }}
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md ${
-                activeTab === "internships"
-                  ? "bg-cyan-50 text-cyan-600"
-                  : "hover:bg-gray-50 text-gray-700"
-              } font-medium text-sm`}
+              className={getMenuItemClass("internships")}
             >
               <Calendar className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Internship Posting</span>}
+              {!isSidebarCollapsed && isMenuItemLocked("internships") && (
+                <Lock className="h-3 w-3 ml-auto text-gray-400" />
+              )}
             </a>
             <a
               href="#"
@@ -316,13 +338,8 @@ export default function AdminDashboard() {
                 e.preventDefault();
                 handleNavigation("profile");
               }}
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md ${
-                activeTab === "profile"
-                  ? "bg-cyan-50 text-cyan-600"
-                  : "hover:bg-gray-50 text-gray-700"
-              } font-medium text-sm`}
+              className={getMenuItemClass("profile")}
+              data-tab="profile"
             >
               <User className="h-4 w-4" />
               {!isSidebarCollapsed && <span>My Profile</span>}
@@ -333,13 +350,7 @@ export default function AdminDashboard() {
                 e.preventDefault();
                 handleNavigation("settings");
               }}
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md ${
-                activeTab === "settings"
-                  ? "bg-cyan-50 text-cyan-600"
-                  : "hover:bg-gray-50 text-gray-700"
-              } font-medium text-sm`}
+              className={getMenuItemClass("settings")}
             >
               <Settings className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Settings</span>}
@@ -437,24 +448,36 @@ export default function AdminDashboard() {
         </header>
 
         <main className="p-3 sm:p-4">
-          {activeTab === "dashboard" && <AdminDashboardScreen />}
+          {activeTab === "dashboard" && (
+            <AdminDashboardScreen
+              profileSubmissionCount={profileSubmissionCount}
+              onNavigateToProfile={() => handleNavigation("profile")}
+            />
+          )}
           {activeTab === "profile" && <AdminProfile inDashboard={true} />}
-          {activeTab === "onboarding" && <OnboardingScreen />}
-          {activeTab === "users" && <UsersScreen />}
-          {activeTab === "teambuilding" && <TeamBuilding />}
-          {activeTab === "internships" && <InternshipPosting />}
-          {/* Properly render the InternshipPosting component */}
-          {activeTab === "organization" && (
+          {activeTab === "onboarding" && profileSubmissionCount > 0 && (
+            <OnboardingScreen />
+          )}
+          {activeTab === "users" && profileSubmissionCount > 0 && (
+            <UsersScreen />
+          )}
+          {activeTab === "teambuilding" && profileSubmissionCount > 0 && (
+            <TeamBuilding />
+          )}
+          {activeTab === "internships" && profileSubmissionCount > 0 && (
+            <InternshipPosting />
+          )}
+          {activeTab === "organization" && profileSubmissionCount > 0 && (
             <div className="p-4 bg-white rounded-md shadow">
               <p className="text-lg font-medium">
-                Oraganization section coming soon
+                Organization section coming soon
               </p>
               <p className="text-sm text-gray-500 mt-2">
                 Manage your Organization details here.
               </p>
             </div>
           )}
-          {activeTab === "feedback" && (
+          {activeTab === "feedback" && profileSubmissionCount > 0 && (
             <div className="p-4 bg-white rounded-md shadow">
               <p className="text-lg font-medium">
                 Feedback management coming soon

@@ -2,15 +2,24 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Clock, Calendar, Users, Building } from "lucide-react";
+import {
+  AlertCircle,
+  Clock,
+  Calendar,
+  Users,
+  Building,
+  User,
+} from "lucide-react";
 import ApplyOrganizationModal from "./applyorganization";
 
 interface DashboardScreenProps {
   organization: string;
+  onNavigate?: (tab: string) => void; // Add this prop to handle navigation
 }
 
 export default function DashboardScreen({
   organization,
+  onNavigate,
 }: DashboardScreenProps) {
   const router = useRouter();
   const [profileSubmissionCount, setProfileSubmissionCount] =
@@ -45,6 +54,17 @@ export default function DashboardScreen({
     fetchProfileData();
   }, []);
 
+  // Function to navigate to profile page using the parent's navigation function
+  const goToProfile = () => {
+    if (onNavigate) {
+      // Use the parent's navigation function if available
+      onNavigate("profile");
+    } else {
+      // Fallback to direct routing if not in dashboard context
+      router.push("/dashboard/employee/profile");
+    }
+  };
+
   return (
     <>
       {/* Organization verification message - different based on submission count */}
@@ -66,10 +86,8 @@ export default function DashboardScreen({
                     <>
                       Please submit your profile details by visiting the{" "}
                       <button
-                        onClick={() =>
-                          router.push("/dashboard/employee/profile")
-                        }
-                        className="font-medium underline"
+                        onClick={goToProfile}
+                        className="font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors"
                       >
                         My Profile
                       </button>{" "}

@@ -83,6 +83,28 @@ export default function AdminProfile({
   });
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState(""); // State for phone validation error
+  // Add validation errors state
+  const [validationErrors, setValidationErrors] = useState<{
+    [key: string]: string;
+  }>({
+    fullName: "",
+    email: "",
+    dob: "",
+    phone: "",
+    address: "",
+  });
+
+  // Add the missing function that checks if all required fields are filled
+  const areRequiredFieldsFilled = () => {
+    return (
+      userData.fullName.trim() !== "" &&
+      userData.email.trim() !== "" &&
+      userData.dob !== "" &&
+      userData.phone.length === 10 && // Phone must be exactly 10 digits
+      userData.address.trim() !== "" &&
+      !phoneError // Also ensure there's no phone validation error
+    );
+  };
 
   // Load user data directly from MongoDB
   useEffect(() => {
@@ -214,12 +236,33 @@ export default function AdminProfile({
     setUserData((prev) => ({ ...prev, profileImage: "" }));
   };
 
+  // Add validation function
+  const validateForm = () => {
+    const errors: { [key: string]: string } = {};
+
+    // Required fields
+    if (!userData.fullName.trim()) errors.fullName = "Full name is required";
+    if (!userData.email.trim()) errors.email = "Email is required";
+    if (!userData.dob) errors.dob = "Date of birth is required";
+    if (!userData.phone) errors.phone = "Phone number is required";
+    if (!userData.address.trim()) errors.address = "Address is required";
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validate phone number before submission
     if (userData.phone && userData.phone.length !== 10) {
       setPhoneError("Phone number must be 10 digits");
+      return;
+    }
+
+    // Validate form fields
+    if (!validateForm()) {
+      alert("Please fill in all required fields");
       return;
     }
 
@@ -242,6 +285,7 @@ export default function AdminProfile({
         phone: userData.phone
           ? `${userData.countryCode} ${userData.phone}`
           : "",
+        profileSubmissionCount: 1, // Increment profile submission count
       };
 
       // Use encodeURIComponent to properly handle usernames with spaces
@@ -261,6 +305,9 @@ export default function AdminProfile({
 
       if (response.ok) {
         alert("Profile updated successfully in the database.");
+
+        // Refresh the page to update the profile submission count
+        window.location.href = "/dashboard/admin";
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to update profile");
@@ -315,7 +362,7 @@ export default function AdminProfile({
             value={userData.phone}
             onChange={handleChange}
             className={`pl-10 w-full p-2 border rounded-r-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black ${
-              phoneError ? "border-red-500" : ""
+              phoneError || validationErrors.phone ? "border-red-500" : ""
             }`}
             placeholder="10-digit number"
             maxLength={10}
@@ -323,7 +370,19 @@ export default function AdminProfile({
         </div>
       </div>
       {phoneError && <p className="text-sm text-red-500 mt-1">{phoneError}</p>}
+      {validationErrors.phone && !phoneError && (
+        <p className="text-sm text-red-500 mt-1">{validationErrors.phone}</p>
+      )}
     </div>
+  );
+
+  // Update the form fields to show required indicators and validation errors
+
+  // Update the Personal Information section to include required field markers
+  const renderRequiredLabel = (text: string) => (
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      {text} <span className="text-red-500">*</span>
+    </label>
   );
 
   const profileContent = (
@@ -394,9 +453,7 @@ export default function AdminProfile({
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name
-              </label>
+              {renderRequiredLabel("Full Name")}
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <User className="h-4 w-4 text-gray-400" />
@@ -406,16 +463,21 @@ export default function AdminProfile({
                   name="fullName"
                   value={userData.fullName}
                   onChange={handleChange}
-                  className="pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
+                  className={`pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black ${
+                    validationErrors.fullName ? "border-red-500" : ""
+                  }`}
                   placeholder="Enter your full name"
                 />
               </div>
+              {validationErrors.fullName && (
+                <p className="text-sm text-red-500 mt-1">
+                  {validationErrors.fullName}
+                </p>
+              )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address
-              </label>
+              {renderRequiredLabel("Email Address")}
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Mail className="h-4 w-4 text-gray-400" />
@@ -425,17 +487,22 @@ export default function AdminProfile({
                   name="email"
                   value={userData.email}
                   readOnly
-                  className="pl-10 w-full p-2 border rounded-md bg-gray-100 cursor-not-allowed text-gray-500"
+                  className={`pl-10 w-full p-2 border rounded-md bg-gray-100 cursor-not-allowed text-gray-500 ${
+                    validationErrors.email ? "border-red-500" : ""
+                  }`}
                   placeholder="Enter your email"
                   autoComplete="email"
                 />
               </div>
+              {validationErrors.email && (
+                <p className="text-sm text-red-500 mt-1">
+                  {validationErrors.email}
+                </p>
+              )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date of Birth
-              </label>
+              {renderRequiredLabel("Date of Birth")}
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Calendar className="h-4 w-4 text-gray-400" />
@@ -445,18 +512,70 @@ export default function AdminProfile({
                   name="dob"
                   value={userData.dob}
                   onChange={handleChange}
-                  className="pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
+                  className={`pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black ${
+                    validationErrors.dob ? "border-red-500" : ""
+                  }`}
                 />
               </div>
+              {validationErrors.dob && (
+                <p className="text-sm text-red-500 mt-1">
+                  {validationErrors.dob}
+                </p>
+              )}
             </div>
 
-            {/* Replace phone input with PhoneNumberField */}
-            <PhoneNumberField />
+            {/* Replace PhoneNumberField with updated version */}
+            <div>
+              {renderRequiredLabel("Phone Number")}
+              <div className="flex">
+                <select
+                  name="countryCode"
+                  value={userData.countryCode}
+                  onChange={handleChange}
+                  className="p-2 border rounded-l-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
+                >
+                  <option value="+1">+1 (USA)</option>
+                  <option value="+44">+44 (UK)</option>
+                  <option value="+91">+91 (India)</option>
+                  <option value="+61">+61 (Australia)</option>
+                  <option value="+86">+86 (China)</option>
+                  <option value="+49">+49 (Germany)</option>
+                  <option value="+33">+33 (France)</option>
+                  <option value="+81">+81 (Japan)</option>
+                  <option value="+7">+7 (Russia)</option>
+                  <option value="+55">+55 (Brazil)</option>
+                </select>
+                <div className="relative flex-grow">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Phone className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    name="phone"
+                    value={userData.phone}
+                    onChange={handleChange}
+                    className={`pl-10 w-full p-2 border rounded-r-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black ${
+                      phoneError || validationErrors.phone
+                        ? "border-red-500"
+                        : ""
+                    }`}
+                    placeholder="10-digit number"
+                    maxLength={10}
+                  />
+                </div>
+              </div>
+              {phoneError && (
+                <p className="text-sm text-red-500 mt-1">{phoneError}</p>
+              )}
+              {validationErrors.phone && !phoneError && (
+                <p className="text-sm text-red-500 mt-1">
+                  {validationErrors.phone}
+                </p>
+              )}
+            </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Address
-              </label>
+              {renderRequiredLabel("Address")}
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <MapPin className="h-4 w-4 text-gray-400" />
@@ -466,15 +585,22 @@ export default function AdminProfile({
                   name="address"
                   value={userData.address}
                   onChange={handleChange}
-                  className="pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
+                  className={`pl-10 w-full p-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black ${
+                    validationErrors.address ? "border-red-500" : ""
+                  }`}
                   placeholder="Enter your address"
                 />
               </div>
+              {validationErrors.address && (
+                <p className="text-sm text-red-500 mt-1">
+                  {validationErrors.address}
+                </p>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Organization Information */}
+        {/* Organization Information - website remains optional */}
         <div className="mb-6">
           <h2 className="text-lg font-semibold mb-4 text-gray-800 border-b pb-2">
             Organization Information
@@ -519,7 +645,7 @@ export default function AdminProfile({
           </div>
         </div>
 
-        {/* Bio */}
+        {/* Bio - remains optional */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Bio/Description
@@ -542,8 +668,12 @@ export default function AdminProfile({
         <div className="mt-6 flex justify-end">
           <button
             type="submit"
-            disabled={isSaving}
-            className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-medium rounded-md shadow-sm hover:from-cyan-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
+            disabled={isSaving || !areRequiredFieldsFilled()}
+            className={`inline-flex items-center px-4 py-2 ${
+              !areRequiredFieldsFilled()
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700"
+            } text-white font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500`}
           >
             {isSaving ? (
               <>
