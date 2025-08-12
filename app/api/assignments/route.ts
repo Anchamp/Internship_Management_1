@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
+import Intern from '@/models/Intern';
 import Assignment from '@/models/Assignment';
 
 export async function GET(request: Request) {
@@ -17,11 +18,22 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Username required' }, { status: 400 });
     }
 
-    // Validate user
-    const user = await User.findOne({ username }).select("role organizationName organizationId");
+    // Validate user - check both User and Intern models
+    let user = await User.findOne({ username }).select("role organizationName organizationId");
+    let isIntern = false;
+
+    if (!user) {
+      // Check Intern model if not found in User model
+      user = await Intern.findOne({ username }).select("role organizationName organizationId");
+      isIntern = true;
+    }
+
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
+
+    // Use the actual role from database, not the query parameter
+    const actualRole = isIntern ? 'intern' : user.role;
 
     let query: any = {
       organizationName: user.organizationName,
@@ -38,21 +50,22 @@ export async function GET(request: Request) {
       query.status = status;
     }
 
-    if (role === 'employee' || role === 'admin') {
+    if (actualRole === 'employee' || actualRole === 'admin') {
       // Mentors see assignments they created
       query.assignmentFrom = username;
-    } else if (role === 'intern') {
+    } else if (actualRole === 'intern') {
       // Interns see assignments assigned to them that are posted/active
       query.$and = [
         {
           $or: [
             { assignedTo: 'all' },
             { assignedTo: username },
-            { assignedTo: { $in: ['all'] } }
+            { assignedTo: { $elemMatch: { $eq: username } } }, // For array of usernames
+            { assignedTo: { $elemMatch: { $eq: 'all' } } }     // For 'all' in array
           ]
         },
         {
-          status: { $in: ['posted', 'active', 'submitted', 'under_review', 'reviewed'] }
+          status: { $in: ['posted', 'active', 'under_review', 'reviewed'] }
         }
       ];
     }
@@ -62,16 +75,34 @@ export async function GET(request: Request) {
       .lean();
 
     // Enhance assignments with computed fields
-    const enhancedAssignments = assignments.map(assignment => ({
-      ...assignment,
-      isOverdue: new Date() > new Date(assignment.deadline),
-      submissionCount: assignment.submissions?.length || 0,
-      userSubmission: role === 'intern' 
-        ? assignment.submissions?.find((sub: any) => sub.internUsername === username)
-        : null
-    }));
+    const enhancedAssignments = assignments.map(assignment => {
+      const now = new Date();
+      const deadline = assignment.deadline ? new Date(assignment.deadline) : null;
+      
+      // Find user's submission if intern
+      let userSubmission = null;
+      if (actualRole === 'intern' && assignment.submissions) {
+        userSubmission = assignment.submissions.find((sub: any) => sub.internUsername === username);
+      }
 
-    return NextResponse.json({ assignments: enhancedAssignments }, { status: 200 });
+      return {
+        ...assignment,
+        isOverdue: deadline ? now > deadline : false,
+        submissionCount: assignment.submissions?.length || 0,
+        userSubmission,
+        // Add computed status for frontend
+        canSubmit: actualRole === 'intern' && 
+                   !userSubmission && 
+                   ['posted', 'active'].includes(assignment.status) &&
+                   assignment.acceptsSubmissions &&
+                   (!deadline || now <= deadline)
+      };
+    });
+
+    return NextResponse.json({ 
+      assignments: enhancedAssignments,
+      userRole: actualRole
+    }, { status: 200 });
 
   } catch (error: any) {
     console.error("Get assignments error:", error);

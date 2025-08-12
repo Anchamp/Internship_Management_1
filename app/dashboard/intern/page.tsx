@@ -28,10 +28,9 @@ import InternProfileSettings from "./profile-settings";
 import FindApplyInternships from "./find-apply-internships";
 import MyApplications from "./my-applications";
 import MyTeams from "./my-teams";
-import ProjectDetails from "./project-details";
 import WeeklyReports from "./weekly-reports";
 import DemoPresentation from "./demo-presentation";
-import InternAssignments from "./assignments"; // Import new assignments component
+import InternAssignments from "./assignments";
 
 export default function InternDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -44,6 +43,71 @@ export default function InternDashboard() {
   const [profileComplete, setProfileComplete] = useState<boolean>(false);
   const router = useRouter();
 
+  // Helper function to calculate if profile is complete
+  const calculateProfileCompletion = (user: any): boolean => {
+    if (!user) return false;
+    
+    // Define required fields for profile completion
+    const requiredFields = [
+      'fullName',
+      'email', 
+      'phone',
+      'dob',
+      'university',
+      'degree',
+      'major',
+      'graduationYear',
+      'skills',
+      'internshipGoals',
+      'resumeFile',
+      'idDocumentFile'
+    ];
+    
+    // Check if all required fields are filled
+    const isComplete = requiredFields.every(field => {
+      const value = user[field];
+      return value && 
+             typeof value === 'string' && 
+             value.trim() !== '' && 
+             value !== 'none';
+    });
+    
+    return isComplete;
+  };
+
+  // Fetch user data from API and calculate profile completion
+  const fetchUserData = async (usernameParam: string) => {
+    try {
+      const response = await fetch(`/api/users/${usernameParam}`);
+      if (response.ok) {
+        const data = await response.json();
+        const user = data.user;
+        setUserData(user);
+        
+        // Calculate profile completion based on actual data
+        const isProfileComplete = calculateProfileCompletion(user);
+        setProfileComplete(isProfileComplete);
+        
+        console.log('Profile completion status:', isProfileComplete);
+        console.log('User data for completion check:', {
+          fullName: user.fullName,
+          email: user.email,
+          phone: user.phone,
+          university: user.university,
+          resumeFile: user.resumeFile,
+          // ... other fields
+        });
+        
+        return user;
+      } else {
+        throw new Error('Failed to fetch user data');
+      }
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      return null;
+    }
+  };
+
   // Auto-collapse sidebar on small screens
   useEffect(() => {
     const handleResize = () => {
@@ -54,36 +118,36 @@ export default function InternDashboard() {
       }
     };
 
-    // Set initial state based on screen size
     handleResize();
-
-    // Add event listener
     window.addEventListener("resize", handleResize);
-
-    // Cleanup
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
-    // Check authentication and load user data
-    const userStr = localStorage.getItem("user");
-    if (!userStr) {
-      router.push("/sign-in");
-      return;
-    }
+    const initializeUser = async () => {
+      // Check authentication
+      const userStr = localStorage.getItem("user");
+      if (!userStr) {
+        router.push("/sign-in");
+        return;
+      }
 
-    const user = JSON.parse(userStr);
-    if (user.role !== "intern") {
-      router.push("/sign-in");
-      return;
-    }
+      const user = JSON.parse(userStr);
+      if (user.role !== "intern") {
+        router.push("/sign-in");
+        return;
+      }
 
-    setUserData(user);
-    setUsername(user.username || "");
-    setProfileComplete(user.profileComplete || false);
-    setIsLoading(false);
+      const currentUsername = user.username || "";
+      setUsername(currentUsername);
+
+      // Fetch fresh user data from API instead of relying on localStorage
+      const freshUserData = await fetchUserData(currentUsername);
+      
+      setIsLoading(false);
+    };
+
+    initializeUser();
   }, [router]);
 
   const handleNavigation = (tab: string) => {
@@ -100,8 +164,16 @@ export default function InternDashboard() {
     router.push("/sign-in");
   };
 
-  const handleProfileUpdate = () => {
-    setProfileComplete(true);
+  // Updated handler that refetches user data after profile update
+  const handleProfileUpdate = async () => {
+    console.log('Profile updated, refetching user data...');
+    // Refetch user data to get updated profile completion status
+    const freshUserData = await fetchUserData(username);
+    if (freshUserData) {
+      const isComplete = calculateProfileCompletion(freshUserData);
+      setProfileComplete(isComplete);
+      console.log('Updated profile completion status:', isComplete);
+    }
   };
 
   const openLogOutModal = () => {
@@ -136,8 +208,6 @@ export default function InternDashboard() {
         return <InternAssignments />;
       case "my-teams":
         return <MyTeams />;
-      case "project-details":
-        return <ProjectDetails />;
       case "weekly-reports":
         return <WeeklyReports />;
       case "demo-presentation":
@@ -198,8 +268,6 @@ export default function InternDashboard() {
         return "My Assignments";
       case "my-teams":
         return "My Teams";
-      case "project-details":
-        return "Project Details";
       case "weekly-reports":
         return "Weekly Reports";
       case "demo-presentation":
@@ -227,217 +295,175 @@ export default function InternDashboard() {
         return "View and submit your assignments";
       case "my-teams":
         return "Collaborate with your team members";
-      case "project-details":
-        return "Track your project progress";
       case "weekly-reports":
-        return "Submit your weekly progress reports";
+        return "Submit and manage your weekly reports";
       case "demo-presentation":
-        return "Prepare your final demonstration";
+        return "Prepare for your demo presentation";
       case "profile-settings":
-        return "Manage your profile and preferences";
+        return "Manage your account settings";
       case "internships":
-        return "Find & Apply for Internships";
+        return "Discover internship opportunities";
       case "my-applications":
-        return "Track Application Status";
+        return "Track your application status";
       case "feedback":
-        return "View Evaluations";
+        return "View feedback from mentors";
       case "team-communication":
-        return "Chat with Team";
+        return "Connect with your team";
       default:
-        return `Welcome, ${username}`;
+        return "Welcome to your dashboard";
     }
   };
 
-  const LogOutModal = () => (
-    <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Confirm Logout</h3>
-        <p className="text-gray-600 mb-6">Are you sure you want to logout?</p>
-        <div className="flex space-x-3">
-          <button
-            onClick={closeLogOutModal}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleLogout}
-            className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your dashboard...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-slate-50 overflow-hidden">
       {/* Sidebar */}
       <div
         className={`${
-          isSidebarCollapsed ? "w-0 md:w-16" : "w-60 md:w-64"
-        } bg-white shadow-md transition-all duration-300 fixed md:relative z-30 h-full overflow-hidden`}
+          isSidebarCollapsed ? "w-16" : "w-64"
+        } bg-white shadow-lg transition-all duration-300 ease-in-out flex flex-col fixed md:relative z-30 h-full`}
       >
-        {/* Logo Header */}
-        <div className="p-3 border-b flex items-center justify-between">
-          {!isSidebarCollapsed && (
-            <div className="flex items-center space-x-2">
-              <div className="h-7 w-7 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md shadow-cyan-500/20">
-                <ClipboardList className="h-4 w-4 text-white" />
+        {/* Logo */}
+        <div className="p-4 border-b">
+          <div className="flex items-center">
+            <div className="bg-cyan-500 rounded-lg p-2">
+              <BookOpen className="h-6 w-6 text-white" />
+            </div>
+            {!isSidebarCollapsed && (
+              <div className="ml-3">
+                <h1 className="text-lg font-bold text-gray-900">
+                  InternshipHub
+                </h1>
+                <p className="text-xs text-gray-500">Intern Portal</p>
               </div>
-              <span className="font-bold text-base bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-cyan-700">
-                InternshipHub
-              </span>
-            </div>
-          )}
-          {isSidebarCollapsed && (
-            <div className="h-7 w-7 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md shadow-cyan-500/20 mx-auto">
-              <ClipboardList className="h-4 w-4 text-white" />
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        {/* Sidebar Content */}
-        <div className="p-3 flex flex-col justify-between h-[calc(100%-58px)]">
-          {/* Navigation */}
-          <nav className="space-y-1">
-            {/* Dashboard */}
-            <button
-              onClick={() => handleNavigation("dashboard")}
-              className={getMenuItemClass("dashboard")}
-            >
-              <Home className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>Dashboard</span>}
-            </button>
+        {/* Navigation */}
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+          <button
+            onClick={() => handleNavigation("dashboard")}
+            className={getMenuItemClass("dashboard")}
+          >
+            <Home className="h-4 w-4" />
+            {!isSidebarCollapsed && <span>Dashboard</span>}
+          </button>
 
-            {/* Assignments - NEW */}
-            <button
-              onClick={() => handleNavigation("assignments")}
-              className={getMenuItemClass("assignments")}
-            >
-              <FileText className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>My Assignments</span>}
-            </button>
+          <button
+            onClick={() => handleNavigation("assignments")}
+            className={getMenuItemClass("assignments")}
+          >
+            <ClipboardList className="h-4 w-4" />
+            {!isSidebarCollapsed && <span>My Assignments</span>}
+          </button>
 
-            {/* My Teams */}
-            <button
-              onClick={() => handleNavigation("my-teams")}
-              className={getMenuItemClass("my-teams")}
-            >
-              <Users className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>My Teams</span>}
-            </button>
+          <button
+            onClick={() => handleNavigation("my-teams")}
+            className={getMenuItemClass("my-teams")}
+          >
+            <Users className="h-4 w-4" />
+            {!isSidebarCollapsed && <span>My Teams</span>}
+          </button>
 
-            {/* Project Details */}
-            <button
-              onClick={() => handleNavigation("project-details")}
-              className={getMenuItemClass("project-details")}
-            >
-              <Folder className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>Projects</span>}
-            </button>
 
-            {/* Weekly Reports */}
-            <button
-              onClick={() => handleNavigation("weekly-reports")}
-              className={getMenuItemClass("weekly-reports")}
-            >
-              <BookOpen className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>Weekly Reports</span>}
-            </button>
 
-            {/* Demo Presentation */}
-            <button
-              onClick={() => handleNavigation("demo-presentation")}
-              className={getMenuItemClass("demo-presentation")}
-            >
-              <Presentation className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>Demo</span>}
-            </button>
+          <button
+            onClick={() => handleNavigation("weekly-reports")}
+            className={getMenuItemClass("weekly-reports")}
+          >
+            <FileText className="h-4 w-4" />
+            {!isSidebarCollapsed && <span>Weekly Reports</span>}
+          </button>
 
-            {/* Find Internships */}
-            <button
-              onClick={() => handleNavigation("internships")}
-              className={getMenuItemClass("internships")}
-            >
-              <BarChart3 className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>Find Internships</span>}
-            </button>
+          <button
+            onClick={() => handleNavigation("demo-presentation")}
+            className={getMenuItemClass("demo-presentation")}
+          >
+            <Presentation className="h-4 w-4" />
+            {!isSidebarCollapsed && <span>Demo</span>}
+          </button>
 
-            {/* My Applications */}
-            <button
-              onClick={() => handleNavigation("my-applications")}
-              className={getMenuItemClass("my-applications")}
-            >
-              <FileText className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>My Applications</span>}
-            </button>
+          <button
+            onClick={() => handleNavigation("internships")}
+            className={getMenuItemClass("internships")}
+          >
+            <BookOpen className="h-4 w-4" />
+            {!isSidebarCollapsed && <span>Find Internships</span>}
+          </button>
 
-            {/* Feedback */}
-            <button
-              onClick={() => handleNavigation("feedback")}
-              className={getMenuItemClass("feedback")}
-            >
-              <Star className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>Feedback</span>}
-            </button>
+          <button
+            onClick={() => handleNavigation("my-applications")}
+            className={getMenuItemClass("my-applications")}
+          >
+            <Calendar className="h-4 w-4" />
+            {!isSidebarCollapsed && <span>My Applications</span>}
+          </button>
 
-            {/* Team Communication */}
-            <button
-              onClick={() => handleNavigation("team-communication")}
-              className={getMenuItemClass("team-communication")}
-            >
-              <MessageSquare className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>Team Communication</span>}
-            </button>
+          <button
+            onClick={() => handleNavigation("feedback")}
+            className={getMenuItemClass("feedback")}
+          >
+            <Star className="h-4 w-4" />
+            {!isSidebarCollapsed && <span>Feedback</span>}
+          </button>
 
-            {/* Profile Settings */}
-            <button
-              onClick={() => handleNavigation("profile-settings")}
-              className={getMenuItemClass("profile-settings")}
-            >
-              <Settings className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>Settings</span>}
-            </button>
-          </nav>
+          <button
+            onClick={() => handleNavigation("team-communication")}
+            className={getMenuItemClass("team-communication")}
+          >
+            <MessageSquare className="h-4 w-4" />
+            {!isSidebarCollapsed && <span>Team Chat</span>}
+          </button>
 
-          {/* User Profile & Logout */}
-          <div className="mt-auto border-t pt-3 space-y-3">
-            <div
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : ""
-              } p-1.5`}
-            >
-              <div className="h-8 w-8 rounded-full bg-cyan-500 flex items-center justify-center text-white text-sm font-bold shadow-md">
-                {userData?.username?.charAt(0).toUpperCase()}
-              </div>
-              {!isSidebarCollapsed && (
-                <div className="ml-3">
-                  <p className="font-medium text-black text-sm">{userData?.username}</p>
-                  <p className="text-xs text-gray-500">Intern</p>
-                </div>
-              )}
+          <button
+            onClick={() => handleNavigation("profile-settings")}
+            className={getMenuItemClass("profile-settings")}
+          >
+            <Settings className="h-4 w-4" />
+            {!isSidebarCollapsed && <span>Settings</span>}
+          </button>
+        </nav>
+
+        {/* User Profile & Logout */}
+        <div className="p-4 border-t">
+          <div
+            className={`flex items-center ${
+              isSidebarCollapsed ? "justify-center" : "space-x-3"
+            } mb-3`}
+          >
+            <div className="w-8 h-8 bg-cyan-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+              {userData?.username?.charAt(0).toUpperCase() || "U"}
             </div>
-
-            <button
-              onClick={openLogOutModal}
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-2"
-              } p-2 rounded-md hover:bg-red-50 text-red-600 w-full text-left font-medium text-sm`}
-            >
-              <LogOut className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>Logout</span>}
-            </button>
+            {!isSidebarCollapsed && (
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {userData?.fullName || userData?.username || "User"}
+                </p>
+                <p className="text-xs text-gray-500 truncate">Intern</p>
+              </div>
+            )}
           </div>
+
+          <button
+            onClick={openLogOutModal}
+            className={`flex items-center ${
+              isSidebarCollapsed ? "justify-center" : "space-x-2"
+            } p-2 rounded-md hover:bg-red-50 text-red-600 w-full text-left font-medium text-sm`}
+          >
+            <LogOut className="h-4 w-4" />
+            {!isSidebarCollapsed && <span>Logout</span>}
+          </button>
         </div>
       </div>
 
@@ -470,17 +496,16 @@ export default function InternDashboard() {
                 </p>
               </div>
             </div>
-            
+
             {/* Header Actions */}
             <div className="flex items-center space-x-3">
               <button className="p-2 rounded-full hover:bg-gray-100 relative">
                 <Bell className="h-5 w-5 text-gray-600" />
-                {/* Notification badge */}
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
                   2
                 </span>
               </button>
-              
+
               <div className="h-8 w-8 rounded-full bg-cyan-500 flex items-center justify-center text-white text-sm font-bold">
                 {userData?.username?.charAt(0).toUpperCase()}
               </div>
@@ -497,28 +522,29 @@ export default function InternDashboard() {
         </header>
 
         {/* Page Content */}
-        <main className="p-4">
-          {renderContent()}
-        </main>
+        <main className="p-4 sm:p-6">{renderContent()}</main>
       </div>
 
-      {/* Logout Confirmation Modal */}
-      {logOutModalOpen && <LogOutModal />}
-      {showLogoutModal && (
+      {/* Logout Modal */}
+      {logOutModalOpen && (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Confirm Logout</h3>
-            <p className="text-gray-600 mb-6">Are you sure you want to logout?</p>
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Confirm Logout
+            </h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Are you sure you want to log out of your account?
+            </p>
             <div className="flex space-x-3">
               <button
-                onClick={() => setShowLogoutModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                onClick={closeLogOutModal}
+                className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
               >
                 Cancel
               </button>
               <button
                 onClick={handleLogout}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
               >
                 Logout
               </button>

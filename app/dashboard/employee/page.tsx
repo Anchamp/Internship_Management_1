@@ -1,3 +1,4 @@
+// app/dashboard/employee/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -15,11 +16,17 @@ import {
   Menu,
   ClipboardList,
   Bell,
+  BarChart3,
+  MessageSquare,
+  Target,
 } from "lucide-react";
+
+// Import dashboard components
 import DashboardScreen from "./dashboardscreen";
 import EmployeeProfile from "./profile";
 import NotificationModal from "./notificationmodal";
-import UsersScreen from "./users"; // Import the new users component
+import UsersScreen from "./users";
+import EmployeeAssignments from "./assignments"; // Import new assignments component
 
 export default function EmployeeDashboard() {
   const router = useRouter();
@@ -29,7 +36,9 @@ export default function EmployeeDashboard() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [logOutModalOpen, setLogOutModalOpen] = useState(false);
-  const [notificationModalOpen, setNotificationModalOpen] = useState(false); // Add state for notification modal
+  const [notificationModalOpen, setNotificationModalOpen] = useState(false);
+  const [userData, setUserData] = useState<any>(null);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Auto-collapse sidebar on small screens
   useEffect(() => {
@@ -41,143 +50,192 @@ export default function EmployeeDashboard() {
       }
     };
 
-    // Set initial state based on screen size
     handleResize();
-
-    // Add event listener
     window.addEventListener("resize", handleResize);
-
-    // Cleanup
     return () => {
       window.removeEventListener("resize", handleResize);
     };
   }, []);
 
-  // Check authentication and load user data
   useEffect(() => {
-    const checkAuth = async () => {
-      setIsLoading(true);
-      try {
-        // Get username from localStorage (temporary until full auth implementation)
-        const storedUser = localStorage.getItem("user");
-        if (!storedUser) {
-          router.push("/sign-in");
-          return;
-        }
+    // Check authentication and load user data
+    const userStr = localStorage.getItem("user");
+    if (!userStr) {
+      router.push("/sign-in");
+      return;
+    }
 
-        const { username, role } = JSON.parse(storedUser);
+    const user = JSON.parse(userStr);
+    if (user.role !== "employee") {
+      router.push("/sign-in");
+      return;
+    }
 
-        // Check if user is a employee
-        if (role !== "employee") {
-          router.push(`/dashboard/${role}`);
-          return;
-        }
-
-        // Fetch user data from MongoDB to get the most up-to-date info
-        try {
-          const response = await fetch(`/api/users/${username}`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.user) {
-              setUsername(data.user.username || "Employee");
-              setOrganization(
-                data.user.organizationName || data.user.organization || "none"
-              );
-            }
-          }
-        } catch (apiError) {
-          console.warn("Couldn't fetch latest user data:", apiError);
-          // Fall back to localStorage data if API call fails
-          setUsername(username || "Employee");
-          const user = JSON.parse(storedUser);
-          setOrganization(user.organization || user.organizationName || "none");
-        }
-      } catch (error) {
-        console.error("Authentication error:", error);
-        router.push("/sign-in");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkAuth();
+    setUserData(user);
+    setUsername(user.username || "");
+    setOrganization(user.organizationName || user.organization || "");
+    setIsLoading(false);
   }, [router]);
 
-  const handleLogout = () => {
-    // Clear authentication data
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-
-    // Redirect to sign-in page
-    router.push("/sign-in");
+  const handleNavigation = (tab: string) => {
+    setActiveTab(tab);
   };
 
-  // Toggle sidebar collapse state
   const toggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
 
-  // Navigation handler
-  const handleNavigation = (tab: string) => {
-    // Simply set the active tab - don't redirect for profile
-    setActiveTab(tab);
+  const openLogOutModal = () => {
+    setLogOutModalOpen(true);
   };
+
+  const closeLogOutModal = () => {
+    setLogOutModalOpen(false);
+  };
+
+  const openNotificationModal = () => {
+    setNotificationModalOpen(true);
+  };
+
+  const closeNotificationModal = () => {
+    setNotificationModalOpen(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    router.push("/sign-in");
+  };
+
+  const getMenuItemClass = (tab: string) => {
+    return `flex items-center ${
+      isSidebarCollapsed ? "justify-center" : "space-x-3"
+    } p-2 rounded-md ${
+      activeTab === tab
+        ? "bg-cyan-50 text-cyan-600"
+        : "hover:bg-gray-50 text-gray-700"
+    } font-medium text-sm w-full text-left transition-colors cursor-pointer`;
+  };
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case "dashboard":
+        return <DashboardScreen organization={organization} onNavigate={handleNavigation} />;
+      case "assignments":
+        return <EmployeeAssignments />;
+      case "interns":
+        return <UsersScreen />;
+      case "profile":
+        return <EmployeeProfile />;
+      case "schedule":
+        return (
+          <div className="flex items-center justify-center min-h-[400px] bg-white rounded-lg shadow-sm border">
+            <div className="text-center">
+              <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">Schedule Management</h3>
+              <p className="text-gray-500 mb-4">Manage your schedule and appointments</p>
+              <div className="bg-gray-100 px-4 py-2 rounded-md text-sm text-gray-600">
+                Coming Soon
+              </div>
+            </div>
+          </div>
+        );
+      case "settings":
+        return (
+          <div className="flex items-center justify-center min-h-[400px] bg-white rounded-lg shadow-sm border">
+            <div className="text-center">
+              <Settings className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">Settings</h3>
+              <p className="text-gray-500 mb-4">Account and preferences</p>
+              <div className="bg-gray-100 px-4 py-2 rounded-md text-sm text-gray-600">
+                Coming Soon
+              </div>
+            </div>
+          </div>
+        );
+      default:
+        return <DashboardScreen organization={organization} onNavigate={handleNavigation} />;
+    }
+  };
+
+  const getPageTitle = () => {
+    switch (activeTab) {
+      case "dashboard":
+        return "Employee Dashboard";
+      case "assignments":
+        return "Assignment Management";
+      case "interns":
+        return "My Interns";
+      case "profile":
+        return "My Profile";
+      case "schedule":
+        return "Schedule";
+      case "settings":
+        return "Settings";
+      default:
+        return "Dashboard";
+    }
+  };
+
+  const getPageSubtitle = () => {
+    switch (activeTab) {
+      case "dashboard":
+        return "Guidance Portal";
+      case "assignments":
+        return "Create, manage, and review assignments";
+      case "interns":
+        return "Manage Your Interns";
+      case "profile":
+        return "Account Information";
+      case "schedule":
+        return "Your Schedule";
+      case "settings":
+        return "Account and preferences";
+      default:
+        return "";
+    }
+  };
+
+  const LogOutModal = () => (
+    <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Confirm Logout</h3>
+        <p className="text-gray-600 mb-6">Are you sure you want to logout?</p>
+        <div className="flex space-x-3">
+          <button
+            onClick={closeLogOutModal}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleLogout}
+            className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
       </div>
     );
   }
 
-  const openLogOutModal = () => setLogOutModalOpen(true);
-  const closeLogOutModal = () => setLogOutModalOpen(false);
-
-  const openNotificationModal = () => setNotificationModalOpen(true);
-  const closeNotificationModal = () => {
-    setNotificationModalOpen(false);
-  };
-
-  const LogOutModal = () => {
-    return (
-      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-        <div className="bg-white rounded-lg shadow-2xl max-w-3xl w-[30%] max-h-[90vh] overflow-hidden">
-          <div className="p-5 border-b flex justify-center items-center sticky top-0 bg-white z-10">
-            <h3 className="text-xl font-bold text-gray-900">
-              Are you sure you want to log out?
-            </h3>
-          </div>
-          <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
-            <div className="w-full flex items-center justify-around">
-              <button
-                className="cursor-pointer text-black bg-white border p-3 rounded-sm"
-                onClick={closeLogOutModal}
-              >
-                Cancel
-              </button>
-              <button
-                className="cursor-pointer text-white bg-red-500 p-3 rounded-sm"
-                onClick={handleLogout}
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="flex h-screen bg-gray-100">
-      {/* Sidebar - with reduced sizes */}
+      {/* Sidebar */}
       <div
         className={`${
           isSidebarCollapsed ? "w-0 md:w-16" : "w-60 md:w-64"
         } bg-white shadow-md transition-all duration-300 fixed md:relative z-30 h-full overflow-hidden`}
       >
+        {/* Logo Header */}
         <div className="p-3 border-b flex items-center justify-between">
           {!isSidebarCollapsed && (
             <div className="flex items-center space-x-2">
@@ -196,129 +254,66 @@ export default function EmployeeDashboard() {
           )}
         </div>
 
+        {/* Sidebar Content */}
         <div className="p-3 flex flex-col justify-between h-[calc(100%-58px)]">
+          {/* Navigation */}
           <nav className="space-y-1">
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                handleNavigation("dashboard");
-              }}
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md ${
-                activeTab === "dashboard"
-                  ? "bg-cyan-50 text-cyan-600"
-                  : "hover:bg-gray-50 text-gray-700"
-              } font-medium text-sm`}
+            {/* Dashboard */}
+            <button
+              onClick={() => handleNavigation("dashboard")}
+              className={getMenuItemClass("dashboard")}
             >
               <Home className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Dashboard</span>}
-            </a>
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                handleNavigation("users");
-              }}
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md ${
-                activeTab === "users"
-                  ? "bg-cyan-50 text-cyan-600"
-                  : "hover:bg-gray-50 text-gray-700"
-              } font-medium text-sm`}
-            >
-              <Users className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>Organization</span>}
-            </a>
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                handleNavigation("interns");
-              }}
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md ${
-                activeTab === "interns"
-                  ? "bg-cyan-50 text-cyan-600"
-                  : "hover:bg-gray-50 text-gray-700"
-              } font-medium text-sm`}
-            >
-              <Users className="h-4 w-4" />
-              {!isSidebarCollapsed && <span>My Interns</span>}
-            </a>
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                handleNavigation("assignments");
-              }}
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md ${
-                activeTab === "assignments"
-                  ? "bg-cyan-50 text-cyan-600"
-                  : "hover:bg-gray-50 text-gray-700"
-              } font-medium text-sm`}
+            </button>
+
+            {/* Assignments - NEW */}
+            <button
+              onClick={() => handleNavigation("assignments")}
+              className={getMenuItemClass("assignments")}
             >
               <FileText className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Assignments</span>}
-            </a>
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                handleNavigation("schedule");
-              }}
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md ${
-                activeTab === "schedule"
-                  ? "bg-cyan-50 text-cyan-600"
-                  : "hover:bg-gray-50 text-gray-700"
-              } font-medium text-sm`}
+            </button>
+
+            {/* My Interns */}
+            <button
+              onClick={() => handleNavigation("interns")}
+              className={getMenuItemClass("interns")}
+            >
+              <Users className="h-4 w-4" />
+              {!isSidebarCollapsed && <span>My Interns</span>}
+            </button>
+
+            {/* Schedule */}
+            <button
+              onClick={() => handleNavigation("schedule")}
+              className={getMenuItemClass("schedule")}
             >
               <Calendar className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Schedule</span>}
-            </a>
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                handleNavigation("profile");
-              }}
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md ${
-                activeTab === "profile"
-                  ? "bg-cyan-50 text-cyan-600"
-                  : "hover:bg-gray-50 text-gray-700"
-              } font-medium text-sm`}
+            </button>
+
+            {/* My Profile */}
+            <button
+              onClick={() => handleNavigation("profile")}
+              className={getMenuItemClass("profile")}
             >
               <User className="h-4 w-4" />
               {!isSidebarCollapsed && <span>My Profile</span>}
-            </a>
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                handleNavigation("settings");
-              }}
-              className={`flex items-center ${
-                isSidebarCollapsed ? "justify-center" : "space-x-3"
-              } p-2 rounded-md ${
-                activeTab === "settings"
-                  ? "bg-cyan-50 text-cyan-600"
-                  : "hover:bg-gray-50 text-gray-700"
-              } font-medium text-sm`}
+            </button>
+
+            {/* Settings */}
+            <button
+              onClick={() => handleNavigation("settings")}
+              className={getMenuItemClass("settings")}
             >
               <Settings className="h-4 w-4" />
               {!isSidebarCollapsed && <span>Settings</span>}
-            </a>
+            </button>
           </nav>
 
+          {/* User Profile & Logout */}
           <div className="mt-auto border-t pt-3 space-y-3">
             <div
               className={`flex items-center ${
@@ -357,8 +352,9 @@ export default function EmployeeDashboard() {
         ></div>
       )}
 
-      {/* Main content - with reduced sizes */}
+      {/* Main Content */}
       <div className="flex-1 overflow-auto w-full">
+        {/* Header */}
         <header className="bg-white shadow-sm sticky top-0 z-10">
           <div className="p-3 sm:p-4 flex flex-wrap justify-between items-center gap-2">
             <div className="flex items-center">
@@ -370,97 +366,48 @@ export default function EmployeeDashboard() {
               </button>
               <div>
                 <h1 className="text-lg sm:text-xl font-bold text-black">
-                  {activeTab === "dashboard"
-                    ? "Employee Dashboard"
-                    : activeTab === "profile"
-                    ? "My Profile"
-                    : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                  {getPageTitle()}
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-500">
-                  {activeTab === "dashboard"
-                    ? "Guidance Portal"
-                    : activeTab === "profile"
-                    ? "Account Information"
-                    : activeTab === "interns"
-                    ? "Manage Your Interns"
-                    : activeTab === "assignments"
-                    ? "Manage Assignments"
-                    : activeTab === "schedule"
-                    ? "Your Schedule"
-                    : activeTab === "settings"
-                    ? "Account Settings"
-                    : ""}
+                  {getPageSubtitle()}
                 </p>
               </div>
             </div>
-
-            <div className="flex items-center ml-auto gap-3">
-              {/* Responsive welcome message */}
-              <div className="bg-gradient-to-r from-cyan-600 to-blue-600 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-md shadow-md">
-                <p className="text-sm sm:text-base font-semibold text-white tracking-wide whitespace-nowrap">
-                  Welcome back, {username}
-                </p>
-              </div>
-
-              {/* Notification icon with dropdown positioning */}
-              <div className="relative">
-                <button
-                  onClick={openNotificationModal}
-                  className="relative p-2 rounded-full hover:bg-gray-100 text-gray-700"
-                >
-                  <Bell className="h-5 w-5" />
-                </button>
-                {notificationModalOpen && (
-                  <NotificationModal
-                    isOpen={notificationModalOpen}
-                    onClose={closeNotificationModal}
-                  />
-                )}
+            
+            {/* Header Actions */}
+            <div className="flex items-center space-x-3">
+              <button 
+                onClick={openNotificationModal}
+                className="p-2 rounded-full hover:bg-gray-100 relative"
+              >
+                <Bell className="h-5 w-5 text-gray-600" />
+                {/* Notification badge */}
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                  3
+                </span>
+              </button>
+              
+              <div className="h-8 w-8 rounded-full bg-cyan-500 flex items-center justify-center text-white text-sm font-bold">
+                {username.charAt(0).toUpperCase()}
               </div>
             </div>
           </div>
         </header>
 
-        <main className="p-3 sm:p-4">
-          {activeTab === "dashboard" && (
-            <DashboardScreen
-              organization={organization}
-              onNavigate={handleNavigation} // Pass the navigation function
-            />
-          )}
-          {activeTab === "profile" && <EmployeeProfile inDashboard={true} />}
-          {activeTab === "users" && <UsersScreen />}
-          {activeTab === "interns" && (
-            <div className="p-4 bg-white rounded-md shadow">
-              <p className="text-lg font-medium">
-                My Interns section coming soon
-              </p>
-            </div>
-          )}
-          {activeTab === "assignments" && (
-            <div className="p-4 bg-white rounded-md shadow">
-              <p className="text-lg font-medium">
-                Assignments section coming soon
-              </p>
-            </div>
-          )}
-          {activeTab === "schedule" && (
-            <div className="p-4 bg-white rounded-md shadow">
-              <p className="text-lg font-medium">
-                Schedule section coming soon
-              </p>
-            </div>
-          )}
-          {activeTab === "settings" && (
-            <div className="p-4 bg-white rounded-md shadow">
-              <p className="text-lg font-medium">
-                Settings section coming soon
-              </p>
-            </div>
-          )}
+        {/* Page Content */}
+        <main className="p-4">
+          {renderContent()}
         </main>
       </div>
+
+      {/* Modals */}
       {logOutModalOpen && <LogOutModal />}
+      {notificationModalOpen && (
+        <NotificationModal 
+          isOpen={notificationModalOpen}
+          onClose={closeNotificationModal}
+        />
+      )}
     </div>
   );
 }
