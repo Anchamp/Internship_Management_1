@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     }
     if (editDeadline) {
       updateData.deadline = new Date(editDeadline);
-      if (isNaN(updateData.deadline.getTime())) {
+      if (isNaN(updateData.deadline.getTime())) { 
         return NextResponse.json({ error: 'Invalid deadline format' }, { status: 400 });
       }
       if (updateData.deadline < new Date()) {
