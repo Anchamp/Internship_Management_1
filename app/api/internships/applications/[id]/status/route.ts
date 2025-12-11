@@ -1,167 +1,75 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
-import { ObjectId } from 'mongodb';
+import Application from '@/models/Application';
+import Notification from '@/models/Notification';
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+// PUT method to update application status
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    console.log(`🚀 API ENDPOINT HIT: /api/internships/applications/${params.id}/status`);
+    // Await params before accessing its properties (Next.js 15 requirement)
+    const { id } = await params;
     
-    const client = await dbConnect();
-    const db = client.connection.db;
-    const internsCollection = db.collection('interns');
+    await dbConnect();
     
-    const applicationId = params.id;
-    const { status } = await request.json();
+    const body = await request.json();
+    const { status, feedback } = body;
     
-    console.log(`🔍 DEBUGGING: Starting status update for applicationId: ${applicationId}`);
-    console.log(`🔍 DEBUGGING: New status: ${status}`);
-    
-    // Validate status
-    const validStatuses = ['pending', 'shortlisted', 'interview_scheduled', 'selected', 'rejected'];
-    if (!validStatuses.includes(status)) {
-      console.log(`❌ INVALID STATUS: ${status}`);
-      return NextResponse.json({
-        error: 'Invalid status'
-      }, { status: 400 });
+    if (!status) {
+      return NextResponse.json(
+        { error: 'Status is required' },
+        { status: 400 }
+      );
     }
     
-    // Convert applicationId to ObjectId
-    const appObjectId = new ObjectId(applicationId);
-    console.log(`🔍 DEBUGGING: Converted to ObjectId: ${appObjectId}`);
-    
-    // Find the user with this application ID
-    console.log(`🔍 DEBUGGING: Searching in interns collection...`);
-    const user = await internsCollection.findOne({ 
-      'appliedInternships._id': appObjectId 
-    });
-    
-    if (!user) {
-      console.log(`❌ USER NOT FOUND with application ID: ${appObjectId}`);
-      
-      // Let's also try to find any user with any applications to debug
-      const anyUserWithApps = await internsCollection.findOne({ 
-        'appliedInternships': { $exists: true, $ne: [] }
-      });
-      
-      console.log(`🔍 DEBUG: Found any user with applications: ${anyUserWithApps ? 'YES' : 'NO'}`);
-      if (anyUserWithApps) {
-        console.log(`🔍 DEBUG: Sample user: ${anyUserWithApps.username}`);
-        console.log(`🔍 DEBUG: Sample app IDs: ${anyUserWithApps.appliedInternships.map((app: any) => app._id).join(', ')}`);
-      }
-      
-      return NextResponse.json({
-        error: 'Application not found in interns collection',
-        debug: {
-          searchedObjectId: appObjectId.toString(),
-          searchedStringId: applicationId
-        }
-      }, { status: 404 });
-    }
-    
-    console.log(`✅ FOUND USER: ${user.username}`);
-    console.log(`🔍 CURRENT applicationStatus: ${user.applicationStatus}`);
-    console.log(`🔍 CURRENT verificationStatus: ${user.verificationStatus}`);
-    
-    // Determine what the applicationStatus should be (ONLY update applicationStatus, leave verificationStatus unchanged)
-    let newApplicationStatus = user.applicationStatus || 'pending';
-    
-    switch (status) {
-      case 'pending':
-        newApplicationStatus = 'pending';
-        break;
-      case 'shortlisted':
-        newApplicationStatus = 'active';
-        break;
-      case 'interview_scheduled':
-        newApplicationStatus = 'active';
-        break;
-      case 'selected':
-        newApplicationStatus = 'completed';
-        break;
-      case 'rejected':
-        newApplicationStatus = 'rejected';
-        break;
-    }
-    
-    console.log(`🔄 WILL UPDATE applicationStatus: ${user.applicationStatus} → ${newApplicationStatus}`);
-    console.log(`🔄 WILL KEEP verificationStatus: ${user.verificationStatus} (unchanged)`);
-    
-    // Update both the application status and ONLY the applicationStatus (not verificationStatus)
-    const updateOperation = {
-      $set: {
-        'appliedInternships.$.status': status,
-        'appliedInternships.$.updatedAt': new Date(),
-        'applicationStatus': newApplicationStatus,
-        'updatedAt': new Date()
-      }
-    };
-    
-    console.log(`🔍 UPDATE OPERATION:`, JSON.stringify(updateOperation, null, 2));
-    
-    const updateResult = await internsCollection.updateOne(
+    // Find and update the application
+    const application = await Application.findByIdAndUpdate(
+      id,
       { 
-        'appliedInternships._id': appObjectId 
+        status,
+        ...(feedback && { feedback }),
+        updatedAt: new Date()
       },
-      updateOperation
+      { new: true }
     );
     
-    console.log(`📊 UPDATE RESULT:`);
-    console.log(`   - Matched count: ${updateResult.matchedCount}`);
-    console.log(`   - Modified count: ${updateResult.modifiedCount}`);
-    console.log(`   - Acknowledged: ${updateResult.acknowledged}`);
-    
-    if (updateResult.matchedCount === 0) {
-      console.log(`❌ NO DOCUMENTS MATCHED`);
-      return NextResponse.json({
-        error: 'Failed to update application - no documents matched',
-        debug: {
-          searchedId: appObjectId.toString()
-        }
-      }, { status: 404 });
+    if (!application) {
+      return NextResponse.json(
+        { error: 'Application not found' },
+        { status: 404 }
+      );
     }
     
-    if (updateResult.modifiedCount === 0) {
-      console.log(`⚠️ NO DOCUMENTS MODIFIED (possibly same values)`);
-    }
-    
-    // Verify the update by fetching the updated document
-    const updatedUser = await internsCollection.findOne({ 
-      'appliedInternships._id': appObjectId 
-    });
-    
-    if (updatedUser) {
-      console.log(`✅ VERIFICATION - User after update:`);
-      console.log(`   - Username: ${updatedUser.username}`);
-      console.log(`   - applicationStatus: ${user.applicationStatus} → ${updatedUser.applicationStatus}`);
-      console.log(`   - verificationStatus: ${updatedUser.verificationStatus} (should be unchanged)`);
-      console.log(`   - Application specific status: ${status}`);
-      
-      // Find the specific application and log its status
-      const updatedApp = updatedUser.appliedInternships.find((app: any) => app._id.toString() === appObjectId.toString());
-      if (updatedApp) {
-        console.log(`   - Application status in array: ${updatedApp.status}`);
-      }
+    // Create notification for the applicant
+    try {
+      await Notification.create({
+        userId: application.userId,
+        type: 'application_status_update',
+        message: `Your application status has been updated to: ${status}`,
+        status: status,
+        read: false,
+        createdAt: new Date()
+      });
+    } catch (notifError) {
+      console.error('Error creating notification:', notifError);
+      // Don't fail the request if notification creation fails
     }
     
     return NextResponse.json({
-      message: 'Application status updated successfully',
-      debug: {
-        username: updatedUser?.username,
-        oldApplicationStatus: user.applicationStatus,
-        newApplicationStatus: updatedUser?.applicationStatus,
-        verificationStatus: updatedUser?.verificationStatus,
-        applicationSpecificStatus: status,
-        modifiedCount: updateResult.modifiedCount,
-        matchedCount: updateResult.matchedCount
-      }
+      success: true,
+      application
     });
     
   } catch (error: any) {
-    console.error('❌ CRITICAL ERROR:', error);
-    console.error('❌ ERROR STACK:', error.stack);
-    return NextResponse.json({
-      error: 'Failed to update application status',
-      details: error.message
-    }, { status: 500 });
+    console.error('Error updating application status:', error);
+    return NextResponse.json(
+      { 
+        error: 'Failed to update application status',
+        details: error.message 
+      },
+      { status: 500 }
+    );
   }
 }
