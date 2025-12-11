@@ -165,7 +165,7 @@ export async function GET(request: Request) {
     }
 
     // Update top performers query to use organization name
-    let topPerformers = [];
+    let topPerformers: any[] = [];
     try {
       topPerformers = await Feedback.find({ organizationName })
         .sort({ rating: -1 })
