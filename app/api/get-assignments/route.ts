@@ -22,10 +22,29 @@ export async function GET(request: Request) {
     // Connect to MongoDB
     await dbConnect();
 
-    // Validate User
-    let user;
-    const employeeUser = await User.findOne({username}).select("role organizationName organizationId").lean();
-    const internUser = await Intern.findOne({username}).select("role organizationName").lean();
+    // Validate User - Add type assertions
+    let user: {
+      role?: string;
+      organizationName?: string;
+      organizationId?: string;
+      _id?: any;
+      [key: string]: any;
+    } | null = null;
+    
+    const employeeUser = await User.findOne({username}).select("role organizationName organizationId").lean() as {
+      role?: string;
+      organizationName?: string;
+      organizationId?: string;
+      _id?: any;
+      [key: string]: any;
+    } | null;
+    
+    const internUser = await Intern.findOne({username}).select("role organizationName").lean() as {
+      role?: string;
+      organizationName?: string;
+      _id?: any;
+      [key: string]: any;
+    } | null;
 
     if (employeeUser) {
       user = employeeUser;
