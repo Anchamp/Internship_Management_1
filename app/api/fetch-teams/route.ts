@@ -64,23 +64,31 @@ export async function GET(request: Request) {
         team.panelists = []
 
         for (const mentorId of mentorIds) {
-          const mentorUsername = await User.findById(mentorId, 'username').lean();
+          const mentorUsername = await User.findById(mentorId, 'username').lean() as {
+            username?: string;
+            [key: string]: any;
+          } | null;
           console.log("Mentor Username:", mentorUsername);
           if (mentorUsername) {
             team.mentors.push(mentorUsername.username);
           }
         }
 
-
         for (const internId of internIds) {
-          const internUsername = await Intern.findById(internId, 'username').lean();
+          const internUsername = await Intern.findById(internId, 'username').lean() as {
+            username?: string;
+            [key: string]: any;
+          } | null;
           if (internUsername) {
             team.interns.push(internUsername.username);
           }
         }
 
         for (const panelistId of panelistIds) {
-          const panelistUsername = await User.findById(panelistId, 'username').lean();
+          const panelistUsername = await User.findById(panelistId, 'username').lean() as {
+            username?: string;
+            [key: string]: any;
+          } | null;
           if (panelistUsername) {
             team.panelists.push(panelistUsername.username);
           }
@@ -110,21 +118,30 @@ export async function GET(request: Request) {
         team.panelists = []
 
         for (const mentorId of mentorIds) {
-          const mentorUsername = await User.findById(mentorId, 'username').lean();
+          const mentorUsername = await User.findById(mentorId, 'username').lean() as {
+            username?: string;
+            [key: string]: any;
+          } | null;
           if (mentorUsername) {
             team.mentors.push(mentorUsername.username);
           }
         }
 
         for (const internId of internIds) {
-          const internUsername = await Intern.findById(internId, 'username').lean();
+          const internUsername = await Intern.findById(internId, 'username').lean() as {
+            username?: string;
+            [key: string]: any;
+          } | null;
           if (internUsername) {
             team.interns.push(internUsername.username);
           }
         }
 
         for (const panelistId of panelistIds) {
-          const panelistUsername = await User.findById(panelistId, 'username').lean();
+          const panelistUsername = await User.findById(panelistId, 'username').lean() as {
+            username?: string;
+            [key: string]: any;
+          } | null;
           if (panelistUsername) {
             team.panelists.push(panelistUsername.username);
           }
@@ -148,3 +165,4 @@ export async function GET(request: Request) {
     );
   }
 }
+        
