@@ -32,10 +32,14 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Type assertion: we know user exists and has these properties
-    const userOrganizationName = user.organizationName as string;
-    const userOrganizationId = user.organizationId as string;
-    const userRole = user.role as string;
+    // Extract properties with explicit checks
+    if (!user.organizationName || !user.organizationId) {
+      return NextResponse.json({ error: 'User organization data incomplete' }, { status: 400 });
+    }
+
+    const userOrganizationName = user.organizationName;
+    const userOrganizationId = user.organizationId;
+    const userRole = user.role || 'intern';
 
     // Use the actual role from database, not the query parameter
     const actualRole = isIntern ? 'intern' : userRole;
