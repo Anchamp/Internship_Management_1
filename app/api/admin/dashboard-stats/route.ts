@@ -17,7 +17,12 @@ export async function GET(request: Request) {
     await dbConnect();
     
     // Get the admin user to verify their role and organization
-    const adminUser = await User.findOne({ username: adminUsername, role: 'admin' }).lean();
+    // Add type assertion to handle potential array return
+    const adminUser = await User.findOne({ username: adminUsername, role: 'admin' }).lean() as {
+      organizationId?: string;
+      organizationName?: string;
+      [key: string]: any;
+    } | null;
     
     if (!adminUser) {
       return NextResponse.json({ error: 'Admin not found or unauthorized' }, { status: 403 });
@@ -61,82 +66,51 @@ export async function GET(request: Request) {
     try {
       teamsCount = await Team.countDocuments({ organizationName });
     } catch (err) {
-      console.error("Error counting teams:", err);
+      console.error("Error fetching teams count:", err);
     }
-    
-    // Fix the pending approvals query to match the structure in pending-verifications endpoint
-    // and try both organizationId and organizationName for compatibility
+
+    // Get pending approvals
     const pendingApprovals = await User.countDocuments({
-      $or: [
-        { organizationId: organizationId },
-        { organizationName: organizationName }
-      ],
-      verificationStatus: 'pending',
-      profileSubmissionCount: { $gt: 0 }
-      // Removed role restriction to ensure we catch all pending verifications
+      organizationName,
+      verificationStatus: 'pending'
     });
-    
-    console.log(`Found ${pendingApprovals} pending approval requests`);
 
-    // Create hardcoded dummy data if we don't have any real data
-    // This ensures the chart displays properly while debugging
-    const hasSomeUsers = totalUsers > 0;
-    
-    // Calculate the correct total that includes all user types (interns, employees, and admins)
-    const correctTotalUsers = internsCount + employeeCount + 1;
-
-    // Create data that ensures total users is the sum of all user types
-    const dummyData = {
-      totalUsers: hasSomeUsers ? correctTotalUsers : 5,
-      internsCount: hasSomeUsers ? internsCount : 2,
-      employeeCount: hasSomeUsers ? employeeCount : 2,
-      adminCount: hasSomeUsers ? adminCount : 1,
-    };
-
-    // Get monthly growth data for the past 6 months
-    const today = new Date();
+    // Generate chart data for user growth over the last 6 months
     const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(today.getMonth() - 5); // 6 months including current
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-    // Format dates to first day of each month
-    sixMonthsAgo.setDate(1);
-    sixMonthsAgo.setHours(0, 0, 0, 0);
-
-    // Prepare monthly buckets
+    // Get the last 6 months
     const months = [];
-    const monthLabels = [];
-    const currentDate = new Date(sixMonthsAgo);
-
-    // Create array of month start dates
-    while (currentDate <= today) {
-      months.push(new Date(currentDate));
-      
-      // Create month label (e.g., "Jan", "Feb")
-      monthLabels.push(
-        currentDate.toLocaleString('default', { month: 'short' })
-      );
-      
-      // Move to next month
-      currentDate.setMonth(currentDate.getMonth() + 1);
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      months.push(date);
     }
 
-    // Initialize chart data structure with empty arrays
     const chartData = {
-      labels: monthLabels,
+      labels: months.map(m => m.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })),
       datasets: [
         {
           name: "Interns",
-          values: Array(months.length).fill(0)
+          values: new Array(6).fill(0)
         },
         {
           name: "Employees",
-          values: Array(months.length).fill(0)
+          values: new Array(6).fill(0)
         },
         {
-          name: "All Users",
-          values: Array(months.length).fill(0)
+          name: "Total",
+          values: new Array(6).fill(0)
         }
       ]
+    };
+
+    // Create dummy data structure for fallback
+    const dummyData = {
+      totalUsers,
+      internsCount,
+      employeeCount,
+      adminCount
     };
 
     try {
@@ -214,7 +188,6 @@ export async function GET(request: Request) {
       topPerformers: topPerformers || [],
       organizationId,
       organizationName
-      // Removed debug object with undefined variables
     });
   } catch (error: any) {
     console.error("Error fetching admin dashboard stats:", error);
@@ -224,5 +197,4 @@ export async function GET(request: Request) {
     );
   }
 }
-
 
