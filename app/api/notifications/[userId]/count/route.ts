@@ -2,20 +2,21 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import Notification from '@/models/Notification';
 
-// Use a slightly different pattern for the handler that avoids direct property access
 export async function GET(
   request: Request,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
+    // Await the params Promise (Next.js 15 requirement)
+    const resolvedParams = await params;
+    const userId = resolvedParams.userId;
+    
     // Make sure we're safely handling the userId
-    if (!params || !params.userId) {
+    if (!userId) {
       return NextResponse.json({ 
         error: 'Missing userId parameter' 
       }, { status: 400 });
     }
-    
-    const userId = params.userId;
     
     await dbConnect();
     
