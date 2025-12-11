@@ -28,8 +28,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
     }
 
-    // Validate User
-    const requestingUser = await User.findOne({ username, organizationId: assignment.organizationId }).select("username role").lean();
+    // Validate User - Add type assertion
+    const requestingUser = await User.findOne({ username, organizationId: assignment.organizationId }).select("username role").lean() as {
+      username?: string;
+      role?: string;
+      [key: string]: any;
+    } | null;
 
     if (!requestingUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
