@@ -23,7 +23,11 @@ export async function GET(request: Request) {
     // First determine the organization - either by organizationId or username
     if (orgId) {
       // If organization ID is directly provided, find a user with this organizationId to get the name
-      const anyUserWithOrgId = await User.findOne({ organizationId: orgId }).lean();
+      const anyUserWithOrgId = await User.findOne({ organizationId: orgId }).lean() as {
+        organizationName?: string;
+        [key: string]: any;
+      } | null;
+      
       if (anyUserWithOrgId) {
         organizationName = anyUserWithOrgId.organizationName;
       } else {
@@ -31,7 +35,11 @@ export async function GET(request: Request) {
       }
     } else {
       // If only username is provided, find the user to get their organization
-      const user = await User.findOne({ username }).lean();
+      const user = await User.findOne({ username }).lean() as {
+        organizationName?: string;
+        [key: string]: any;
+      } | null;
+      
       if (!user) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
@@ -76,4 +84,3 @@ export async function GET(request: Request) {
     );
   }
 }
-
