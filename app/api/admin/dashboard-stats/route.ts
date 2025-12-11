@@ -134,7 +134,7 @@ export async function GET(request: Request) {
           }
         },
         {
-          $sort: { "_id.year": 1, "_id.month": 1 }
+          $sort: { "_id.year": 1 as const, "_id.month": 1 as const }
         }
       ];
 
@@ -197,4 +197,3 @@ export async function GET(request: Request) {
     );
   }
 }
-
