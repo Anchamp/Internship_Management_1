@@ -17,18 +17,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Username is required' }, { status: 400 });
     }
 
-    const user = await User.findOne({ username }).select("username role").lean();
+    const user = await User.findOne({ username }).select("username role").lean() as {
+      username?: string;
+      role?: string;
+      [key: string]: any;
+    } | null;
+    
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const post = await MentorPost.findById(postId).lean();
+    const post = await MentorPost.findById(postId).lean() as {
+      postedBy?: string;
+      organizationName?: string;
+      organizationId?: string;
+      [key: string]: any;
+    } | null;
+    
     if (!post) {
       return NextResponse.json({ error: 'Post not found' }, { status: 404 });
     }
 
-    const adminUser = await User.findOne({ role: 'admin', organizationName: post.organizationName, organizationId: post.organizationId }).select("username").lean();
-    if (post.postedBy !== username && user.username !== adminUser.username) {
+    const adminUser = await User.findOne({ role: 'admin', organizationName: post.organizationName, organizationId: post.organizationId }).select("username").lean() as {
+      username?: string;
+      [key: string]: any;
+    } | null;
+    
+    if (post.postedBy !== username && user.username !== adminUser?.username) {
       return NextResponse.json({ error: 'Unauthorized access' }, { status: 403 });
     }
 
