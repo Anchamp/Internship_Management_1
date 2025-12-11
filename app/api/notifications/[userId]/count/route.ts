@@ -33,7 +33,3 @@ export async function GET(
     }, { status: 500 });
   }
 }
-      details: error.message
-    }, { status: 500 });
-  }
-}
