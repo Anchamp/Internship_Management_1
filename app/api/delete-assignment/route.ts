@@ -17,13 +17,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const requestingUser = await User.findOne({ username }).select("username role organizationId").lean();
+    const requestingUser = await User.findOne({ username }).select("username role organizationId").lean() as {
+      username?: string;
+      role?: string;
+      organizationId?: string;
+      [key: string]: any;
+    } | null;
 
     if (!requestingUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const assignment = await Assignment.findById(assignmentId).lean();
+    const assignment = await Assignment.findById(assignmentId).lean() as {
+      organizationId?: string;
+      assignmentFrom?: string;
+      assignmentTeamName?: string;
+      [key: string]: any;
+    } | null;
+    
+    if (!assignment) {
+      return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
+    }
+    
     if (requestingUser.organizationId !== assignment.organizationId) {
       return NextResponse.json({ error: 'Assignment not found in your organization' }, { status: 404 });
     }
