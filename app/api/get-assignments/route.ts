@@ -60,7 +60,14 @@ export async function GET(request: Request) {
     }
     
     // Validate Team
-    const team = await Team.findOne({teamName, organizationName: user.organizationName}).lean();
+    const team = await Team.findOne({teamName, organizationName: user.organizationName}).lean() as {
+      assignments?: any[];
+      mentors?: any[];
+      interns?: any[];
+      panelists?: any[];
+      [key: string]: any;
+    } | null;
+    
     if (!team) {
       return NextResponse.json({
         error: 'Team not found',
