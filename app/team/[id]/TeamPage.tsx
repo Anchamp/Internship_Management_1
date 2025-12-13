@@ -108,7 +108,7 @@ const Assignment = ({ assignment }: { assignment: any }) => {
   )
 }
 
-const TeamPage = ({ props }: TeamPageProps) => {
+const TeamPage = (props: TeamPageProps) => {
   const [role, setRole] = useState<string>("intern");
   const [attendanceStatus, setAttendanceStatus] = useState("");
   const [username, setUsername] = useState<string>("");
