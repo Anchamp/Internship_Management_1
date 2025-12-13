@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Plus, Loader } from 'lucide-react';
 
 interface TeamPageProps {
@@ -48,7 +49,7 @@ const Assignment = ({ assignment }: { assignment: any }) => {
       }
     };
     fetchAssignment();
-  }, []);
+  }, [assignment]);
 
   console.log(requestedAssignment)
 
@@ -109,6 +110,7 @@ const Assignment = ({ assignment }: { assignment: any }) => {
 }
 
 const TeamPage = (props: TeamPageProps) => {
+  const router = useRouter();
   const [role, setRole] = useState<string>("intern");
   const [attendanceStatus, setAttendanceStatus] = useState("");
   const [username, setUsername] = useState<string>("");
@@ -124,7 +126,7 @@ const TeamPage = (props: TeamPageProps) => {
     const user = JSON.parse(userData);
     setUsername(user.username);
     setRole(user.role)
-  }, [])
+  }, [router])
 
   useEffect(() => {
     const fetchAssignments = async () => {
@@ -140,7 +142,7 @@ const TeamPage = (props: TeamPageProps) => {
     }
 
     fetchAssignments();
-  }, [])
+  }, [username, teamName])
 
   return (
     <div className="text-black m-0 p-0 rounded-md w-full">
@@ -214,4 +216,3 @@ const TeamPage = (props: TeamPageProps) => {
 }
 
 export default TeamPage;
-
