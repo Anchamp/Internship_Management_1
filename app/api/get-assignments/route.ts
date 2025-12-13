@@ -77,10 +77,12 @@ export async function GET(request: Request) {
 
     // get assignment for each id in team.assignments
     let assigments = []
-    for (const assignmentId of team.assignments) {
-      const assignment = await Assignment.findById(assignmentId).lean();
-      if (assignment) {
-        assigments.push(assignment);
+    if (team.assignments && Array.isArray(team.assignments)) {
+      for (const assignmentId of team.assignments) {
+        const assignment = await Assignment.findById(assignmentId).lean();
+        if (assignment) {
+          assigments.push(assignment);
+        }
       }
     }
 
@@ -92,7 +94,7 @@ export async function GET(request: Request) {
     }
 
     if (user.role === 'employee') {
-      const allEmployees = [...team.mentors, ...team.panelists];
+      const allEmployees = [...(team.mentors || []), ...(team.panelists || [])];
       if (!allEmployees.includes(user._id.toString())) {
         return NextResponse.json({
           error: "User not authorized",
@@ -106,7 +108,7 @@ export async function GET(request: Request) {
     }
 
     if (user.role === 'intern') {
-      if (!team.interns.includes(user._id.toString())) {
+      if (!(team.interns || []).includes(user._id.toString())) {
         return NextResponse.json({
           error: "User not authorized",
           status: 401,
