@@ -753,6 +753,7 @@ export default function MentorDemoPresentations() {
 }
 
 // Modal Components
+// Modal Components
 const CreatePresentationModal = ({ formData, setFormData, teams, availableInterns, onClose, onSubmit, addRequirement, removeRequirement, updateRequirement, addEvaluationCriteria, removeEvaluationCriteria, updateEvaluationCriteria }: any) => (
   <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 p-4">
     <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -777,6 +778,18 @@ const CreatePresentationModal = ({ formData, setFormData, teams, availableIntern
               value={formData.title}
               onChange={(e) => setFormData((prev: any) => ({ ...prev, title: e.target.value }))}
               className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+              placeholder="Enter presentation title"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Team <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={formData.teamName}
+              onChange={(e) => setFormData((prev: any) => ({ ...prev, teamName: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
             >
               <option value="">Select a team</option>
               {teams.map((team: Team) => (
@@ -797,11 +810,9 @@ const CreatePresentationModal = ({ formData, setFormData, teams, availableIntern
             onChange={(e) => setFormData((prev: any) => ({ ...prev, description: e.target.value }))}
             rows={3}
             className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-            placeholder="Describe the demo presentation..."
           />
         </div>
 
-        {/* Schedule Information */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -824,8 +835,6 @@ const CreatePresentationModal = ({ formData, setFormData, teams, availableIntern
               value={formData.duration}
               onChange={(e) => setFormData((prev: any) => ({ ...prev, duration: parseInt(e.target.value) || 30 }))}
               className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-              min="15"
-              max="240"
             />
           </div>
 
@@ -838,7 +847,6 @@ const CreatePresentationModal = ({ formData, setFormData, teams, availableIntern
               value={formData.location}
               onChange={(e) => setFormData((prev: any) => ({ ...prev, location: e.target.value }))}
               className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-              placeholder="Virtual, Room 101, etc."
             />
           </div>
         </div>
@@ -852,7 +860,6 @@ const CreatePresentationModal = ({ formData, setFormData, teams, availableIntern
             value={formData.meetingLink}
             onChange={(e) => setFormData((prev: any) => ({ ...prev, meetingLink: e.target.value }))}
             className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-            placeholder="https://zoom.us/j/..."
           />
         </div>
 
@@ -861,11 +868,11 @@ const CreatePresentationModal = ({ formData, setFormData, teams, availableIntern
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Requirements
           </label>
-          {formData.requirements.map((requirement: string, index: number) => (
+          {formData.requirements.map((req: string, index: number) => (
             <div key={index} className="flex items-center space-x-2 mb-2">
               <input
                 type="text"
-                value={requirement}
+                value={req}
                 onChange={(e) => updateRequirement(index, e.target.value)}
                 className="flex-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                 placeholder="Enter requirement..."
@@ -894,12 +901,12 @@ const CreatePresentationModal = ({ formData, setFormData, teams, availableIntern
             Evaluation Criteria <span className="text-red-500">*</span>
           </label>
           {formData.evaluationCriteria.map((criteria: any, index: number) => (
-            <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3 p-3 border border-gray-200 rounded-md">
+            <div key={index} className="space-y-2 mb-3 p-3 border border-gray-200 rounded-md">
               <input
                 type="text"
                 value={criteria.criterion}
                 onChange={(e) => updateEvaluationCriteria(index, 'criterion', e.target.value)}
-                className="p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                 placeholder="Criterion name..."
               />
               <input
