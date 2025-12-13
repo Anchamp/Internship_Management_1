@@ -17,7 +17,7 @@ import {
   UsersIcon,
   Bell,
 } from "lucide-react";
-import AdminDashboardScreen from "../../dashboard/admin/dashboardscreen.tsx";
+import AdminDashboardScreen from "../../dashboard/admin/dashboardscreen";
 import AdminProfile from "../../dashboard/admin/profile";
 import OnboardingScreen from "../../dashboard/admin/onboarding";
 import UsersScreen from "../../dashboard/admin/users";
