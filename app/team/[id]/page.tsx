@@ -472,7 +472,7 @@ export default function Team({ params }: { params: Promise<{id: string}>}) {
           </div>
         </header>
         <main className="p-3 sm:p-4">
-          {activeTab === "dashboard" && <AdminDashboardScreen />}
+          {activeTab === "dashboard" && <AdminDashboardScreen profileSubmissionCount={profileSubmissionCount} />}
           {activeTab === "profile" && <AdminProfile inDashboard={true} />}
           {activeTab === "onboarding" && <OnboardingScreen />}
           {activeTab === "users" && <UsersScreen />}
