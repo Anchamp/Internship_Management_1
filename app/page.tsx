@@ -19,7 +19,7 @@ import {
   EyeOff,
   Loader2,
 } from "lucide-react";
-import { toast } from "react-hot-toast";
+import { toast } from "sonner";
 
 interface Testimonial {
   _id: string;
