@@ -4,6 +4,21 @@ import User from '@/models/User';
 import Intern from '@/models/Intern';
 import Assignment from '@/models/Assignment';
 
+// Define interfaces for type safety
+interface UserDocument {
+  _id: string;
+  role: string;
+  organizationName: string;
+  organizationId: string;
+}
+
+interface InternDocument {
+  _id: string;
+  role: string;
+  organizationName: string;
+  organizationId: string;
+}
+
 export async function GET(request: Request) {
   try {
     await dbConnect();
@@ -19,34 +34,33 @@ export async function GET(request: Request) {
     }
 
     // Validate user - check both User and Intern models
-    let user = await User.findOne({ username }).select("role organizationName organizationId").lean();
+    let user = await User.findOne({ username }).select("role organizationName organizationId").lean() as UserDocument | null;
     let isIntern = false;
 
     if (!user) {
       // Check Intern model if not found in User model
-      user = await Intern.findOne({ username }).select("role organizationName organizationId").lean();
-      isIntern = true;
+      const internUser = await Intern.findOne({ username }).select("role organizationName organizationId").lean() as InternDocument | null;
+      if (internUser) {
+        user = internUser;
+        isIntern = true;
+      }
     }
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Extract properties with explicit checks
+    // Explicit checks for organization data
     if (!user.organizationName || !user.organizationId) {
       return NextResponse.json({ error: 'User organization data incomplete' }, { status: 400 });
     }
 
-    const userOrganizationName = user.organizationName;
-    const userOrganizationId = user.organizationId;
-    const userRole = user.role || 'intern';
-
     // Use the actual role from database, not the query parameter
-    const actualRole = isIntern ? 'intern' : userRole;
+    const actualRole = isIntern ? 'intern' : user.role;
 
     let query: any = {
-      organizationName: userOrganizationName,
-      organizationId: userOrganizationId
+      organizationName: user.organizationName,
+      organizationId: user.organizationId
     };
 
     // Add team filter if specified
