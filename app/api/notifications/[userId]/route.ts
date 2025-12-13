@@ -12,7 +12,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
     await dbConnect();
     
     // Try to find the user by multiple ID formats
-    let query = { userId: userId };
+    // Use 'any' type for query to allow MongoDB operators
+    let query: any = { userId: userId };
     
     // If it looks like it could be an ObjectId, also search with that format
     if (ObjectId.isValid(userId)) {
