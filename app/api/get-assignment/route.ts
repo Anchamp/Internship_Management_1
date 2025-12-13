@@ -5,30 +5,6 @@ import Intern from '@/models/Intern';
 import Assignment from '@/models/Assignment';
 import Team from '@/models/Team';
 
-// Define interfaces for type safety
-interface UserDocument {
-  _id: string;
-  role: string;
-  organizationName: string;
-  organizationId?: string;
-}
-
-interface InternDocument {
-  _id: string;
-  role: string;
-  organizationName: string;
-}
-
-interface TeamDocument {
-  _id: string;
-  teamName: string;
-  organizationName: string;
-  assignments?: string[];
-  mentors?: string[];
-  panelists?: string[];
-  interns?: string[];
-}
-
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -46,10 +22,29 @@ export async function GET(request: Request) {
     // Connect to MongoDB
     await dbConnect();
 
-    // Validate User
-    let user: UserDocument | InternDocument | null = null;
-    const employeeUser = await User.findOne({username}).select("role organizationName organizationId").lean() as UserDocument | null;
-    const internUser = await Intern.findOne({username}).select("role organizationName").lean() as InternDocument | null;
+    // Validate User - Add type assertions
+    let user: {
+      role?: string;
+      organizationName?: string;
+      organizationId?: string;
+      _id?: any;
+      [key: string]: any;
+    } | null = null;
+    
+    const employeeUser = await User.findOne({username}).select("role organizationName organizationId").lean() as {
+      role?: string;
+      organizationName?: string;
+      organizationId?: string;
+      _id?: any;
+      [key: string]: any;
+    } | null;
+    
+    const internUser = await Intern.findOne({username}).select("role organizationName").lean() as {
+      role?: string;
+      organizationName?: string;
+      _id?: any;
+      [key: string]: any;
+    } | null;
 
     if (employeeUser) {
       user = employeeUser;
@@ -63,16 +58,16 @@ export async function GET(request: Request) {
         status: 404,
       });
     }
-
-    if (!user.organizationName) {
-      return NextResponse.json({
-        error: 'User organization data incomplete',
-        status: 400,
-      });
-    }
     
     // Validate Team
-    const team = await Team.findOne({teamName, organizationName: user.organizationName}).lean() as TeamDocument | null;
+    const team = await Team.findOne({teamName, organizationName: user.organizationName}).lean() as {
+      assignments?: any[];
+      mentors?: any[];
+      interns?: any[];
+      panelists?: any[];
+      [key: string]: any;
+    } | null;
+    
     if (!team) {
       return NextResponse.json({
         error: 'Team not found',
@@ -80,10 +75,8 @@ export async function GET(request: Request) {
       });
     }
 
-    // Get assignment for each id in team.assignments
-    let assigments = [];
-    
-    // Check if team.assignments exists and is an array
+    // get assignment for each id in team.assignments
+    let assigments = []
     if (team.assignments && Array.isArray(team.assignments)) {
       for (const assignmentId of team.assignments) {
         const assignment = await Assignment.findById(assignmentId).lean();
@@ -101,11 +94,7 @@ export async function GET(request: Request) {
     }
 
     if (user.role === 'employee') {
-      const allEmployees = [
-        ...(team.mentors || []), 
-        ...(team.panelists || [])
-      ];
-      
+      const allEmployees = [...(team.mentors || []), ...(team.panelists || [])];
       if (!allEmployees.includes(user._id.toString())) {
         return NextResponse.json({
           error: "User not authorized",
@@ -119,9 +108,7 @@ export async function GET(request: Request) {
     }
 
     if (user.role === 'intern') {
-      const teamInterns = team.interns || [];
-      
-      if (!teamInterns.includes(user._id.toString())) {
+      if (!(team.interns || []).includes(user._id.toString())) {
         return NextResponse.json({
           error: "User not authorized",
           status: 401,
@@ -132,13 +119,6 @@ export async function GET(request: Request) {
         assignments: assigments,
       });
     }
-
-    // If role doesn't match any expected role
-    return NextResponse.json({
-      error: "Invalid user role",
-      status: 400,
-    });
-
   } catch (error: any) {
     console.log("Error fetching Assignments:", error);
     return NextResponse.json({
