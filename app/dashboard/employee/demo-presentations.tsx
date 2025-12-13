@@ -1456,16 +1456,6 @@ const EvaluationModal = ({ presentation, internUsername, evaluationData, setEval
       </div>
     </div>
   </div>
-);full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-              placeholder="Enter presentation title"
-            />
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Team <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={formData.teamName}
-              onChange={(e) => setFormData((prev: any) => ({ ...prev, teamName: e.target.value }))}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+              
+     
