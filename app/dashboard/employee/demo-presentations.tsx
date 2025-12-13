@@ -779,7 +779,7 @@ const CreatePresentationModal = ({ formData, setFormData, teams, availableIntern
               className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
             >
               <option value="">Select a team</option>
-              {teams.map((team) => (
+              {teams.map((team: Team) => (
                 <option key={team.teamName} value={team.teamName}>
                   {team.teamName}
                 </option>
