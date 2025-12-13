@@ -24,8 +24,14 @@ export async function GET(request: Request) {
 
     await dbConnect();
 
-    // Find the team
-    const team = await Team.findOne({teamName, organizationName, organizationId}).lean();
+    // Find the team with type assertion
+    const team = await Team.findOne({teamName, organizationName, organizationId}).lean() as {
+      mentors?: any[];
+      interns?: any[];
+      panelists?: any[];
+      [key: string]: any;
+    } | null;
+    
     if (!team) {
       return NextResponse.json({ error: 'Team not found' }, { status: 404 });
     }
@@ -35,7 +41,8 @@ export async function GET(request: Request) {
     if (!adminUser) {
       return NextResponse.json({ error: 'Invalid Organization' }, { status: 404 });
     }
-    const allUserIds = [...team.mentors, ...team.interns, ...team.panelists];
+    
+    const allUserIds = [...(team.mentors || []), ...(team.interns || []), ...(team.panelists || [])];
     let allUsers: string[] = [adminUser.username];
     for (const user of allUserIds) {
       const response = await User.findById(user).select("username");
