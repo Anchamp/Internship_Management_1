@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 interface Organization {
   id: string;
@@ -228,41 +228,34 @@ export default function ApplyOrganizationModal({
             >
               <SelectTrigger className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-cyan-500 focus:border-cyan-500 text-black bg-white">
                 {isLoadingOrgs ? (
-                  <div className="flex items-center">
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    <span>Loading...</span>
-                  </div>
+                  <span className="text-gray-400 flex items-center">
+                    <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                    Loading...
+                  </span>
+                ) : selectedOrganization ? (
+                  <SelectValue placeholder="Choose an organization" />
                 ) : (
-                  <SelectValue placeholder="Select an organization" />
+                  <span className="text-gray-400">Choose an organization</span>
                 )}
               </SelectTrigger>
-              <SelectContent className="bg-white text-black border border-gray-300 rounded-md shadow-md z-50 text-xs">
-                {/* Search Header with white input box */}
-                <div className="sticky top-0 bg-gradient-to-r from-gray-50 to-white border-b border-gray-200 p-2 shadow-sm">
+              <SelectContent className="bg-white border-2 border-gray-300 shadow-lg max-h-[300px] overflow-y-auto z-[9999]">
+                {/* Search Input within Dropdown */}
+                <div className="sticky top-0 bg-white border-b border-gray-200 p-2 z-10">
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-                      <Search className="h-4 w-4 text-cyan-600" />
-                    </div>
+                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
                     <Input
+                      type="text"
                       placeholder="Search organizations..."
                       value={orgSearchQuery}
                       onChange={(e) => setOrgSearchQuery(e.target.value)}
-                      className="h-8 pl-8 pr-8 text-xs bg-white border border-gray-300 text-gray-400 placeholder:text-gray-400 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 rounded-md"
-                      autoComplete="off"
+                      className="pl-7 pr-3 py-1.5 text-xs border-gray-300 focus:ring-cyan-500 focus:border-cyan-500 bg-white text-black"
+                      onClick={(e) => e.stopPropagation()}
                     />
-                    {orgSearchQuery && (
-                      <button
-                        onClick={clearOrgSearch}
-                        className="absolute inset-y-0 right-0 pr-2 flex items-center transition-opacity duration-200 opacity-70 hover:opacity-100"
-                      >
-                        <XCircle className="h-4 w-4 text-gray-500 hover:text-red-500" />
-                      </button>
-                    )}
                   </div>
                 </div>
 
-                {/* Results Area */}
-                <div className="max-h-[180px] md:max-h-[200px] overflow-y-auto py-2 px-1">
+                {/* Organizations List */}
+                <div className="max-h-[200px] overflow-y-auto">
                   {isLoadingOrgs ? (
                     <div className="flex items-center justify-center py-6">
                       <Loader2 className="h-5 w-5 animate-spin text-cyan-500 mr-2" />
