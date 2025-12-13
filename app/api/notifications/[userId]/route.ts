@@ -29,7 +29,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
     
     // If no notifications found and userId looks like a username, try finding by username
     if (notifications.length === 0 && !ObjectId.isValid(userId)) {
-      const user = await User.findOne({ username: userId }).lean();
+      const user = await User.findOne({ username: userId }).lean() as { _id?: any; [key: string]: any } | null;
       
       if (user && user._id) {
         const notificationsByUsername = await Notification.find({ 
